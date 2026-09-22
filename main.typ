@@ -1,22 +1,19 @@
-// Example usage of the academic-notes template
-// This demonstrates how to use the template for academic notes
-
 #import "template.typ": *
 
 #show: academic-notes.with(
   // --- Required
-  title: "Course Name",
-  subtitle: "University Name - Master's Degree in Computer Science",
+  title: "Alg Web",
+  subtitle: "Unimi - Master's Degree in Computer Science",
   authors: (
-    ("Your Name", "your-github-username"),
-    ("Another Author", "their-github-username"),
+    ("Luca Corradini", "LucaCorra02"),
+    ("Giacomo comitatno", "ComitaniGiacomo"),
   ),
   lang: "en", // or "it", IMPORTANT!
 
   // --- Optional, uncomment to change
-  repo-url: "https://github.com/your-username/repo-name",
+  repo-url: "https://github.com/LucaCorra02/Algo-Web",
   course-url: "https://university/professor/course",
-  year: "2025-26",
+  year: "2026-27",
   lecturer: "Professor",
   // date: datetime.today(),
   // license: "CC-BY-4.0",
@@ -45,60 +42,5 @@
 // YOUR CONTENT STARTS HERE
 // ============================================================================
 
-// You can organize your content with parts
 #part("First Part")
-
-= First Chapter
-
-== Section 1.1
-
-This is example content. You can use all template helpers:
-
-#note[
-  This is an informative note.
-]
-
-#warning[
-  This is an important warning.
-]
-
-#example[
-  This is a practical example.
-]
-
-#informally[
-  Informal explanation of the concept.
-]
-
-=== Theorems and Proofs
-
-#theorem(title: "Example Theorem")[
-  This is the theorem content. Equations are numbered automatically:
-  $ sum_(i=1)^n i = (n(n+1))/2 $ <eq-sum>
-]
-
-#proof[
-  This is the proof. Equations are also numbered here:
-  $ 2 dot sum_(i=1)^n i = sum_(i=1)^n i + sum_(i=1)^n i $
-
-  We can reference @eq-sum using links.
-]
-
-=== Colored Math
-
-You can use colors to highlight parts of mathematical formulas:
-$ mg(x^2) + mo(y^2) = mb(z^2) $
-
-== Section 1.2
-
-More content...
-
-#part("Second Part")
-
-= Second Chapter
-
-Content of the second chapter...
-
-#todo // Use this to mark incomplete sections
-
-#include "chapters/example.typ" // You can include external files for better organization
+#include "chapters/L1.typ"
