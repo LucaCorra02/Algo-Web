@@ -1,0 +1,57 @@
+name: Create Release with compiled PDF
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "**.typ"
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Typst
+        uses: typst-community/setup-typst@v3
+
+      - name: Compile Typst document
+        run: |
+          typst compile main.typ ${{ github.event.repository.name }}.pdf
+
+      - name: Upload PDF as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ github.event.repository.name }}-release
+          path: ${{ github.event.repository.name }}.pdf
+          retention-days: 90
+
+      - name: Get current date and short SHA
+        id: meta
+        run: |
+          echo "date=$(date +'%d/%m/%Y')" >> $GITHUB_OUTPUT
+          echo "sha=${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
+
+      - name: Create Release with PDF
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: release-${{ steps.meta.outputs.sha }}
+          name: Compiled PDF ${{ steps.meta.outputs.date }} (${{ steps.meta.outputs.sha }})
+          body: |
+            🎓 **${{ github.event.repository.name }} - PDF ${{ steps.meta.outputs.date }} (${{ steps.meta.outputs.sha }})**
+
+            Automated release created from main branch with the latest version of the course notes.
+
+            **Release Details:**
+            - Generated from commit: ${{ steps.meta.outputs.sha }}
+            - Build date: ${{ steps.meta.outputs.date }}
+            - PDF compiled with latest Typst version
+
+            **Download:** The PDF is attached to this release as `${{ github.event.repository.name }}.pdf`
+          files: ${{ github.event.repository.name }}.pdf
+          draft: false
+          prerelease: false
