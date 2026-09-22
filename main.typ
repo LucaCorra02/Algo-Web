@@ -14,7 +14,7 @@
   repo-url: "https://github.com/LucaCorra02/Algo-Web",
   course-url: "https://university/professor/course",
   year: "2026-27",
-  lecturer: "Professor",
+  lecturer: "Sebastiano Vigna",
   // date: datetime.today(),
   // license: "CC-BY-4.0",
   // license-url: "https://creativecommons.org/licenses/by/4.0/",
