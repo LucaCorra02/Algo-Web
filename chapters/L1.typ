@@ -24,7 +24,7 @@ Le strutture che vedremo hanno delle operazioni in tempo costante: il tempo non 
 == Grafi
 
 Andiamo a definire un grafo orienato $G$ come una tupla $G = <N, A, s, t>$, dove:
-- $N$ è l'insieme dei nodi
+- $N$ è l'insieme dei nodi. (L'ordine del grafo è il numero totale dei suoi vertici $|N|$).
 - $A$ è l'insieme degli archi
 - $s, t: A -> N$ sono due funzioni che collegano un arco a un nodo. Dove $s$ è la funzione di sorgente e $t$ è la funzione di destinazione (target). In questo modo possiamo rappresentare *archi paralleli* (stesso nodo di partenza e arrivo) ovvero se esistono due archi $a$ e $b$ t.c:
   $
@@ -33,7 +33,8 @@ Andiamo a definire un grafo orienato $G$ come una tupla $G = <N, A, s, t>$, dove
   Così da rappresentare pagine collegate più volte tra di loro.
 
 #note()[
-  Stando alla formulazione standard, un grafo definito come sopra è un *multigrafo*, ovvero un grafo che può avere archi multipli tra due nodi.
+  Stando alla formulazione standard, un grafo definito come sopra è un *multigrafo*, ovvero un grafo che può avere archi multipli tra due nodi. 
+  Un grafo che non presenta archi paralleli è detto *grafo separato*. Se inoltre è presente un arco che ha lo stesso nodo come inizio e fine ($s(a)=t(a)$), questo prende il nome di *Cappio (Loop)*.
 ]
 
 Al fine di unificare i concetti di grafo orientato e non orientato, definiamo la *funzione di inversione degli archi* $sigma: A -> A$ che associa ad ogni arco $a$ il suo arco inverso $sigma(a)$, tale che:
@@ -42,6 +43,12 @@ $
   s compose sigma = t "se prendo un arco, lo giro e ne considero la sorgente, ottengo il target dell'arco originale"
 $
 Senza la funzione $sigma$, i grafi orientati e non orientati richiederebbero due definizioni matematiche diverse: coppie ordinate per i primi, insiemi di due nodi per i secondi. Introducendo $sigma$ un grafo orientato diventa un grafo in cui l'insieme degli archi $A$ è _chiuso_ rispetto a $sigma$. Ovvero: $forall a in A$ che va da $x$ a $y$, è garantita l'esistenza di un arco gemello $sigma(a)$ che va da $y$ a $x$.
+
+#note(title: "(Grafi non orientati)")[
+  In un grafo non orientato è utile definire due concetti contrapposti:
+  - *Cricca (Clique):* Un insieme di vertici mutualmente tutti adiacenti tra loro.
+  - *Insieme indipendente:* Un insieme di vertici mutualmente _non_ adiacenti.
+]
 
 Definiamo con:
 - *indegree* = numero di vertici che entrano in un nodo
@@ -64,11 +71,13 @@ $
 
 Definiamo come *successori* i nodi raggiungibili da un nodo $x$ tramite un arco $a$ in un solo passo. I *predecessori* sono i nodi dai quali si raggiunge $x$ tramite un arco $a$ in un solo passo.
 
-Definiamo con *path* una sequenza di archi che collega due nodi $x$ e $y$ in un grafo:
+Definiamo con *path (cammino)* una sequenza alternata di nodi e archi che collega due nodi $x$ e $y$ in un grafo:
 $
   a_1, a_2, ..., a_k "t.c" t(a_i) = s(a_(i+1)) space forall i = 1, ..., k - 1
 $
-La lunghezza del path è il numero di archi che lo compongono (i vertici del cammino possono ripetersi).
+La lunghezza del path è il numero di archi che lo compongono (i vertici del cammino possono ripetersi). 
+- Un *Ciclo Semplice* è un cammino chiuso in cui i nodi interni non si ripetono mai.
+- Il *Grafo Trasposto* si ottiene scambiando la funzione $s$ con la funzione $t$ (si "gira" il verso di ogni arco).
 
 #note()[
   Gli archi in entrata e gli archi in uscita nel Web sono molto diversi. Conoscere i successori (seguire i link) è molto facile, mentre conoscere i predecessori è molto difficile: bisogna fare crawling di tutto il Web per sapere chi collega chi, ottenendo man mano le liste di adiacenza ed infine invertirle.
@@ -78,7 +87,7 @@ La lunghezza del path è il numero di archi che lo compongono (i vertici del cam
 
 *Raggiungibilità*: se esiste un path da $x$ a $y$, diciamo che $y$ è raggiungibile da $x$.
 
-*Componenti fortemente connesse*: Due (o più) nodi sono fortemente connessi se esiste una *relazione di equivalenza*  tra di loro, ovvero  i vertici sono co-raggiungibili, cioè se ciascuno dei due è raggiungibile dall'altro. La relazione di equivalenza $x tilde y$ è definita come:
+*Componenti fortemente connesse*: Due (o più) nodi sono fortemente connessi se esiste una *relazione di equivalenza* tra di loro, ovvero i vertici sono co-raggiungibili, cioè se ciascuno dei due è raggiungibile dall'altro. La relazione di equivalenza $x tilde y$ è definita come:
 $
   x tilde y <-> x -> y "and" y -> x
 $
@@ -87,9 +96,13 @@ Deve inoltre avere le seguenti proprietà:
 - _simmetrica_: $x tilde y -> y tilde x$: se esiste un path da $x$ a $y$, deve esistere anche un path da $y$ a $x$;
 - _transitiva_: $x tilde y, y tilde z -> x tilde z$: se esiste un path da $x$ a $y$ e da $y$ a $z$, allora esiste un path da $x$ a $z$.
 
-
-
 Le classi di equivalenza di $tilde$ sono le componenti fortemente connesse del grafo. $G$ è *fortemente connesso* se ha una sola componente fortemente connessa, ovvero se tutti i nodi sono co-raggiungibili.
+
+#informally(title: "Struttura delle Componenti (CFC)")[
+  Le CFC sono a tutti gli effetti dei *"blocchi di co-raggiungibilità"*. All'interno della classe, da ogni nodo posso arrivare a qualsiasi altro nodo della stessa classe e tornare indietro.
+  
+  Se guardiamo al grafo dove ogni componente diventa un super-nodo, potremmo avere un cammino che permette di arrivare da una CFC $A$ a una CFC $B$, ma una volta in $B$ *non è più possibile tornare indietro* ad $A$ (altrimenti $A$ e $B$ si unirebbero nella stessa unica classe di equivalenza).
+]
 
 #figure(
   fletcher.diagram(
@@ -111,14 +124,15 @@ Le classi di equivalenza di $tilde$ sono le componenti fortemente connesse del g
 )
 Una componente *debolmente connessa* è una componente connessa del *grafo orientato* ottenuta considerando anche la funzione di inversione degli archi: gli archi possono essere girati in modo da ignorarne l'orientamento. Si tratta di una relazione di equivalenza più debole (basta un arco tra due nodi in una qualsiasi direzione).
 
-#note()[
-  Il problema del crawling non dipende da dove partiamo (raggiungiamo sempre una buona parte del Web), ma è una questione di *tempo*: quanto tempo ci metto a fare crawling di tutto il Web?
+#example(title: "Il crawling e la Scelta del Seme")[
+  Il problema del crawling non dipende solo dal "dove partiamo" per raggiungere una buona parte del Web, ma è anche una questione di *tempo* e di topologia.
+  Dato che il Web è composto da queste componenti (CFC centrali, componenti solo in entrata e componenti solo in uscita), la *scelta del seme (seed)* è fondamentale. Se scegliamo un seme in un blocco isolato o in una componente senza vie d'uscita (come la CFC blu nell'immagine sopra, da cui non si può tornare indietro), il crawler si bloccherà presto non trovando più nuovi nodi da visitare.
 ]
 
 *Distanza in un grafo*: lunghezza del path più corto (c'è ne può essere più di uno) tra due nodi $x$ e $y$. Se non esiste un path tra i due nodi, la distanza è $infinity$. Per essere una distanza, la funzione $d: N times N -> R$ deve soddisfare le seguenti proprietà:
 - _non negatività_: $d(x,y) >= 0$ (la distanza non può essere negativa)
 - _identità_: $d(x,y) = 0 <-> x = y$ (la distanza tra due nodi è nulla se e solo se i due nodi coincidono)
-- _simmetria_: $d(x,y) = d(y,x)$ (la distanza tra due nodi non dipende dall'ordine in cui li consideriamo)
+- _simmetria_: $d(x,y) = d(y,x)$ (la distanza tra due nodi non dipende dall'ordine in cui li consideriamo. Nel caso di grafi orientati questo vale solo se il grafo è perfettamente simmetrico).
 - _triangolarità_: $d(x,y) <= d(x,z) + d(z,y)$
   #proof()[
     #figure(
