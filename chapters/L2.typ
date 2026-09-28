@@ -76,7 +76,7 @@ Si tratta di una struttura dati probabilistica che rappresenta un dizionario app
 
 Esso è costituito da due elementi:
 - $m$: vettore di bit
-- $d$: numero di funzioni di hash: 
+- $d$: numero di funzioni di hash:
   $
     h_0, h_1, ..., h_(d-1)
   $
@@ -119,11 +119,11 @@ A parità di numero di elementi inseriti e di dimensione del vettore, aumentando
     $
     Usando il limite notevole classico $mb((1 + alpha/n)^n -> e^alpha)$ per $n -> infinity$ e assumendo $m$ grande, possiamo approssimare la probabilità che un bit sia $0$ dopo $n$ inserimenti nel seguente modo:
     $
-      &= (1 - (1-1/m)^(n d))\
-      &#text("divido e moltiplico per m per usare il limite")\
-      &= (1 - (1-1/m)^(mr(m) * (n d) / mr(m)))\
-      &= (1-(1-1/m)^m)^((n d) / m)\
-      &= (mb(e^(-1)))^((n d) / m) = e^(-(n d)/ m)\
+      & = (1 - (1-1/m)^(n d)) \
+      & #text("divido e moltiplico per m per usare il limite") \
+      & = (1 - (1-1/m)^(mr(m) * (n d) / mr(m))) \
+      & = (1-(1-1/m)^m)^((n d) / m) \
+      & = (mb(e^(-1)))^((n d) / m) = e^(-(n d)/ m) \
     $
     Per trovare la probabilità di falso positivo basta sostituire questa probabilità nella formula precedente:
     $
@@ -131,78 +131,84 @@ A parità di numero di elementi inseriti e di dimensione del vettore, aumentando
     $
     Andiamo ora a *minimizzare* questa probabilità rispetto a $d$, con $m$ e $n$ fissati:
     $
-      mr(p) &= e^(-(n d) / m)\
-      ln p &= - (n d) / m\
-      d &= - m / n ln p\
+      mr(p) & = e^(-(n d) / m) \
+       ln p & = - (n d) / m \
+          d & = - m / n ln p \
     $
     Sostituendo nella formula "approssimata" otteniamo:
     $
-      (1-e^(-(n d)/ m))^d &= (1-mr(p))^(- m / n ln p)\
-      &"Applicando la regola" mb(x)^mg(y) = e^(y ln x) "otteniamo:"\
-      &= e^(mg(- m / n ln p) ln (mb(1-p)))\
+      (1-e^(-(n d)/ m))^d & = (1-mr(p))^(- m / n ln p) \
+                          & "Applicando la regola" mb(x)^mg(y) = e^(y ln x) "otteniamo:" \
+                          & = e^(mg(- m / n ln p) ln (mb(1-p))) \
     $
     Per trovare il minimo, deriviamo rispetto a $p$ e poniamo la derivata uguale a zero:
     $
-      f(p) &= e^(- m / n ln p ln (1-p))\
-           &= e^(- m / n ln p ln (1-p)) [- m / n ((ln (1-p))/p - (ln p)/(1-p))]\
+      f(p) & = e^(- m / n ln p ln (1-p)) \
+           & = e^(- m / n ln p ln (1-p)) [- m / n ((ln (1-p))/p - (ln p)/(1-p))] \
     $
     Ora poniamo la derivata uguale a zero e otteniamo:
     $
-      &= mb(-m/n e^(- m / n ln p ln (1-p))) [ mr(((ln (1-p))/p - (ln p)/(1-p)))] = 0\
+      & = mb(-m/n e^(- m / n ln p ln (1-p))) [ mr(((ln (1-p))/p - (ln p)/(1-p)))] = 0 \
     $
     Siccome il blocco $mb("blu")$ non può mai annullarsi (la funzione esponenziale non si annulla mai), dobbiamo porre uguale a zero il blocco $mr("rosso")$:
     $
-      (ln (1-p))/p - (ln p)/(1-p) &= 0\
-      (ln (1-p))/p  &= (ln p)/(1-p)\
-      "moltiplico per " &p(1-p)\
-      (1-p) ln (1-p) &= p ln p\
+      (ln (1-p))/p - (ln p)/(1-p) & = 0 \
+                     (ln (1-p))/p & = (ln p)/(1-p) \
+                "moltiplico per " & p(1-p) \
+                   (1-p) ln (1-p) & = p ln p \
     $
     Sia il membro di destra che quello di sinistra sono identici $x ln x$. Una soluzione immediata si ha quando gli argomenti sono uguali, cioè imponendo $1-p = p$:
     $
       1-p = p\
       p = 1/2\
     $
-    Sapendo che il minimo errore si ottiene per $p=1/2$ e ricordanno la sostituzione $p = e^(-(n d) / m)$, otteniamo: 
+    Sapendo che il minimo errore si ottiene per $p=1/2$ e ricordanno la sostituzione $p = e^(-(n d) / m)$, otteniamo:
     $
-      1/2 &= e^(-(n d) / m)\
-      ln 1/2 &= - (n d) / m\
-      d &= - m / n ln 1/2\
-      d &= m / n ln 2\
+         1/2 & = e^(-(n d) / m) \
+      ln 1/2 & = - (n d) / m \
+           d & = - m / n ln 1/2 \
+           d & = m / n ln 2 \
     $
 ]
-
-//sistema da qui
-
-La probabilità di falso positivo è $(1/2)^d$ quando è soddisfatta la condizione $m = (n d) / ln 2$. Questo significa che, per ogni elemento che vogliamo inserire e per $d$ funzioni di hash, servono circa $1.44d$ bit. In pratica:
+La dimostrazione mostra che la probabilità di falso positivo è minimizzata quando $d = (m/n) ln 2$. Invertendo la formula otteniamo:
+$
+  m & = (n d) / (ln 2) \
+  m & = 1 / (ln 2) * n d \
+  m & approx 1.44 n d \
+$
+Questo significa che date $d$ funzioni hash, per ogni elemento che vogliamo inserire servono circa *$1.44d$ bit*. In pratica:
 - fisso il falso positivo desiderato e ricavo il valore di $d$;
 - stabilisco quanti elementi voglio inserire, cioè $n$;
 - calcolo $m$ e quindi la dimensione del vettore di bit. Il costo è circa $1.44$ bit per elemento per ogni dimezzamento del falso positivo.
 
 #note()[
-  Il filtro di Bloom occupa circa il $44$% in più rispetto al limite teorico di $d$ bit per elemento associato a un falso positivo pari a $(1/2)^d$.
+  La teoria dell'informazione stabilisce che per identificare un elemento con una probabilità di errore pari a $2^(-d)$, servirebbero esattamente $d$ bit per elemento. Il filtro di Bloom ne richiede circa $1,44d$ per elemento, usando circa il $44\%$ di spazio in più rispetto alla compressione ideale.
 ]
 
-Fissata la precisione, il filtro risponde in un tempo indipendente dal numero di elementi: esegue $d$ calcoli di funzioni di hash e altrettanti accessi al vettore. Il tempo dipende però dall'accesso alla memoria; se ogni interrogazione richiede 100 accessi fuori cache, il costo può essere elevato.
-
-Quando inseriamo circa $n$ elementi, nella configurazione ottimale abbiamo approssimativamente metà zeri e metà uni. Si tratta comunque di una struttura che può diventare lenta, perché le funzioni di hash producono accessi apparentemente imprevedibili e quindi difficili da gestire per la cache dei processori.
+Dal punto di vista teorico, il tempo di risposta di un filtro di Bloom è *costante e indipendente da $n$*: richiede esattamente $d$ calcoli di funzioni di hash e $d$ accessi in memoria. Nella pratica, tuttavia, il pattern di accesso casuale alla memoria è pessimo: ogni interrogazione positiva genera fino a $d$ fallimenti di cache (cache miss) un'operazione che a livello hardware è estremamente costosa.
 
 #note()[
-  Inoltre, quando il vettore è nella configurazione ottimale e si interrompe la ricerca al primo bit uguale a 0, il numero medio di accessi per una query negativa è circa $2$. Per questo motivo, nella pratica, i filtri di Bloom vengono spesso sovradimensionati per evitare la saturazione.
+  Nella configurazione ottima la probabilità che un bit sia a zero è esattamente $1/2$. Ci sono quindi due casi:
+  - Query negativa: la ricerca si interrompe al primo bit nullo trovato, bastano in media solo *2 accessi* in memoria per dichiarare l'assenza di un elemento (50% di probabilità di trovare un bit a 0 ad ogni accesso).
+
+  - Query positiva: la ricerca deve controllare tutti i $d$ bit, quindi in media sono necessari *$d/2$ accessi* in memoria per dichiarare la presenza di un elemento.
+
+  Per questo motivo si tende a sovradimensionare i filtri per abbassare ulteriormente i falsi positivi e ridurre le probabilità di query lente.
 ]
 
 === Blocked bloom filter
 
-L'idea è prendere tanti filtri piccoli e metterli in fila. In un mondo perfetto, una funzione di hash assegna ogni chiave a un filtro e distribuisce lo stesso numero di chiavi in ciascun filtro, cioè circa $n/k$. Otteniamo così tanti filtri che funzionano come quello originale. Inoltre, scegliendo filtri della dimensione di una linea di cache, riduciamo i fallimenti di cache.
+L'idea è prendere tanti filtri piccoli e metterli in fila. In un mondo perfetto, una funzione di hash assegna ogni chiave a un filtro e distribuisce lo stesso numero di chiavi in ciascun filtro, cioè circa $n/k$. Inoltre, dimensionando i  filtri in modo tale che rispecchino la dimensione di una linea di cache possiamo andare a ridurre i fallimenti di cache.
 
-Problemi:
+$mr("Problemi")$:
 - L'analisi dell'errore non funziona direttamente per $m$ piccoli;
-- il numero di chiavi assegnate a ciascun sotto-filtro segue una distribuzione binomiale, quindi le urne non saranno piene allo stesso modo. Alcuni sotto-filtri saranno più precisi e altri meno precisi.
+- il numero di chiavi assegnate a ciascun sotto-filtro segue una *distribuzione binomiale*, quindi le urne non saranno piene allo stesso modo. Alcuni sotto-filtri saranno più precisi e altri meno precisi.
 
 #theorem()[
-  Se abbiamo $n$ palle e $n$ urne e ogni palla viene assegnata uniformemente a un'urna, l'urna più piena non contiene soltanto un numero costante di elementi: con alta probabilità il suo carico massimo è dell'ordine di $log n / log log n$.
+  Se $n$ palle vengono assegnate uniformemente a caso in $n$ urne, l'urna più piena non conterrà un numero costante di elementi: con alta probabilità, il suo carico massimo sarà dell'ordine di $O(log n \/ log log n)$.
 ]
 
-Ottimizzazione: per ridurre il costo del calcolo delle $d$ funzioni di hash, possiamo costruirle usando solo due funzioni di base:
+Una possibile *ottimizzazione* per ridurre il costo del calcolo delle $d$ funzioni di hash è modificarne la costruzione in mod da poterle costruirle usando solo due funzioni di base:
 $
   h_i (x) = (a(x) * i + b(x)) mod m
 $
