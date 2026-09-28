@@ -2,108 +2,176 @@
 
 = Crawling
 
-Ci interessa tenere traccia di tre insiemi:
-- l'insieme degli URL già visitati, dei quali abbiamo già estratto le informazioni necessarie;
+Il crawling è il processo di visita automatica di pagine web, partendo da un insieme iniziale di URL (_seed_). L'obiettivo è estrarre informazioni dalle pagine visitate e scoprire nuovi URL da visitare. Ci interessa tenere traccia di tre insiemi:
 
-- la *frontiera*: l'insieme delle pagine che conosciamo ma non abbiamo ancora visitato. Può essere costituita da URL inseriti manualmente oppure raggiungibili dai nodi visitati. \
+- *Visitati*: l'insieme degli URL già visitati. Da essi abbiamo già estratto le informazioni necessarie
 
-  La frontiera può essere ordinata secondo un criterio di priorità, che seleziona il prossimo URL da visitare. Con una FIFO otteniamo una visita in ampiezza, con cerchi concentrici a partire da un nodo, mentre il raggio si amplia. Le informazioni contenute nell'URL vengono estratte e memorizzate;
+- *Frontiera*: l'insieme delle pagine che conosciamo ma non abbiamo ancora visitato. Può essere costituito da URL inseriti manualmente oppure raggiungibili da nodi già visitati. \
+  La frontiera può essere ordinata secondo un *criterio di priorità* in modo da personalizzare il criterio del prossimo URL da visitare.
+  #example()[
+    Con una FIFO otteniamo una visita in ampiezza, con cerchi concentrici a partire da un nodo (ampliando man mano il raggio).
+  ]
 
-- l'insieme degli URL non ancora visitati e non ancora conosciuti.
+- *Sconosciuti*: l'insieme degli URL non ancora visitati e non ancora conosciuti.
 
-Servono strutture dati apposite per tenere traccia di questi insiemi, in particolare per verificare rapidamente se un URL è già presente nell'insieme dei visitati o nella frontiera. Un esempio sono i *filtri*, strutture dati simili a insiemi che permettono di tenere traccia di quali URL sono già stati visitati e quali no. Solitamente, ricordare l'ordine di visita e ciò che abbiamo già visto può essere ricondotto a un'unica struttura dati più efficiente, invece di separare i due problemi.
+Il problema fondamentale di quest’attività è la *gestione della frontiera*. Infatti, la frontiera è di ordini di grandezza più grande dell’insieme dei visitati. A tale scopo, è necessario utilizzare strutture dati efficienti per memorizzare la frontiera e per estrarre rapidamente il prossimo URL da visitare. Inoltre, è importante evitare di visitare più volte lo stesso URL, quindi è necessario tenere traccia degli URL già visitati.
 
-== Collisioni
+== Crivelli
 
-In caso di errore, un dizionario approssimato può rispondere usando informazioni probabili invece di memorizzare esplicitamente tutti i dati. Nei crawler solitamente non viene memorizzato l'URL assoluto, ma una firma ottenuta tramite una funzione hash, in modo da risparmiare spazio e velocizzare le operazioni di ricerca. L'unico problema è che due URL diversi possono avere la stessa firma (*collisione*), la cui probabilità deve essere stimata.
+Il crivello è la struttura dati di base di un crawler: accetta in ingresso URL potenzialmente da visitare e permette di prelevare URL pronti per la visita. Ogni URL che viene inserito nel crivello esce *una sola volta*, indipendentemente da quante volte è stato inserito. In questo senso il crivello unisce le proprietà di un dizionario a quelle di una coda con priorità, e rappresenta al tempo stesso
+la frontiera, l’insieme dei visitati e la coda di visita.
 
-Per stimare le collisioni trattiamo la funzione hash come una funzione casuale, che mappa delle palle in delle urne. Per $n$ palle e $u$ urne, il numero atteso di coppie in collisione è circa $n^2 / (2u)$ quando $n$ è molto più piccolo di $u$. Il numero effettivo di collisioni è una variabile aleatoria; per valori grandi può essere approssimato tramite una distribuzione di Poisson.
+#note()[
+  Solitamente ricordare l'ordine di visita e ciò che abbiamo già visto può essere ricondotto a un'unica struttura dati (crivello) più efficiente, invece di separare i due problemi.
+]
+
+=== Collisioni
+
+Un esempio sono i *filtri*, strutture dati simili a insiemi che permettono di tenere traccia di quali URL sono già stati visitati e quali no. Essi sono dizionari approssimati: possono produrre falsi positivi, ma non falsi negativi. In altre parole, se il filtro risponde *no*, possiamo fidarci; se risponde *sì*, dobbiamo verificare effettivamente la presenza dell'elemento.
+
+In queste strutture è preferibile sostituire l'URL con una *firma* ottenuta tramite una funzione hash, in modo da risparmiare spazio e velocizzare le operazioni di ricerca. Ad esempio andando a inserire le firme in una tabella di hash si potrebbe risparmiare spazio (La firma ha lo stesso numero di bit). In questo caso, però il dizionario può produrre _falsi positivi_: sostenendo di conoscere un URL che in realtà non è stato visitato.
+
+#warning()[
+  L'unico problema è che due URL diversi possono avere la stessa firma (*collisione*), la cui probabilità deve essere stimata.
+
+  #proof()[
+    Per stimare le collisioni trattiamo la funzione hash come una funzione casuale, che mappa delle palle in delle urne. Dove siano:
+    - $n$ numero di palle (cioè URL o chiavi inserite)
+    - $u$ numero di urne (universo delle firme)
+
+    Il numero atteso di coppie in collisione è
+    $
+      approx n^2 / (2u) "per" n "grande"
+    $
+    Il numero effettivo di collisioni è una variabile aleatoria; per valori grandi può essere approssimato tramite una distribuzione di Poisson.
+  ]
+]
 
 #example()[
-  Su $2^64$ urne, quante collisioni ci sono con 100 miliardi di URL?
+  Selezionando una funzione hash che produce firme a $64$ bit, abbiamo $2^64$ urne. Con $100$ miliardi di URL, il numero atteso di collisioni è:
   $
-    (100 * 10^9)^2 / (2 * 2^64) approx 271
+    (100 * 10^9)^2 / (2 * 2^64) approx 271.05
   $
   Il numero atteso di collisioni è basso e può essere gestito, per esempio verificando l'URL originale quando una firma risulta già presente.
 ]
 
-Nella struttura che rappresenta gli URL già visitati possiamo memorizzare la firma (hash) invece dell'URL stesso, in modo da risparmiare spazio e, dato l'alto numero di accessi, minimizzare i tempi. Se non conserviamo anche l'URL originale, però, una collisione può produrre un falso positivo: per questo la firma deve essere sufficientemente lunga oppure deve essere verificata con i dati originali.
-
 #note()[
-  Questo approccio non va bene per la frontiera: lì dobbiamo conservare fisicamente l'URL, perché dobbiamo poterlo visitare.
+  Una tabella di hash non è adatta a memorizzare la frontiera, in quanto è necessario avere l'URL originale per poterlo visitare e non una firma.
 ]
 
-== Riallocazione delle strutture dati
+=== Riallocazione delle strutture dati
 
-Le riallocazioni delle tabelle hash sono estremamente instabili rispetto all'occupazione di memoria. In questo contesto vogliamo che le strutture dati utilizzino una quantità di memoria centrale fissata a priori. Vogliamo che, man mano che il crawler procede, il sistema rallenti piuttosto che smettere di memorizzare nuovi URL a causa della saturazione della RAM (*graceful degradation*).
+Le *riallocazioni* delle tabelle hash sono estremamente instabili rispetto all'occupazione di memoria. Nel contesto di un Crawler vogliamo che le strutture dati utilizzino una quantità di memoria centrale fissata a priori. L'idea è che man mano che il crawler procede, il sistema rallenti piuttosto che smettere di memorizzare nuovi URL a causa della saturazione della RAM (*graceful degradation*).
 #note()[
   Le tabelle hash non sono adatte a questo scopo perché, quando lo spazio è esaurito, spesso devono essere riallocate con una capacità doppia. Se non c'è più memoria disponibile, il crawler si blocca.
 ]
 
-=== Filtri di bloom
+== Filtri di bloom
 
-Si tratta di un dizionario approssimato che può produrre falsi positivi, ma non falsi negativi: se la struttura risponde *no*, possiamo fidarci; se risponde *sì*, dobbiamo verificare effettivamente la presenza dell'elemento. La cosa utile è che utilizza una quantità di memoria fissata in anticipo.
+Si tratta di una struttura dati probabilistica che rappresenta un dizionario approssimato. Permette di aggiungere elementi all’insieme e chiedere se un elemento appartiene o no all’insieme, con il rischio di ottenere _falsi positivi_.
+
+#note()[
+  Un filtro di Bloom può si produrre falsi positivi, ma non falsi negativi: se la struttura risponde *$mr("no")$*, possiamo fidarci; se risponde *$mg("sì")$*, dobbiamo verificare effettivamente la presenza dell'elemento. La cosa utile è che utilizza una quantità di memoria fissata in anticipo.
+]
 
 Esso è costituito da due elementi:
 - $m$: vettore di bit
-- $d$: numero di funzioni di hash, che vanno dall'universo delle chiavi $U$ agli indici del vettore, cioè $U -> {0, ..., m - 1}$. Idealmente, ogni funzione di hash è indipendente dalle altre ed è uniformemente distribuita.
-
+- $d$: numero di funzioni di hash: 
+  $
+    h_0, h_1, ..., h_(d-1)
+  $
+  esse vanno dall'universo delle chiavi $U$ agli indici del vettore, cioè $U -> {0, ..., m - 1}$. Idealmente, ogni funzione di hash è *indipendente* dalle altre ed è uniformemente distribuita.
 
 Due primitive:
-- `insert`: data una chiave $x$, calcola i valori $h_i(x)$, che indicano le posizioni associate a $x$ nel vettore di bit, e imposta a 1 tutte queste posizioni.
-- `contains`: data una chiave $x$, calcola i valori $h_i(x)$. Se tutte le posizioni corrispondenti valgono 1, restituisce *true*; altrimenti restituisce *false*. Se restituisce *false*, allora la chiave sicuramente non è presente; se restituisce *true*, allora è probabilmente presente.
+- *`insert`*: data una chiave $x$, calcola i valori $h_i (x)forall i in d$, che indicano le posizioni associate a $x$ nel vettore di bit, e imposta a $1$ tutte queste posizioni.
 
-#note()[
+- *`contains`*: data una chiave $x$, calcola i valori $h_i (x)forall i in d$. Se tutte le posizioni corrispondenti valgono $1$ (and), restituisce $mg("true")$; altrimenti restituisce $mr("false")$. Se restituisce $mr("false")$, allora la chiave sicuramente non è presente; se restituisce $mg("true")$, allora è probabilmente presente.
+
+  #note()[
+    Per ottenere un falso positivo, tutte le posizioni visitate dalle $d$ funzioni di hash della chiave interrogata devono risultare già impostate a 1. Non è quindi necessario che le funzioni di hash producano lo stesso indice: è sufficiente che le posizioni richieste siano state impostate da inserimenti precedenti.
+  ]
+
+
+#informally()[
   Se in passato abbiamo eseguito `insert(x)`, allora `contains(x)` restituisce sicuramente *true*, purché non vengano eseguite operazioni di reset.
 
   Se, per una collisione, `insert(y)` imposta a 1 tutte le posizioni associate a $x$, allora `contains(x)` restituisce *true* anche se $x$ non è presente: questo è un falso positivo.
 ]
 
-Per ottenere un falso positivo, tutte le posizioni visitate dalle $d$ funzioni di hash della chiave interrogata devono risultare già impostate a 1. Non è quindi necessario che le funzioni di hash producano lo stesso indice: è sufficiente che le posizioni richieste siano state impostate da inserimenti precedenti.
+Problema delle chiavi *multiple*: Una certa chiave $z$ potrebbe collidere su posizione con una chiave $x$ e con una chiave $y$, quindi se faccio `head(x)` e `head(y)` allora `contains(z)` ritorna *true* anche se non c'è. Questo è un falso positivo.
 
-Problema delle chiavi *multiple*: Una certa chiave $z$ potrebbe collidere su posizione con una chiave $x$ e con una chiave $y$, quindi se faccio head(x) e head(y) allora contains(z) ritorna *true* anche se non c'è. Questo è un falso positivo.
-
-#note()[
-  A parità di numero di elementi inseriti e di dimensione del vettore, aumentando $d$ controlliamo più bit e inizialmente il falso positivo diventa meno probabile. Tuttavia, se $d$ è troppo grande, impostiamo molti più bit a 1 e il vettore si satura; perciò esiste un valore ottimale di $d$.
-
-  Inoltre, aumentando $d$ aumentano il tempo di inserimento e il tempo di interrogazione.
-]
-
-#warning()[
-  Anche un hash set basato su firme può essere soggetto a collisioni e quindi a errori, se non conserva l'elemento originale per la verifica. È tuttavia preferibile un filtro di Bloom quando vogliamo una memoria di dimensione fissa. Una volta superato il numero di inserimenti previsto, il filtro di Bloom degrada gradualmente, presentando un numero sempre maggiore di falsi positivi.
-]
+A parità di numero di elementi inseriti e di dimensione del vettore, aumentando $d$ controlliamo più bit e inizialmente avere un _falso positivo_ diventa meno probabile. Tuttavia, se $d$ è troppo grande, impostiamo molti più bit a $1$ e il vettore si satura.
 
 #proof()[
-  Vogliamo stimare la probabilità di avere un falso positivo.
+  Vogliamo stimare la probabilità di avere un falso positivo. In realtà l'analisi fornisce una stima della probabilità di osservare un positivo (vero o falso che sia ) dopo $n$ inserimenti. Questa probabilità è chiaramente una *maggiorazione* della probabilità di avere un falso positivo.
 
-  Supponiamo che le funzioni di hash siano casuali e indipendenti.
+  Supponiamo che le funzioni di hash siano casuali e indipendenti. La dimostrazione avviene per induzione sul numero di inserimenti:
 
-  Consideriamo un singolo inserimento. Per una funzione di hash, la probabilità di impostare un determinato bit a 1 è $1/m$ e quindi la probabilità di non impostarlo è $1 - 1/m$.
+  - *Singolo inserimento*: Per una funzione di hash, la probabilità di impostare un determinato bit a $1$ è $1/m$ e quindi la probabilità di non impostarlo è $1 - 1/m$.
 
-  Chiamiamo $n$ il numero atteso di inserimenti distinti. La probabilità che un certo bit sia ancora a 0 dopo $n$ inserimenti con $d$ funzioni di hash è:
-  $
-    (1-1/m)^(n d)
-  $
-  La probabilità che sia a 1 è quindi:
-  $
-    1 - (1-1/m)^(n d)
-  $
-  La probabilità di avere un falso positivo, cioè di trovare tutti e $d$ i bit a 1 per una chiave assente, è quindi:
-  $
-    (1 - (1-1/m)^(n d))^d
-  $
-  Usando il limite notevole classico $(1 + alpha/n)^n -> e^alpha$ e assumendo $m$ grande, possiamo approssimare:
-  $
-    "divido e moltiplico per m" \
-                                & = (1 - (1-1/m)^(m * (n d) / m))^d \
-                                & approx (1 - e^(-(n d) / m))^d
-  $
-  Per minimizzare questa probabilità rispetto a $d$, con $m$ e $n$ fissati, si ottiene come condizione ottimale che la probabilità di un bit a 1 sia $1/2$. Pertanto:
-
-  $
-    1/2 = e^(-(n d) / m)
-  $
+  - *Inserimenti successivi*: Chiamiamo $n$ il numero atteso di inserimenti distinti. La probabilità che un certo bit sia ancora a 0 dopo $n$ inserimenti con $d$ funzioni di hash è:
+    $
+      (1-1/m)^(n d)
+    $
+    La probabilità di ottenere un falso positivo, cioè di trovare tutti e $mr(d)$ i bit a $1$ per una chiave assente, è quindi:
+    $
+      (1 - (1-1/m)^(n d))^mr(d)
+    $
+    Usando il limite notevole classico $mb((1 + alpha/n)^n -> e^alpha)$ per $n -> infinity$ e assumendo $m$ grande, possiamo approssimare la probabilità che un bit sia $0$ dopo $n$ inserimenti nel seguente modo:
+    $
+      &= (1 - (1-1/m)^(n d))\
+      &#text("divido e moltiplico per m per usare il limite")\
+      &= (1 - (1-1/m)^(mr(m) * (n d) / mr(m)))\
+      &= (1-(1-1/m)^m)^((n d) / m)\
+      &= (mb(e^(-1)))^((n d) / m) = e^(-(n d)/ m)\
+    $
+    Per trovare la probabilità di falso positivo basta sostituire questa probabilità nella formula precedente:
+    $
+      (1 - (1-1/m)^(n d))^d approx (1-e^(-(n d)/ m))^d
+    $
+    Andiamo ora a *minimizzare* questa probabilità rispetto a $d$, con $m$ e $n$ fissati:
+    $
+      mr(p) &= e^(-(n d) / m)\
+      ln p &= - (n d) / m\
+      d &= - m / n ln p\
+    $
+    Sostituendo nella formula "approssimata" otteniamo:
+    $
+      (1-e^(-(n d)/ m))^d &= (1-mr(p))^(- m / n ln p)\
+      &"Applicando la regola" mb(x)^mg(y) = e^(y ln x) "otteniamo:"\
+      &= e^(mg(- m / n ln p) ln (mb(1-p)))\
+    $
+    Per trovare il minimo, deriviamo rispetto a $p$ e poniamo la derivata uguale a zero:
+    $
+      f(p) &= e^(- m / n ln p ln (1-p))\
+           &= e^(- m / n ln p ln (1-p)) [- m / n ((ln (1-p))/p - (ln p)/(1-p))]\
+    $
+    Ora poniamo la derivata uguale a zero e otteniamo:
+    $
+      &= mb(-m/n e^(- m / n ln p ln (1-p))) [ mr(((ln (1-p))/p - (ln p)/(1-p)))] = 0\
+    $
+    Siccome il blocco $mb("blu")$ non può mai annullarsi (la funzione esponenziale non si annulla mai), dobbiamo porre uguale a zero il blocco $mr("rosso")$:
+    $
+      (ln (1-p))/p - (ln p)/(1-p) &= 0\
+      (ln (1-p))/p  &= (ln p)/(1-p)\
+      "moltiplico per " &p(1-p)\
+      (1-p) ln (1-p) &= p ln p\
+    $
+    Sia il membro di destra che quello di sinistra sono identici $x ln x$. Una soluzione immediata si ha quando gli argomenti sono uguali, cioè imponendo $1-p = p$:
+    $
+      1-p = p\
+      p = 1/2\
+    $
+    Sapendo che il minimo errore si ottiene per $p=1/2$ e ricordanno la sostituzione $p = e^(-(n d) / m)$, otteniamo: 
+    $
+      1/2 &= e^(-(n d) / m)\
+      ln 1/2 &= - (n d) / m\
+      d &= - m / n ln 1/2\
+      d &= m / n ln 2\
+    $
 ]
+
+//sistema da qui
 
 La probabilità di falso positivo è $(1/2)^d$ quando è soddisfatta la condizione $m = (n d) / ln 2$. Questo significa che, per ogni elemento che vogliamo inserire e per $d$ funzioni di hash, servono circa $1.44d$ bit. In pratica:
 - fisso il falso positivo desiderato e ricavo il valore di $d$;
