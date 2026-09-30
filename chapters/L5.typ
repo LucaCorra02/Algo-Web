@@ -117,38 +117,45 @@ Durante il crawling è fondamentale configurare diversi parametri e filtri:
 
 - *Limiti per host:* Massimo numero di URL scaricabili per singolo host e *profondità massima* (numero di livelli di link) da non superare. Questo serve a raccogliere le pagine più rilevanti e ad evitare le cosiddette *spider trap* (trappole infinite). Se un host si comporta in modo anomalo, può essere inserito in *black list*.
 - *Filtri distribuiti
-:* In ogni passaggio di dati deve esserci un filtro. Si decide cosa inserire in frontiera, cosa scaricare e cosa scartare. I filtri nei *parsing thread* possono analizzare il *contenuto* della pagina; negli altri stadi (es. crivello) i filtri si basano esclusivamente sull'URL.
+  :* In ogni passaggio di dati deve esserci un filtro. Si decide cosa inserire in frontiera, cosa scaricare e cosa scartare. I filtri nei *parsing thread* possono analizzare il *contenuto* della pagina; negli altri stadi (es. crivello) i filtri si basano esclusivamente sull'URL.
 
 = Tecniche di programmazione concorrente lock-free
 
-L'accesso alla coda degli host diventa un collo di bottiglia all'aumentare delle dimensioni. L'estrazione da una coda di priorità richiede tempo logaritmico ($O(log n)$). Con un'elevata concorrenza (migliaia di thread), l'uso di semafori o sezioni critiche (mutua esclusione) causerebbe enormi ritardi e forte *contesa* (contention).
+$mr("Problema")$: L'accesso alla coda degli host diventa un *collo di bottiglia* all'aumentare delle dimensioni. L'estrazione da una coda di priorità richiede tempo logaritmico ($O(log n)$). In scenari ad elevata concorrenza (migliaia di thread), l'uso di semafori o sezioni critiche (mutua esclusione) causerebbe enormi ritardi e forte *contesa* (contention).
 
-Per risolvere il problema si adottano tecniche di programmazione *lock-free*. L'idea è sbarazzarsi dei semafori sfruttando istruzioni hardware elementari offerte direttamente dalla CPU, che garantiscono l'atomicità di operazioni complesse.
-Una struttura lock-free non garantisce che il *singolo* thread faccia progresso (wait-freedom), ma garantisce un *progresso globale del sistema*: se il mio thread fallisce un'operazione, significa con certezza che un altro thread l'ha completata con successo.
+$mg("Soluzione")$: Per risolvere il problema si adottano tecniche di programmazione *lock-free*: l'idea è sbarazzarsi dei semafori sfruttando istruzioni hardware elementari offerte direttamente dalla CPU, che garantiscono l'*atomicità* di operazioni complesse.
 
-#informally(title: "Primitive Hardware")[
-  Storicamente si usava la *Test-and-Set*, che controlla e imposta atomicamente un bit bloccando il bus di memoria. Nei sistemi moderni si utilizza la *CAS (Compare-And-Swap)*, una sua evoluzione multi-bit.
+#note()[
+  Una struttura lock-free non garantisce che il *singolo* thread faccia progresso (questa è la proprietà più forte delle strutture *wait-free*), ma garantisce un *progresso globale del sistema*: se un thread fallisce un'operazione, significa con certezza che un altro thread l'ha completata con successo.
 ]
 
-La primitiva CAS prende tre argomenti: un indirizzo in memoria `p`, un valore atteso `a` e un nuovo valore `b`. Sostituisce il valore in `p` con `b` *solo se* il valore attuale è `a`, e restituisce un booleano per confermare l'esito.
+#informally(title: "Primitive Hardware")[
+  Storicamente si usava l'istruzuione *`Test-and-Set`*, che controlla e imposta atomicamente un bit bloccando il bus di memoria. Nei sistemi moderni si utilizza la *`CAS` (Compare-And-Swap)*, una sua evoluzione multi-bit.
+]
+
+La primitiva *`CAS`* prende tre argomenti:
+- un indirizzo in memoria `p`
+- un valore atteso `a`
+- un nuovo valore `b`
+
+Essa, sostituisce il valore in `p` con `b` *solo se* il valore attuale è `a`, e restituisce un booleano per confermare l'esito.
 
 #example(title: "Inserimento lock-free in lista concatenata (Algoritmo di Harris)")[
   Per inserire un nodo `n` dopo un nodo `p` senza usare semafori, non possiamo usare l'assegnazione classica perché due thread sovrascriverebbero i puntatori. Utilizziamo invece la CAS in un ciclo:
-
   #pseudocode(
     no-lines: true,
     [`do`],
-    indent[`t <- p.next`],
-    indent[`n.next <- t`],
-    [`while !CAS(&p.next, t, n)`],
+    indent[`t <- p.next` _successore del nodo p_],
+    indent[`n.next <- t` _linka n e il successore di p_],
+    [`while !CAS(&p.next, t, n)` _collega p e n_],
   )
-  In ogni istante la lista si trova in uno stato coerente e la lettura non necessita di sincronizzazione.
+  In ogni istante la lista si trova in uno stato coerente e la lettura non necessita di sincronizzazione. Se due thread tentano di inserire due nodi diversi dopo `p`, *uno dei due* fallirà la CAS e riproverà, ma il sistema nel complesso farà progresso.
 ]
 
-*Exponential Backoff:* Per evitare che troppi thread falliscano ripetutamente la CAS affollando la memoria, si adotta una tecnica di attesa esponenziale: un thread che fallisce attende un tempo via via maggiore prima di riprovare.
+*Exponential Backoff:* Per evitare che troppi thread falliscano ripetutamente la `CAS` affollando la memoria, si adotta una tecnica di attesa esponenziale: un thread che fallisce attende un tempo via via maggiore prima di riprovare.
 
 #note(title: "Struttura ibrida")[
-  Spesso si inserisce una struttura lock-free (es. *ConcurrentLinkedQueue* di Michael e Scott) come "cuscinetto" tra la vera coda degli host e i fetching thread. In questo modo i flussi scaricano dalla struttura lock-free riducendo la contention sulla struttura dati principale.
+  Spesso si inserisce una struttura lock-free (es. *ConcurrentLinkedQueue* di Michael e Scott) come "_cuscinetto_" tra la vera coda degli host e i fetching thread. In questo modo i flussi scaricano dalla struttura lock-free riducendo la contention sulla struttura dati principale.
 ]
 
 = Tecniche a posteriori per trovare pagine simili
