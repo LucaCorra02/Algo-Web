@@ -1,0 +1,3 @@
+#import "../template.typ": *
+
+ciao
