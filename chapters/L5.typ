@@ -63,22 +63,61 @@ Il problema si risolve *riorganizzando* gli URL che escono dal crivello, con due
   })
 ]
 
+Ogni flusso (thread) del crawler procede iterativamente come segue:
++ *Estrae il sito in cima alla coda*, eventualmente aspettando il tempo necessario a far sì che la cima sia scaricabile.
+
++ *Scarica una o più risorse* dalla coda di URL di quel sito.
+
++ *Riaccoda il sito* modificandone la priorità in maniera adeguata alla politica di gentilezza (per esempio, impostando la priorità all'istante di tempo *corrente più un intervallo prefissato*).
+
+#example(title: "Esempio di funzionamento")[
+  Supponiamo di essere all'istante $10$ e la coda contiene $A$ (priorità $10$), $B$ ($12$), $C$ ($15$), con intervallo prefissato di $4$.
+
+  + Un thread estrae $A$, che è scaricabile subito.
+  + Scarica una risorsa da $A$ e riaccoda $A$ con priorità $10 + 4 = 14$.
+  + La coda ora è: $B$ ($12$), $A$ ($14$), $C$ ($15$). Un altro thread libero estrae $B$, aspettando se necessario fino all'istante $12$.
+
+  Mentre $A$ "riposa", nessun altro thread può toccarlo: è fuori dalla coda.
+]
+
+=== Correttezza
+
+Il meccanismo garantisce due cose: che si scarichi quando si può, e che la politeness non venga mai violata.
+
+#proof(title: "La cima della coda è scaricabile se e solo se c'è qualcosa da scaricare")[
+  Se c'è un URL disponibile per lo scaricamento, il sito associato deve essere nello stato "pronto per lo scaricamento prima del tempo corrente". Quindi:
+  - o quel sito è *in cima alla coda*;
+  - oppure in cima alla coda c'è un sito che era pronto ancora *prima* (la coda è ordinata per priorità).
+
+  In ogni caso, *la cima della coda è scaricabile*. è possibile scaricare un URL *se e solo se la cima della coda è scaricabile*.
+]
 
 === Gestione degli indirizzi IP condivisi (Virtual Hosting)
-Un problema sorge quando più host logici sono appoggiati sullo stesso indirizzo IP fisico. Per evitare di sovraccaricare il server fisico, si utilizza una *coda a tre livelli*:
+
+Un problema può sorge quando più *host logici* sono appoggiati sullo *stesso* indirizzo *IP fisico*. Per evitare di sovraccaricare il server fisico, si utilizza una *coda a tre livelli*:
 1. Coda ordinata per *Indirizzo IP* e timestamp.
+
 2. In ognuno di questi oggetti IP, è presente una coda di priorità contenente gli *Host*.
+
 3. Ognuno di questi Host possiede la propria coda (tipicamente FIFO) di URL da scaricare.
 
-La min-priority sulla quale è organizzata la struttura tiene conto del *massimo* tra il timestamp dell'IP e il timestamp dell'Host. Questo garantisce il rispetto della politeness sia a livello logico che fisico.
+La min-priority sulla quale è organizzata la struttura tiene conto del *massimo* tra il timestamp dell'IP e il timestamp dell'Host:
+$
+  "priorità"("IP") = max("istante dell'IP", "istante del sito in cima alla sua coda")
+$
+In questo modo si può visitare un sito *solo se* è arrivato il momento di scaricare sia dal sito stesso, sia dal suo indirizzo IP.
+
 
 === Ottimizzazioni e Parametri di Crawling
+
 È fortemente consigliato inserire una *cache* tra i parsing thread e il crivello/frontiera per memorizzare gli URL già visitati. Se un URL è in cache, si evita di riprocessarlo, migliorando notevolmente le performance (ricordando che i DNS vanno comunque risolti in via preliminare).
 
 Durante il crawling è fondamentale configurare diversi parametri e filtri:
 - *Limiti di frontiera:* Massimo numero di pagine inseribili in frontiera o scaricabili globalmente.
+
 - *Limiti per host:* Massimo numero di URL scaricabili per singolo host e *profondità massima* (numero di livelli di link) da non superare. Questo serve a raccogliere le pagine più rilevanti e ad evitare le cosiddette *spider trap* (trappole infinite). Se un host si comporta in modo anomalo, può essere inserito in *black list*.
-- *Filtri distribuiti:* In ogni passaggio di dati deve esserci un filtro. Si decide cosa inserire in frontiera, cosa scaricare e cosa scartare. I filtri nei *parsing thread* possono analizzare il *contenuto* della pagina; negli altri stadi (es. crivello) i filtri si basano esclusivamente sull'URL.
+- *Filtri distribuiti
+:* In ogni passaggio di dati deve esserci un filtro. Si decide cosa inserire in frontiera, cosa scaricare e cosa scartare. I filtri nei *parsing thread* possono analizzare il *contenuto* della pagina; negli altri stadi (es. crivello) i filtri si basano esclusivamente sull'URL.
 
 = Tecniche di programmazione concorrente lock-free
 
