@@ -1,8 +1,8 @@
 #import "../template.typ": *
 
-= Gestione dei Quasi-Duplicati
+= Gestione dei quasi-duplicati
 
-Durante il crawling è molto comune imbattersi in pagine *quasi identiche*: varianti dello stesso sito, calendari, gallerie di immagini, ecc. A seconda del tipo di crawling che si sta facendo, queste pagine andrebbero considerate *duplicate* e non ulteriormente elaborate, per non sprecare banda, spazio su disco e tempo del crawler.
+Durante il crawling è molto comune imbattersi in pagine *quasi identiche*: varianti dello stesso sito, calendari, gallerie di immagini, ecc. A seconda del tipo di crawling che si sta costruendo, queste pagine andrebbero considerate *duplicate* e non ulteriormente elaborate, per non sprecare banda, spazio su disco e tempo del crawler.
 
 #example(title: "Dipende dall'obiettivo del crawl")[
   Se il crawler *non scarica le immagini*, due pagine di una galleria che differiscono solo per l'immagine mostrata sono di fatto identiche, e vanno trattate come duplicate.
@@ -10,17 +10,21 @@ Durante il crawling è molto comune imbattersi in pagine *quasi identiche*: vari
   Se invece le immagini vengono scaricate, le stesse due pagine sono *contenuti diversi*.
 ]
 
-Non esiste quindi una nozione assoluta di "quasi-duplicato": va *definita* in base a cosa interessa al crawler.
+#note()[
+  Non esiste quindi una nozione assoluta di _quasi-duplicato_, essa va *definita* in base a cosa interessa al crawler.
+]
 
 == Approccio semplice: normalizzazione e dizionario approssimato
 
 Un modo semplice ma efficace di gestire il problema *in memoria centrale* è il seguente:
 
-+ Si calcola una *forma normalizzata* del testo della pagina, eliminando ad esempio la marcatura (i tag), le date, ecc. In questo modo si tolgono le parti che cambiano da una copia all'altra senza cambiare il contenuto.
++ Si calcola una *forma normalizzata* del testo della pagina, eliminando ad esempio i tag, le date, ecc. In questo modo si tolgono le parti che cambiano da una copia all'altra senza cambiare il contenuto della pagina.
+
 + Si calcola la *firma* (hash) della forma normalizzata.
+
 + La si memorizza in un *dizionario approssimato*, come un *filtro di Bloom*. Se la firma era già presente, la pagina è considerata duplicata.
 
-Come per gli URL, i *falsi positivi* del dizionario approssimato (una pagina nuova scambiata per duplicata) sono un prezzo accettabile se la loro probabilità è bassa, e in cambio l'occupazione di memoria rimane costante.
+Come per gli URL, i *falsi positivi* del dizionario approssimato (una pagina nuova scambiata per duplicata) sono un prezzo accettabile se la loro probabilità è bassa. Il vantaggio è che l'occupazione di memoria rimane costante.
 
 #warning(title: "Limite del metodo")[
   Con questo approccio due pagine sono duplicate solo se, *dopo la normalizzazione*, il loro testo è identico (hanno la stessa firma). Basta una differenza di poche parole per ottenere una firma completamente diversa.
@@ -30,49 +34,48 @@ Metodi molto più sofisticati per la rilevazione dei duplicati possono essere us
 
 == SimHash
 
-*SimHash* è un algoritmo di Charikar (2002) che è stato utilizzato per qualche tempo dal *crawler di Google* (Manku, Jain, Das Sarma, 2007). Genera hash che sono *simili* per pagine simili: più precisamente, pagine simili hanno hash a *distanza di Hamming bassa*.
+*SimHash* è un algoritmo che è stato utilizzato per qualche tempo dal crawler di Google. L'idea alla base è qualla di generare *hash simili* per pagine simili: più precisamente, pagine simili hanno hash a *distanza di Hamming bassa*.
 
 #note(title: "Distanza di Hamming")[
-  La distanza di Hamming tra due stringhe binarie della stessa lunghezza è il *numero di posizioni (bit) in cui differiscono*. Ad esempio, $1000$ e $1010$ hanno distanza $1$.
+  La distanza di Hamming tra due stringhe binarie della stessa lunghezza è il *numero di posizioni (bit) in cui differiscono*. Ad esempio, $1000$ e $1010$ hanno distanza $1$ in quanto differiscono di $1$ bit.
 ]
 
 #informally(title: "Hash normale vs SimHash")[
-  Una buona funzione di hash "normale" è progettata perché anche una minima modifica dell'input produca un hash *completamente diverso*. SimHash fa l'opposto: *piccole modifiche al testo producono piccole modifiche all'hash*.
+  Se una funzione di hash "classica" è progettata per produrre hash *completamente diversi* anche per input simili, SimHash fa l'opposto: *piccole modifiche al testo producono piccole modifiche all'hash*.
 
   Per questo si può usare *l'identità di SimHash come definizione di quasi-duplicato*: due pagine con lo stesso SimHash sono quasi-duplicate.
 ]
 
 === Calcolo di SimHash
 
-Bisogna prima fissare:
-- il numero $b$ di *bit* dello hash;
+Dati:
+- $b$: *bit* dello hash;
 - una buona funzione di hash $h$ che mappa *stringhe* in hash di $b$ bit.
 
-A un maggior numero di bit corrisponde una *nozione di somiglianza più accurata*.
+#note()[
+  A un maggior numero di bit corrisponde una *nozione di somiglianza più accurata*.
+]
 
 A questo punto:
-
 + Il testo della pagina (in *forma normalizzata*) viene trasformato in un *insieme di segnali* $S$. Un modo banale è usare le *parole* del testo come segnali, ma è più accurato considerare gli *$n$-grammi* per $n$ piccolo (tipicamente tra $3$ e $5$).
 + A ogni segnale $s in S$ si associa il suo hash $h(s)$, di $b$ bit.
 + Il SimHash del testo ha il bit $i$ (con $0 <= i < b$) impostato a uno se e solo se
   $ abs(\{ s in S mid(|) "il bit" i "di" h(s) "è uno" \}) > abs(\{ s in S mid(|) "il bit" i "di" h(s) "è zero" \}) $
 
-In altre parole, ogni bit è deciso con un *voto a maggioranza* tra tutti i segnali: il bit $i$ dello SimHash è uno se la maggioranza dei segnali ha uno in posizione $i$, zero altrimenti.
+In altre parole, ogni bit è deciso con un *voto a maggioranza* tra tutti i segnali: il bit $i$ dello SimHash è uno se la maggioranza dei segnali ha un uno in posizione $i$, zero altrimenti.
 
 #note(title: "Casi particolari")[
   - Il confronto è un $>$ *stretto*: in caso di *parità* tra uni e zeri, il bit dello SimHash è $0$.
-  - È banale *pesare i segnali*, in modo che alcuni siano più importanti di altri: invece di contare i segnali, si sommano i loro pesi nel voto.
+  - È banale *pesare i segnali*, in modo che alcuni siano più importanti di altri. Invece di contare i segnali, si sommano i loro pesi nel voto.
 ]
 
-#example(title: "Esempio con b = 4")[
-  Supponiamo che il testo abbia tre segnali $s_1, s_2, s_3$ con hash
-
+#example()[
+  Dato $b=4$, supponiamo che il testo abbia tre segnali $s_1, s_2, s_3$ con hash
   - $h(s_1) = 1010$
   - $h(s_2) = 1100$
   - $h(s_3) = 1001$
 
   Voto a maggioranza *bit per bit*:
-
   - bit 0: $1, 1, 1$ $arrow$ tre uni $arrow$ *1*
   - bit 1: $0, 1, 0$ $arrow$ un uno e due zeri $arrow$ *0*
   - bit 2: $1, 0, 0$ $arrow$ un uno e due zeri $arrow$ *0*
@@ -80,24 +83,26 @@ In altre parole, ogni bit è deciso con un *voto a maggioranza* tra tutti i segn
 
   Quindi $"SimHash" = 1000$.
 
-  Ora modifichiamo leggermente il testo, in modo che $s_3$ venga sostituito da un nuovo segnale $s_4$ con $h(s_4) = 1011$. I segnali $s_1$ e $s_2$ restano gli stessi. Rifacendo il voto:
+  Se provassimo a modificare leggermente il testo in modo che $s_3$ venga sostituito da un nuovo segnale $s_4$ con $h(s_4) = 1011$ I segnali $s_1$ e $s_2$ restano gli stessi. Rifacendo il voto:
 
   - bit 0: $1, 1, 1$ $arrow$ *1*
   - bit 1: $0, 1, 0$ $arrow$ *0*
   - bit 2: $1, 0, 1$ $arrow$ due uni $arrow$ *1*
   - bit 3: $0, 0, 1$ $arrow$ *0*
 
-  Il nuovo SimHash è $1010$, a *distanza di Hamming $1$* dal precedente: cambiando un segnale su tre il risultato cambia di un solo bit. In un testo vero, con migliaia di segnali, cambiarne pochi sposta il voto solo dei bit "in bilico".
+  Il nuovo SimHash è $1010$ con una *distanza di Hamming pari a $1$* rispetto al precedente. Cambiando un segnale su tre il risultato cambia di un solo bit.
 ]
 
 === Proprietà e utilizzo
 
 - Due documenti con *lo stesso SimHash* sono molto simili.
+
 - Se si permettono *distanze di Hamming superiori*, la somiglianza diventa sempre *meno significativa*.
-- Online, si inserisce lo SimHash di ogni pagina scaricata in un *dizionario* (eventualmente approssimato, come il filtro di Bloom visto per gli URL): se è già presente, la pagina è un quasi-duplicato.
+
+- Online si potrebbe andare a inserire lo SimHash di ogni pagina scaricata in un *dizionario* (eventualmente approssimato, con un filtro di Bloom): se è già presente, la pagina è un quasi-duplicato.
 
 #note(title: "Trovare hash a breve distanza")[
-  Se si vuole ammettere una piccola distanza di Hamming (non solo l'uguaglianza esatta), il problema diventa *trovare elementi a breve distanza di Hamming* in un grande insieme di hash. È un problema interessante, per cui una soluzione pratica per distanze piccole è descritta nel lavoro di Manku, Jain e Das Sarma (2007). Non viene approfondita qui.
+  Se si vuole ammettere una piccola distanza di Hamming (non solo l'uguaglianza esatta), il problema diventa *trovare elementi a breve distanza di Hamming* in un grande insieme di hash. In letteratura esistono alcune soluzioni, ma non sono banali da implementare.
 ]
 
 = Gestione della Politeness
@@ -180,7 +185,9 @@ Il problema si risolve *riorganizzando gli URL che escono dal crivello*, con due
 - Una *coda con priorità* contenente i *siti noti* al crawler. A ogni sito si assegna come priorità il *primo istante di tempo* in cui è possibile scaricare dal sito senza violare le politiche di gentilezza. La coda restituisce gli elementi in *ordine inverso*: in cima alla coda c'è il *minimo* (il sito scaricabile da più tempo).
 - Per *ogni sito*, una *coda* di URL (una *FIFO* nel caso di una visita in ampiezza). Quando degli URL vengono emessi dal crivello, vengono *accodati alla coda associata al loro sito*.
 
-#figure(caption: [La coda degli host: la priorità di ogni host è il primo istante in cui può essere visitato, ognuno ha la propria coda FIFO di URL.])[
+#figure(
+  caption: [La coda degli host: la priorità di ogni host è il primo istante in cui può essere visitato, ognuno ha la propria coda FIFO di URL.],
+)[
   #cetz.canvas({
     import cetz.draw: *
 
