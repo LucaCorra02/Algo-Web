@@ -1,18 +1,68 @@
 #import "../template.typ": *
 
-= La coda degli host
+= La coda degli Host
 
-L'architettura di base di un crawler prevede un flusso continuo: i *fetching thread* scaricano le pagine e le inviano ai *parsing thread*. Questi ultimi estraggono gli URL, che passano attraverso un filtro (il crivello) e la frontiera, per poi essere inseriti nella *coda degli host*, da cui i *fetching thread* preleveranno i prossimi indirizzi da visitare.
+Un altro problema in un crawler è il ruolo della *concorrenza*. Vogliamo *scaricare contemporaneamente da più siti*. Per farlo, si istanziano molti *flussi* (*fetching thread*) di esecuzione, nell'ordine delle *migliaia*, che si occupano di scaricare i dati. Questi thread saranno sempre occupati in attività di *I/O*.
+
+Le pagine scaricate verranno poi analizzate da un gruppo di thread molto più ridotto, i *parsing thread*. Questi ultimi estraggono gli URL, che passano attraverso un filtro (il crivello) e la frontiera, per poi essere inseriti nella *coda degli host*, da cui i *fetching thread* preleveranno i prossimi indirizzi da visitare.
 
 #warning(title: "Risoluzione DNS")[
-  Non stiamo tenendo conto della risoluzione del DNS in questo ciclo base. Sono i *parsing thread* a delegare la risoluzione (in un processo asincrono a parte). Finché l'indirizzo IP associato a un URL non è noto tramite il DNS, l'URL non può essere inserito nella frontiera per il download.
+  In questo schema di base, non stiamo tenendo conto della risoluzione del DNS. Sono i *parsing thread* a delegare la risoluzione (in un processo asincrono a parte). Finché l'indirizzo IP associato a un URL non è noto tramite il DNS, l'URL non può essere inserito nella frontiera per il download.
 ]
 
-Per gestire correttamente il download, la coda principale è organizzata come una *coda di priorità* (min-priority queue) contenente i siti noti. A ogni sito è associato un *timestamp* che indica il *primo istante di tempo utile* in cui sarà possibile scaricare nuovamente da quel sito senza violare le regole di *politeness* (gentilezza).
+== Risoluzione: struttura dati
+
+#warning(title: "Vincolo fondamentale")[
+  Al di là delle politiche di gentilezza, non possiamo permetterci che *due flussi accedano allo stesso sito* contemporaneamente. In quanto il server remoto potrebbe non essere in grado di gestire più connessioni simultanee, e potremmo essere *bloccati* o *banditi*.
+]
+
+Il problema si risolve *riorganizzando* gli URL che escono dal crivello, con due componenti:
+
+- Una *coda con priorità* (min-priority queue) contenente i *siti noti* al crawler. A ogni sito si assegna come priorità il *primo istante di tempo* in cui è possibile scaricare dal sito senza violare le politiche di gentilezza. La coda restituisce gli elementi in *ordine inverso*: in cima alla coda c'è il *minimo* (il sito scaricabile da più tempo).
+
+- Per *ogni sito*, una *coda* di URL (una *FIFO* nel caso di una visita in ampiezza). Quando degli URL vengono emessi dal crivello, vengono *accodati alla coda associata al loro sito*.
+
 
 #note(title: "Il concetto di Token")[
-  Questo meccanismo rende automatica l'esclusività del download tra flussi concorrenti: gli elementi della coda agiscono come *token*. Quando un sito è in cima alla coda (cioè il suo timestamp è superato), il thread che lo estrae prende "in possesso" il token per scaricare da quel sito per una quantità limitata di tempo.
+  Questo meccanismo rende automatica l'esclusività del download tra *flussi concorrenti*: gli elementi della coda agiscono come *token*. Quando un sito è in cima alla coda (cioè il suo timestamp è superato), il thread che lo estrae prende "in possesso" il token per scaricare da quel sito per una quantità limitata di tempo.
 ]
+
+
+#figure(
+  caption: [La coda degli host: la priorità di ogni host è il primo istante in cui può essere visitato, ognuno ha la propria coda FIFO di URL.],
+)[
+  #cetz.canvas({
+    import cetz.draw: *
+
+    content((1.2, 6.5), text(size: 8pt)[*Coda con priorità* (min in cima)])
+    content((6.2, 6.5), text(size: 8pt)[*Coda FIFO di URL*])
+
+    let hosts = (
+      ("host A", "t = 10", ("a1", "a2", "a3")),
+      ("host B", "t = 12", ("b1", "b2")),
+      ("host C", "t = 15", ("c1",)),
+    )
+
+    for (i, h) in hosts.enumerate() {
+      let y = 5 - i * 1.6
+      rect((0, y), (2.4, y + 1.1), radius: 0.12, fill: rgb("fff0f0"), stroke: 1pt + gray)
+      content((1.2, y + 0.55), text(size: 8pt)[#h.at(0) \ #h.at(1)])
+      line((2.4, y + 0.55), (3.2, y + 0.55), stroke: 1pt + gray, mark: (end: "stealth"))
+      for (j, u) in h.at(2).enumerate() {
+        rect((3.3 + j * 1.2, y + 0.2), (4.3 + j * 1.2, y + 0.9), radius: 0.08, fill: rgb("fffcc7"), stroke: 1pt + black)
+        content((3.8 + j * 1.2, y + 0.55), text(size: 8pt)[#u])
+      }
+    }
+
+    rect((-4.8, 4.95), (-2.4, 6.15), radius: 0.12, fill: luma(96%), stroke: 1pt + gray)
+    content((-3.6, 5.55), text(size: 8pt)[*Thread* \ di download])
+    line((0, 5.85), (-2.4, 5.85), stroke: 1pt + gray, mark: (end: "stealth"))
+    content((-1.2, 6.15), text(size: 7pt)[estrae])
+    line((-2.4, 5.25), (0, 5.25), stroke: 1pt + gray, mark: (end: "stealth"))
+    content((-1.2, 4.95), text(size: 7pt)[riaccoda])
+  })
+]
+
 
 === Gestione degli indirizzi IP condivisi (Virtual Hosting)
 Un problema sorge quando più host logici sono appoggiati sullo stesso indirizzo IP fisico. Per evitare di sovraccaricare il server fisico, si utilizza una *coda a tre livelli*:
@@ -45,13 +95,13 @@ La primitiva CAS prende tre argomenti: un indirizzo in memoria `p`, un valore at
 
 #example(title: "Inserimento lock-free in lista concatenata (Algoritmo di Harris)")[
   Per inserire un nodo `n` dopo un nodo `p` senza usare semafori, non possiamo usare l'assegnazione classica perché due thread sovrascriverebbero i puntatori. Utilizziamo invece la CAS in un ciclo:
-  
+
   #pseudocode(
     no-lines: true,
     [`do`],
     indent[`t <- p.next`],
     indent[`n.next <- t`],
-    [`while !CAS(&p.next, t, n)`]
+    [`while !CAS(&p.next, t, n)`],
   )
   In ogni istante la lista si trova in uno stato coerente e la lettura non necessita di sincronizzazione.
 ]
