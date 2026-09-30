@@ -160,34 +160,108 @@ Essa, sostituisce il valore in `p` con `b` *solo se* il valore attuale è `a`, e
 
 = Tecniche a posteriori per trovare pagine simili
 
-Nella fase *post-crawl*, sorge la necessità di individuare documenti quasi identici. Il calcolo dell'indice di Jaccard (un valore tra 0 e 1) su miliardi di documenti a coppie è *computazionalmente ineseguibile*.
-Il documento viene prima ridotto in *shingles* (n-grammi di parole o elementi sintattici).
+Nella fase *post-crawl*, sorge la necessità di individuare documenti quasi identici. Il calcolo dell'indice di Jaccard (un valore tra 0 e 1) su miliardi di documenti a coppie è *computazionalmente ineseguibile*. Il documento viene prima ridotto in *shingles* (n-grammi di parole o elementi sintattici).
 
-Entra in gioco il metodo matematico del *MinHash* introdotto da Broder:
+#note(title: "Indice di jaccard")[
+  Dati due documenti, visti come insiemi di shingle $d_i$ e $d_j$, l'*indice di Jaccard* è
+  $ J(d_i, d_j) = abs(d_i inter d_j) / abs(d_i union d_j) $
+  cioè la frazione di shingle in comune sul totale degli shingle distinti.
+]
+
+La soluzione è il metodo matematico del *MinHash* introdotto da Broder:
+
+
 
 #theorem(title: "Teorema di Broder")[
-  Immaginiamo una matrice sparsa documenti-shingle (1 se lo shingle è nel documento, 0 altrimenti). Se permutiamo casualmente le righe della matrice e definiamo come $h(d_i)$ l'indice della prima riga in cui il documento $d_i$ presenta un 1, allora la probabilità che due documenti abbiano lo stesso primo 1 è esattamente uguale all'indice di Jaccard tra i due documenti:
-  $P[h(d_i) = h(d_j)] = J(d_i, d_j)$
+  Data una matrice sparsa documenti-shingle (1 se lo shingle è nel documento, 0 altrimenti). Se permutiamo casualmente le righe della matrice e definiamo come $h(d_i)$ l'indice della prima riga in cui il documento $d_i$ presenta un 1, allora la probabilità che due documenti abbiano lo stesso primo 1 è esattamente uguale all'indice di Jaccard tra i due documenti:
+  $
+    P[h(d_i) = h(d_j)] = J(d_i, d_j)
+  $
+]
+
+#proof(title: "Perché vale il teorema")[
+  Consideriamo gli shingle dell'unione $d_i union d_j$. Dopo la permutazione, la prima riga che ha un 1 in almeno uno dei due documenti (le righe con zero in entrambi non contano) è una riga dell'unione, ed è *equiprobabile* tra tutti i suoi elementi.
+
+  - Se quello shingle è in *entrambi* i documenti (sta nell'intersezione), $h(d_i) = h(d_j)$.
+  - Se è in *uno solo*, quel documento ha il primo 1 lì, mentre l'altro lo ha più in basso: $h(d_i) != h(d_j)$. Quindi
+  $
+    P[h(d_i) = h(d_j)] = abs(d_i inter d_j) / abs(d_i union d_j) = J(d_i, d_j)
+  $
+]
+
+
+#example(title: "Esempio della matrice documenti-shingle")[
+  Consideriamo quattro shingle $s_1, s_2, s_3, s_4$ e tre documenti:
+  $d_1 = {s_1, s_2, s_4}$, $d_2 = {s_2, s_3, s_4}$ e $d_3 = {s_1, s_3}$.
+  La matrice documenti-shingle è:
+  $
+    mat(
+      "", d_1, d_2, d_3;
+      s_1, 1, 0, 1;
+      s_2, 1, 1, 0;
+      s_3, 0, 1, 1;
+      s_4, 1, 1, 0;
+    )
+  $
+
+  Ora permutiamo casualmente le righe nell'ordine $s_3, s_1, s_4, s_2$:
+  $
+    mat(
+      "", d_1, d_2, d_3;
+      s_3, 0, 1, 1;
+      s_1, 1, 0, 1;
+      s_4, 1, 1, 0;
+      s_2, 1, 1, 0;
+    )
+  $
+
+  Il primo $1$ compare quindi alla riga $2$ per $d_1$ e alla riga $1$ per $d_2$ e $d_3$. In questa permutazione, $h(d_2) = h(d_3)$; infatti $d_2 inter d_3 = {s_3}$ e $d_2 union d_3 = {s_1, s_2, s_3, s_4}$, dunque $J(d_2, d_3) = 1 / 4$. Ripetendo l'esperimento con molte permutazioni, la frazione dei casi in cui i primi $1$ coincidono tende a $1 / 4$.
 ]
 
 Poiché permutare una matrice gigante è impossibile, si approssima la permutazione utilizzando funzioni di hash indipendenti $H_k$:
 $ P [ min_(s in d_i) (H_k(s)) = min_(s in d_j) (H_k(s)) ] approx J(d_i, d_j) $
 
-*Il processo operativo:*
+Una buona funzione di hash infatti mappa una stringa in un numero intero *distribuendo i risultati* in modo pseudocasuale ma deterministico. Passare gli shingle in una funzione di hash simula perfettamente una permutazione casuale dell'universo degli shingle, senza dover allocare alcuna matrice in memoria.
+
+Il processo operativo:
 1. Si definiscono $K$ funzioni di hash diverse.
+
 2. Per ogni documento, si passano tutti i suoi shingle in queste funzioni, conservando solo il *valore minimo* ottenuto per ciascuna funzione.
+
 3. Il documento (che prima era un testo lunghissimo) viene così sintetizzato in un piccolo vettore di dimensione $K$ (il vettore *signature* di MinHash).
+
 4. Per stimare la similarità di Jaccard tra due documenti, basta contare quante posizioni hanno lo stesso valore nei rispettivi vettori e dividere per $K$.
 
 Per evitare di dover comunque confrontare tutti i vettori a coppie ($O(n^2)$), si utilizza successivamente il *Locality Sensitive Hashing (LSH)* (Non approfondito).
 
+#informally()[
+  Con il teorema di Broder ci stiamo chiedendo, dati due documenti $d_i$ e $d_j$, qual'è la probabilità che il "primo" shingle che incontriamo scorrendo la lista casuale sia presente in entrambi i documenti?
+
+  La risposta è esattamente la Similarità di Jaccard. Se i due documenti condividono l'80% del testo, c'è un'80% di probabilità che il primo elemento trovato appartenga alla loro intersezione
+]
+
+#warning()[
+  Se si usasse una sola funzione di hash ($K=1$), avremmo solo due risultati possibili quando confrontiamo due documenti: i minimi combaciano (100% di similarità stimata) o non combaciano (0% di similarità). Sarebbe un classificatore binario inutile.
+
+  Usando ad esempio $K = 100$ funzioni di hash indipendenti, ottieniamo $100$ "estrazioni" statistiche. Se confrontiamo i due vettori signature risultanti e notiamo che i numeri combaciano esattamente nella stessa posizione per $85$ volte su $100$, la Legge dei Grandi Numeri permette di affermare con ottima confidenza che la similarità di Jaccard tra i due documenti originali è circa dell'85%.
+]
+
 = Crawling Distribuito
 
-Per scalare le prestazioni, si utilizzano molti agenti (slave) che si occupano di fare crawling contemporaneamente. Il problema principale è dividere il web in "partizioni" senza che gli agenti si sovrappongano e scarichino le stesse pagine.
+Per scalare le prestazioni, si utilizzano molti *agenti* (slave) che si occupano di fare crawling contemporaneamente. Il problema principale è dividere il web in "partizioni" senza che gli agenti si sovrappongano e scarichino le stesse pagine.
+
+Indichiamo con $A$ l'insieme degli agenti e con $U$ l'insieme degli URL. Serve una funzione $delta_A : U -> A$ che assegna a ogni URL l'agente responsabile (assumendo agenti identici, con le stesse risorse). Le proprietà richieste sono:
+- *Bilanciamento*: ogni agente riceve circa la stessa quota di URL
+  $
+    abs(delta_A^(-1)(a)) approx abs(U) / abs(A)
+  $
+- *Controvarianza* (utile quando $A$ cambia nel tempo): se $B supset.eq A$ e $a in A$, allora $delta_B^(-1)(a) subset.eq delta_A^(-1)(a)$. Aumentando gli agenti, gli insiemi di URL dei preesistenti possono solo *ridursi*: aggiungendo un agente, i preesistenti non ricevono nessun nuovo URL.
 
 Esistono varie architetture:
 - *Macchina centrale:* Un nodo distribuisce il carico dinamicamente. Rischioso perché costituisce un *Single Point of Failure (SPOF)*.
+
 - *Divisione per IP:* Gli indirizzi IP vengono assegnati agli agenti. Molto rischioso perché la risoluzione IP di un host può cambiare nel tempo o distribuirsi su CDN.
+
 - *Divisione per Host (Hash mod N):* Si estrae l'host dall'URL, se ne calcola un hash e si divide per il numero di macchine attive ($"Hash"("host") space mod space N$).
 
 #warning(title: "Il problema del modulo")[
@@ -195,9 +269,17 @@ Esistono varie architetture:
 ]
 
 === L'approccio Robusto: Hashing per l'assegnamento (Rendezvous Hashing)
-Per risolvere il problema dell'assegnazione instabile, si utilizza una funzione di hash a due argomenti $h(u, a)$, dove $u$ è l'URL (o l'host) e $a$ è l'identificativo dell'agente.
+Per risolvere il problema dell'*assegnazione instabile*, si utilizza una funzione di hash a due argomenti $h(u, a)$, dove:
+- $u$ è l'URL (o l'host)
+- $a$ è l'identificativo dell'agente.
 
 L'agente incaricato di scaricare l'URL $u$ sarà quello che minimizza la funzione:
 $ "Agente assegnato" = min_(a in A) h(u, a) $
 
-Questa tecnica offre una proprietà fondamentale chiamata *Controvarianza*: se la lista degli agenti attivi $A$ cambia (aggiunta o rimozione di nodi), gli unici URL che cambieranno assegnatario saranno *solo ed esclusivamente* quelli per cui il nuovo nodo produce un valore di hash strettamente minore. Tutte le altre assegnazioni resteranno stabili, minimizzando il rimescolamento dei dati (richiede calcolo proporzionale ad $A$ ma previene il collasso dell'architettura).
+Questa tecnica è *bilanciata* (se $h$ è casuale) e *controvariante*. Se all'insieme degli agenti si *aggiunge* un nodo, gli unici URL che cambiano assegnatario sono quelli per cui il nuovo nodo produce un valore di hash strettamente minore di tutti quelli degli agenti preesistenti. Se si *rimuove* un agente, cambiano assegnatario solo gli URL che erano assegnati a lui. Tutte le altre assegnazioni restano stabili.
+
+*Costi:* tempo proporzionale a $abs(A)$, spazio costante (basta tenere il minimo trovato); modificare $A$ costa tempo costante, perché non c'è nulla da aggiornare.
+
+#warning(title: "Non confondere i due \"min hash\"")[
+  Il *min hashing* per distribuire il carico ($min_(a in A) h(u, a)$) è una tecnica diversa dal *MinHash* di Broder per stimare la similarità di Jaccard: hanno in comune solo l'idea di prendere il minimo di valori di hash.
+]
