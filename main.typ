@@ -2,7 +2,7 @@
 
 #show: academic-notes.with(
   // --- Required
-  title: "Alg Web",
+  title: "Algo Web",
   subtitle: "Unimi - Master's Degree in Computer Science",
   authors: (
     ("Luca Corradini", "LucaCorra02"),
@@ -44,4 +44,5 @@
 
 #part("First Part")
 #include "chapters/L1.typ"
+#include "chapters/L2.typ"
 #include "chapters/L3.typ"
