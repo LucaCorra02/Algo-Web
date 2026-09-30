@@ -116,160 +116,56 @@ Uno dei problemi pratici che rende il crawling *diverso da una semplice visita* 
 == Due modi di limitare il traffico
 
 Ci sono due modi fondamentali di operare questa limitazione:
-
 + *Limitare il tempo tra una richiesta e l'altra* allo stesso sito.
+
 + *Limitare la frazione del tempo di scaricamento* rispetto al tempo di non-scaricamento.
 
 === Intervallo fisso tra le richieste
 
-Fissato un intervallo $t$ (ad esempio, quattro secondi), si deve aspettare $t$ *tra la fine di una richiesta e l'inizio della successiva* per lo stesso sito.
+Fissato un intervallo $t$ (ad esempio, quattro secondi), si deve aspettare tempo $t$ *tra la fine di una richiesta e l'inizio della successiva* per lo stesso sito.
 
 === Proporzione tra scaricamento e attesa
 
-Si fissano:
+Dati:
 - una *proporzione* $p$;
 - un *tempo di scaricamento massimo* $s$ (ad esempio, un secondo).
 
-Bisogna fare in modo che la proporzione tra il *tempo di scaricamento* e quello di *non-scaricamento* sia $p$.
+Vogliamo fare in modo che la proporzione tra il *tempo di scaricamento* e quello di *non-scaricamento* sia esattamente $p$. Questa condizione richiede anche una *misurazione effettiva* del tempo di scaricamento, in quanto risorse particolarmente *lente* potrebbero richiedere un tempo maggiore di $s$ e devono quindi essere limitate.
 
-Questa condizione contempla anche una *misurazione effettiva* del tempo di scaricamento, perché risorse particolarmente *lente* potrebbero richiedere un tempo maggiore di $s$.
-
-#informally(title: "Perché la seconda è più interessante")[
+#informally(title: "Perché la seconda soluzione è più interessante")[
   La seconda soluzione permette di sfruttare una caratteristica di *HTTP/1.1*: è possibile fare *richieste multiple attraverso la stessa connessione TCP*, evitando la (lenta) apertura e chiusura di una connessione per ogni risorsa scaricata.
 
   Con la prima soluzione, invece, si dovrebbe aspettare $t$ dopo *ogni singola risorsa*.
 ]
 
-=== Funzionamento della seconda politica
-
+Il funzionamento di questa politica è il seguente:
 + Si aprono la connessione e si scaricano risorse dal sito, una dopo l'altra.
-+ Lo scaricamento termina *non appena si supera la soglia $s$*. Il tempo di scaricamento effettivo è $s'$.
-+ A questo punto si *aspetta per un tempo* $ (s') / p $ in modo da forzare la gentilezza.
+
++ Lo scaricamento termina *non appena si supera la soglia $s$*. Chiamiamo con $s'$ il tempo di scaricamento effettivo.
+
++ A questo punto, per forzare la gentilezza, si *aspetta per un tempo*:
+  $
+    (s') / p
+  $
+
+  Con questa definizione $p$ è il *rapporto* tra tempo di scaricamento e tempo di attesa. Un $p$ più piccolo significa un crawler *più gentile* (attese più lunghe).
 
 #example(title: "Esempio numerico")[
-  Sia $s = 1$ secondo e $p = 1 / 10$.
+  Sia $s = 1 "s"$ e $p = 1 / 10$, vogliamo che il tempo di scaricamento sia al massimo un decimo del tempo di inattività.
 
-  Scarichiamo risorse dallo stesso sito finché superiamo $1$ secondo: supponiamo che il tempo effettivo sia $s' = 1.5$ secondi. Dobbiamo allora aspettare $ (s') / p = 1.5 / (1 / 10) = 15 " secondi" $ prima di tornare su quel sito. Nel frattempo il crawler può lavorare su altri siti.
+  A questo punto scarichiamo risorse dallo stesso sito finché non superiamo $1$ secondo. Supponiamo che il tempo effettivo sia $s' = 1.5$ secondi. Il tempo di attesa è pasi a:
+  $
+    (s') / p = 1.5 / (1 / 10) = 15 " secondi"
+  $
+  prima di tornare su quel sito. Tuttavia, nel frattempo il crawler può lavorare su altri siti.
 
-  Se le risorse sono *lente* e $s'$ è più grande, l'attesa cresce di conseguenza: la proporzione rimane rispettata.
+  #note()[
+    Se le risorse sono *lente* e $s'$ è più grande, l'attesa cresce di conseguenza: la proporzione rimane rispettata.
+  ]
 ]
 
-#note(title: "Cosa significa p")[
-  Con questa definizione $p$ è il *rapporto* tra tempo di scaricamento e tempo di attesa, e l'attesa dopo uno scaricamento di durata $s'$ è $s' / p$. Un $p$ più piccolo significa un crawler *più gentile* (attese più lunghe).
+#warning()[
+  Per implementare questo tipo di politica è necessario *alterare l'ordine di visita*. Se si visitano gli URL nell'*ordine in cui escono dal crivello*, si potrebbe incorrere in *attese a vuoto consistenti*: ad esempio, molti URL consecutivi dello stesso sito, che dovremmo scaricare uno dopo l'altro aspettando ogni volta, mentre altri siti sarebbero già pronti.
+
+  Questo problema, insieme a quello della concorrenza, si risolve con la *coda degli host*.
 ]
-
-== Conseguenza: bisogna alterare l'ordine di visita
-
-Per implementare questo tipo di politica è necessario *alterare l'ordine di visita*. Se si visitano gli URL *nell'ordine in cui escono dal crivello*, si potrebbe incorrere in *attese a vuoto consistenti*: ad esempio, molti URL consecutivi dello stesso sito, che dovremmo scaricare uno dopo l'altro aspettando ogni volta, mentre altri siti sarebbero già pronti.
-
-Questo problema, insieme a quello della concorrenza, si risolve con la *coda degli host*.
-
-= La Coda degli Host
-
-== Il problema della concorrenza
-
-Un altro problema lasciato finora in parte da parte è il ruolo della *concorrenza*. Certamente vogliamo *scaricare contemporaneamente da più siti*.
-
-Per farlo, si istanziano molti *flussi* (_thread_) di esecuzione, nell'ordine delle *migliaia*, che si occupano di scaricare i dati. Questi thread saranno sempre occupati in attività di *I/O*.
-
-Le pagine scaricate possono essere poi analizzate da un gruppo di flussi *molto più ridotto*: non è una buona idea avere migliaia di thread con un carico computazionale significativo.
-
-#warning(title: "Vincolo fondamentale")[
-  Al di là delle questioni di gentilezza, non possiamo permetterci che *due flussi accedano allo stesso sito* contemporaneamente.
-]
-
-== Struttura dati
-
-Il problema si risolve *riorganizzando gli URL che escono dal crivello*, con due componenti:
-
-- Una *coda con priorità* contenente i *siti noti* al crawler. A ogni sito si assegna come priorità il *primo istante di tempo* in cui è possibile scaricare dal sito senza violare le politiche di gentilezza. La coda restituisce gli elementi in *ordine inverso*: in cima alla coda c'è il *minimo* (il sito scaricabile da più tempo).
-- Per *ogni sito*, una *coda* di URL (una *FIFO* nel caso di una visita in ampiezza). Quando degli URL vengono emessi dal crivello, vengono *accodati alla coda associata al loro sito*.
-
-#figure(
-  caption: [La coda degli host: la priorità di ogni host è il primo istante in cui può essere visitato, ognuno ha la propria coda FIFO di URL.],
-)[
-  #cetz.canvas({
-    import cetz.draw: *
-
-    content((1.2, 6.5), text(size: 8pt)[*Coda con priorità* (min in cima)])
-    content((6.2, 6.5), text(size: 8pt)[*Coda FIFO di URL*])
-
-    let hosts = (
-      ("host A", "t = 10", ("a1", "a2", "a3")),
-      ("host B", "t = 12", ("b1", "b2")),
-      ("host C", "t = 15", ("c1",)),
-    )
-
-    for (i, h) in hosts.enumerate() {
-      let y = 5 - i * 1.6
-      rect((0, y), (2.4, y + 1.1), radius: 0.12, fill: rgb("fff0f0"), stroke: 1pt + gray)
-      content((1.2, y + 0.55), text(size: 8pt)[#h.at(0) \ #h.at(1)])
-      line((2.4, y + 0.55), (3.2, y + 0.55), stroke: 1pt + gray, mark: (end: "stealth"))
-      for (j, u) in h.at(2).enumerate() {
-        rect((3.3 + j * 1.2, y + 0.2), (4.3 + j * 1.2, y + 0.9), radius: 0.08, fill: rgb("fffcc7"), stroke: 1pt + black)
-        content((3.8 + j * 1.2, y + 0.55), text(size: 8pt)[#u])
-      }
-    }
-
-    rect((-4.8, 4.95), (-2.4, 6.15), radius: 0.12, fill: luma(96%), stroke: 1pt + gray)
-    content((-3.6, 5.55), text(size: 8pt)[*Thread* \ di download])
-    line((0, 5.85), (-2.4, 5.85), stroke: 1pt + gray, mark: (end: "stealth"))
-    content((-1.2, 6.15), text(size: 7pt)[estrae])
-    line((-2.4, 5.25), (0, 5.25), stroke: 1pt + gray, mark: (end: "stealth"))
-    content((-1.2, 4.95), text(size: 7pt)[riaccoda])
-  })
-]
-
-== Ciclo di un flusso del crawler
-
-Ogni flusso del crawler procede iterativamente come segue:
-
-+ *Estrae il sito in cima alla coda*, eventualmente aspettando il tempo necessario a far sì che la cima sia scaricabile.
-+ *Scarica una o più risorse* dalla coda di URL di quel sito.
-+ *Riaccoda il sito* modificandone la priorità in maniera adeguata alla politica di gentilezza (per esempio, impostando la priorità all'istante di tempo *corrente più un intervallo prefissato*).
-
-#example(title: "Esempio di funzionamento")[
-  Siamo all'istante $10$ e la coda contiene $A$ (priorità $10$), $B$ ($12$), $C$ ($15$), con intervallo prefissato di $4$.
-
-  + Un thread estrae $A$, che è scaricabile subito.
-  + Scarica una risorsa da $A$ e riaccoda $A$ con priorità $10 + 4 = 14$.
-  + La coda ora è: $B$ ($12$), $A$ ($14$), $C$ ($15$). Un altro thread libero estrae $B$, aspettando se necessario fino all'istante $12$.
-
-  Mentre $A$ "riposa", nessun altro thread può toccarlo: è fuori dalla coda.
-]
-
-== Correttezza
-
-Il meccanismo garantisce due cose: che si scarichi quando si può, e che la politeness non venga mai violata.
-
-#proof(title: "La cima della coda è scaricabile se e solo se c'è qualcosa da scaricare")[
-  Se c'è un URL disponibile per lo scaricamento, il sito associato deve essere stato *pronto per lo scaricamento prima del tempo corrente*. Quindi:
-
-  - o quel sito è *in cima alla coda*;
-  - oppure in cima alla coda c'è un sito che era pronto ancora *prima* (la coda è ordinata per priorità).
-
-  In ogni caso, *la cima della coda è scaricabile*.
-
-  Quindi è possibile scaricare un URL *se e solo se la cima della coda è scaricabile*: basta guardare la cima.
-]
-
-#informally(title: "Gli elementi della coda sono dei token")[
-  Gli elementi della coda agiscono come *token* che rappresentano l'*autorizzazione a scaricare da un certo sito*.
-
-  Solo un flusso alla volta può avere il token di un certo sito, perché il sito, una volta estratto, non è più in coda finché non viene riaccodato. Questo rende *automatica l'esclusività* del download tra flussi, e le regole di gentilezza *non possono essere violate*.
-]
-
-== Costo
-
-Il costo della coda è *logaritmico*: estrarre e reinserire un sito è un'operazione relativamente poco costosa, ma può diventare *problematica in caso di concorrenza intensa*, perché tutti i flussi devono accedere alla stessa coda.
-
-== Politeness sugli indirizzi IP
-
-Se è necessaria una politica di gentilezza da applicare anche agli *indirizzi IP* (più siti possono stare sullo stesso IP), si può organizzare gli IP in una coda come sopra:
-
-- ogni *IP* ha associata una *coda con priorità di host*;
-- la priorità di un IP è il *massimo* tra il proprio istante di tempo e quello del sito in cima alla coda associata.
-
-$ "priorità"("IP") = max("istante dell'IP", "istante del sito in cima alla sua coda") $
-
-In questo modo si può visitare un sito *solo se è arrivato il momento di scaricare sia dal sito stesso, sia dal suo indirizzo IP*.
