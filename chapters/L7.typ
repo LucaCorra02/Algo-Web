@@ -317,8 +317,54 @@ Consideriamo due parole binarie $x$ e $y$ e i loro rispettivi intervalli $I(x)$ 
       })
     ]
   ]
+]<teo-conf>
+
+La dimostrazione della disuguaglianza di Kraft si divide in due parti:
+- Dimostrazione della limitazione superiore ($<= 1$)
+- Dimostrazione della completezza ($= 1$)
+
+#proof(title: "Dimostrazione della limitazione superiore (<= 1)")[
+  Ogni parola $w$ del codice $C$ viene mappata in un intervallo di lunghezza $2^(-|w|)$ all'interno dello spazio totale $[0, 1)$.
+
+  Poiché il codice è *istantaneo* (privo di prefissi), per il Teorema della *Confrontabilità Insiemistica* sappiamo che nessuna parola è contenuta nell'intervallo di un'altra. Di conseguenza, tutti gli intervalli associati alle parole di $C$ sono *a due a due disgiunti*.
+
+  Essendo disgiunti, la somma delle loro lunghezze non può fisicamente superare l'ampiezza dell'intervallo che li contiene tutti, ovvero 1:
+  $ sum_(w in C) 2^(-|w|) <= 1 $
 ]
 
+Per comprendere a fondo la dimostrazione di completezza, dobbiamo introdurre il concetto di *numero diadico*. Un diadico è un razionale della forma: $ k 2^(-h) = k 1 / 2^h $
+
+Questi numeri rappresentano tutti i *punti di "taglio"* che si ottengono dividendo a metà, in modo ricorsivo, l'intervallo unitario $[0, 1)$.
+
+Un *intervallo diadico* è lo spazio compreso tra due diadici consecutivi dello stesso "livello" $h$:
+$
+  [k 2^(-h), (k+1) 2^(-h))
+$
+
+#note()[
+  Tali intervalli presentano una proprietà fondamentale: Dato un qualunque intervallo diadico $[k 2^(-h), (k+1) 2^(-h))$, esiste *un'unica parola di lunghezza $h$* a cui è associato l'intervallo.
+
+  Ad esempio, l'intervallo $[1/4, 2/4)$ è un intervallo diadico di livello $h=2$ (poiché $1/4 = 1/2^2$ e $2/4 = 2/2^2$). La singola parola associata ad esso è `01`.
+]
+
+
+
+
+
+
+
+
+Vogliamo dimostrare che un codice istantaneo $C$ è completo *se e solo se* la somma delle lunghezze dei suoi intervalli è esattamente 1.
+
+#proof()[
+  *Parte 1: Se la somma è $< 1$ allora il codice NON è completo.* \
+  Se la sommatoria è strettamente minore di uno, deve esserci un intervallo scoperto (cioè uno spazio "vuoto" non assegnato ad alcuna parola), diciamo $[x, y)$[cite: 1].
+  Poiché la scomposizione diadica può procedere all'infinito scendendo di livello (aumentando $h$), questo intervallo $[x, y)$ contiene necessariamente un sottointervallo diadico della forma $[k 2^(-h), (k+1)2^(-h))$ per qualche $h$ e $k$[cite: 1].
+  Sappiamo che a questo intervallo diadico corrisponde un'esatta parola binaria. Poiché l'intervallo si trova in uno spazio completamente "vuoto", questa parola non si sovrappone a nessuna di quelle esistenti. Ma allora la parola associata a quest'ultimo potrebbe essere aggiunta al codice (essendo inconfrontabile con tutte le altre), che quindi risulta incompleto[cite: 1].
+
+  *Parte 2: Se il codice NON è completo allora la somma è $< 1$.* \
+  D'altra parte, se il codice è incompleto, l'intervallo corrispondente a una parola inconfrontabile con tutte quelle del codice è necessariamente scoperto[cite: 1]. La presenza di questo nuovo intervallo fisico completamente libero rende la somma totale delle frazioni di spazio precedentemente occupate strettamente minore di 1[cite: 1].
+]
 
 #proof()[
   Dimostro la prima parte del teorema di Kraft, cioè che se un codice è istantaneo allora la somma di tutte le lunghezze dei codici deve essere minore o uguale a 1. In formula:
