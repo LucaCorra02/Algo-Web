@@ -366,63 +366,52 @@ Vogliamo dimostrare che un codice istantaneo $C$ è completo *se e solo se* la s
   D'altra parte, se il codice è incompleto, l'intervallo corrispondente a una parola inconfrontabile con tutte quelle del codice è necessariamente scoperto[cite: 1]. La presenza di questo nuovo intervallo fisico completamente libero rende la somma totale delle frazioni di spazio precedentemente occupate strettamente minore di 1[cite: 1].
 ]
 
-#proof()[
-  Dimostro la prima parte del teorema di Kraft, cioè che se un codice è istantaneo allora la somma di tutte le lunghezze dei codici deve essere minore o uguale a 1. In formula:
-  $
-    C "ist" -> sum_(w in c) 2^(-|w|) <= 1
-  $
+*Implicazione della disequaglianza di Kraft*
 
-  Se la sommatoria è < di 1, significa che nell'intervallo unitario c'è ancora
-  spazio libero $[k 2^{-h}...(k + 1) 2^{-h})$, per qualche h e k.
-  Di conseguenza, posso sicuramente aggiungere una parola di lunghezza h senza violare
-  l'istantaneità, dato che l'intervallo per quella parola è libero e disgiunto da
-  tutti gli altri intervalli.
-
-  Consideriamo la seguente contronominale:
-  se la somma di tutte le lunghezze dei codici è diversa da 1 allora il codice non è completo. In formula:
-  $
-    sum_(w in C) 2^(-|w|) != 1 -> C "non completo"
-  $
-  Se c'è spazio libero, allora il codice è necessariamente non completo, perché posso aggiungere una parola senza
-  violare l'istantaneità. Quindi se la sommatoria è < di 1 allora il codice non è completo.
-]
-
-#proof()[
-  // Luca qui non ho capito che cosa stai dicendo quindi vedi tu
-  Se riesco a trovare due diadici consecutivi che comprendono l'intervallo per scrivere la parola $j$ posso prendere quella parola.
-
-  la parola che $j$ rappresenta su $k$ bit allora ottengo esattamente un intervallo che parte da $j(2^k)$ e arriva esattamente a $(j+1)(2^k)$. Se riesxo a trovare due diadici consecutivi che comprono l'intervallo per scrivere la parola $j$ posso prendere quella parola.
-  //riguardare e aggiungere esempio
-
-]
-
-=== inversione della disequaglianza di Kraft
-
-Supponiamo di avere dei valori crescenti di lunghezza $l_1 < l_2 < ... < l_n$ e vogliamo costruire un codice istantaneo con queste lunghezze. Allora se la somma di tutte le lunghezze dei codici è minore o uguale a 1 allora possiamo costruire un codice istantaneo con queste lunghezze.
+Supponiamo di avere una sequenza di lunghezze $t_0, t_1, t_2, t_3dots$ (eventualmente infinita) ordinata in modo crescente,
+e di voler costruire un codice istantaneo con queste lunghezze. Se la somma di tutte le lunghezze dei codici è minore o
+uguale a 1 allora possiamo costruire un codice con queste lunghezze in maniera miope (greedy).
 
 #note()[
-  Non è una vera e propria inversione della disequaglianza di Kraft, perché non posso dire con certezza che il codice costruito sia istantaneo, ma l'errore non è nelle lunghezze scelte ma nella scelta dei bit associati a quelle lunghezze.
+  Che il codice sia istantaneo non è una vera e propria implicazione della disequaglianza di Kraft, perché non posso dire con certezza che il codice
+  costruito sia istantaneo, ma se non è così, l'errore non è nelle lunghezze scelte ma nella scelta dei bit delle parole
+  associate a quelle lunghezze.
 ]
 
 #proof()[
-  $d_0 = 1 / 2^(t_0)$ si tratta di un diagono di ordine zero, questo intervallo rappresenta la parola vuota (tutti 0).
+  Sia 𝑑 l’estremo destro della parte di intervallo unitario correntemente coperta dagli intervalli associati alle parole già
+  generate. Vogliamo dimostrare che, per qualche intero $k$, l'invariante $𝑑 = k / 2^(t_i)$ sia vero sempre.
 
-  il diacono consecutivo è per una parola di lunghezza t_i,vogliamo trovare il seguente intervallo:
+  Il caso base è $d_0 = 0$.
+
+  L'intervallo diadico per una parola di lunghezza $t_i$ sarà:
   $
-    k / 2^(t_i), dots , (k+1) / 2^(t_i)
+    [ k / 2^(t_i), (k+1) / 2^(t_i) )
   $
-  la vera domanda è che vogliamo riscrivere $d = d/2^t_i$ come un diadico di ordine $t_i+1$, per farlo:
+  per un certo $k$ intero, ossia di lunghezza k.
+
+  Se $𝑑 = k / 2^(t_i)$ è vero, dopo l'inserimento della parola $w_n$, d sarà dunque $(k+1) / 2^(t_i)$.
+
   $
-    d = 2/2^(t_i) =
+    (k+1) 2^(-t_i)
   $
 
-  Possiamo sempre scegliere l'intervallo consecutivo in quanto possiamo interpretare il diadico con qui abbiamo appena finito come il diadico di ordine successivo.
-  //add example
+  Moltiplico $2^(-t_i)$ per $2^(-t_(i+1)) * 2^(t_(i+1))$, ottenendo:
+
+  $
+    underbrace((k+1) * 2^(t_(i+1) - t_i), k) 2^(-t_(i+1))
+  $
+
+  Dove $t_(i+1) >= t_i$
+
+  L'invariante è dunque mantenuto.
+
   #example()[
     Se devo rappresntare parole di lunghezza 1, 3, 3, 5. Allora la prima parola di lunghezza 1 è 0, uso 1/2 come intervallo. La seconda parola di lunghezza 3 è 100, uso 4/8 -> 5/8 come intervallo. La terza parola di lunghezza 3 è 101, uso 5/8 come intervallo. La quarta parola di lunghezza 5 è 10100, uso 20/32 come intervallo.
   ]
 
 ]
+
 
 == Codici istantanei
 
