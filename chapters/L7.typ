@@ -1,158 +1,166 @@
 #import "../template.typ": *
 
-== Teorema di kraft
+== Disuguaglianza di Kraft
 
-#theorem()[
-  Permette di dire se un codice è istantaneo o meno. Essao afferma che se $C$ è istantaneo *allora* la somma di tutte le lunghezze
-  dei codici deve essere minore o uguale a 1 (Disuguaglianza di Kraft).
+#theorem(title: "Disuguaglianza di Kraft")[
+  La disuguaglianza di Kraft permette di asserire se un codice è *non istantaneo*.
+
+  Essa afferma che se $C$ è un codice istantaneo, *allora* la somma di tutte le lunghezze delle parole del codice deve essere minore o uguale a 1.
   In formula:
   $
     C "ist" -> sum_(w in C) 2^(-|w|) <= 1
   $
 
+  #note()[
+    $2^(-|w|)$ o $1/2^(|w|)$ rappresenta lo spazio che la parola $w$ occupa nell'intervallo unitario $[0...1)$. Parole con una *lunghezza minore occupano più spazio* (invalidano più rapidamente la scelta di altre parole) e parole con una *lunghezza maggiore occupano meno spazio*.
+
+    Ad esempio, scegliano una parola di lunghezza $1$ che inizia con $0$, andiamo a "bloccare" tutte le stringhe che iniziano per $0$, consumandone il 50% ($2^(-1)$)
+  ]
+
   #warning()[
-
-    Se eccediamo il budget allora il codice è sicuramente non istantaneo. Se invece siamo sotto il budget allora il codice potrebbe essere istantaneo oppure no, non possiamo dirlo. In questo caso dobbiamo guardare le parole.
-
+    Se eccediamo il budget ($> 1$) allora il codice è *sicuramente non istantaneo*. Se invece rispettiamo il budget ($<=1$) allora il codice potrebbe essere istantaneo oppure no, non possiamo dirlo con certezza. In questo caso dobbiamo considerare le possibili combinazioni di parole:
     $
       "Se" sum_(w in C) 2^(-|w|) > 1 -> C "non ist"
     $
   ]
 
-  Se $C$ è istantaneo, è anche completo *se e solo se* la somma di tutte le lunghezze dei codici è esattamente 1.
-  In formula:
+  Dall'equazione precedente, possiamo dedurre che se $C$ è istantaneo, esso è anche completo *se e solo se* la somma di tutte le lunghezze dei codici è esattamente 1:
   $
     C "completo" <-> sum_(w in C) 2^(-|w|) = 1
   $
-
-  Ogni parola consuma dello spazio che è $2^(-|w|)$ parole corte consumano meno spazio e parole lunghe di più. L'idea è che
-  ogni parola consuma un certo budget, dobbiamo rimanere sotto il budget di 1. Se superiamo il budget allora il codice non
-  è istantaneo.
-
 ]
 
-#theorem()[
-  Inoltre, data una sequenza $t_0, t_1, t_2, \t_3dots$ di lunghezze (eventualmente infinita), che soddisfa la disuguaglianza
-  di Kraft
+La disuguaglianza di Kraft è molto utile in quanto ci permette di verificare solamente tramite una somma se un codice non è istantaneo, senza dover considerare tutte le possibili combinazioni di parole. In questo modo possiamo evitare di fare un'analisi combinatoria che sarebbe molto più complessa.
 
+#theorem(title: "Implicazione di Kraft")[
+  Un implicazione della disuguaglianza di kraft è che considerando una sequenza di lunghezze $t_0, t_1, t_2, t_3dots$ (eventualmente infinita), che soddisfa la disuguaglianza di Kraft:
   $
     sum_(n) 2^(-t_n) <= 1
   $
-
-  allora esiste un codice istantaneo formato da parole $w_0, w_1, w_2, \w_3dots$ dove $|w_i| = t_i$.
-
+  *Esiste* un codice istantaneo formato da parole $w_0, w_1, w_2, w_3dots$ dove $|w_i| = t_i$.
 ]
 
-Si può dedurre informalmente è che, dato un codice che soddisfa la disuguaglianza di Kraft, se esso non è istantaneo, allora è possibile costruire un codice istantaneo con quelle lunghezze, manipolando alcuni bit.
+Si può quindi dedurre informalmente che, dato un codice che soddisfa la disuguaglianza di Kraft, se esso non è istantaneo, allora è *possibile costruire un codice istantaneo con quelle lunghezze*, manipolando alcuni bit.
 
-#note()[
-  Visualizziamo il codice in un intervallo unitario $[0...1)$. Ogni parola consuma dello spazio che è $2^(-|w|)$:parole corte consumano meno spazio e parole lunghe
-  di più.
 
-  L'idea è che ogni parola consumi un certo budget, dobbiamo rimanere sotto il budget di 1. Se superiamo il budget allora il codice non è istantaneo.
 
-  Associamo ad ogni parola un determinato intervallo e ogni volta lo spezziamo in due parti. La parola vuota è l'intervallo unitario $[0...1)$.\
-  Quando aggiungiamo una parola $w$, chiamiamo $x$ la parola $w$ privata dell'ultimo carattere.
+=== Visione ad albero binario
 
-  Se $x$ ha come intervallo $[a...b)$, allora $w$ avrà come intervallo:
-  $
-    & [a, (a+b)/2) "se" w = x 0 \
-    & [(a+b)/2, b) "se" w = x 1 \
-  $
+Possiamo vedere l'assegnamento di una parola del codice come un sotto-intervallo dell'intervallo unitario $[0...1)$. Ogni parola $w$ di lunghezza $|w|$ occupa uno spazio pari a $2^(-|w|)$. L'idea è quella di associare ad ogni parola un determinato intervallo (ogni volta lo spezziamo in due parti). La parola vuota è l'intervallo unitario $[0...1)$.
 
-  #align(center)[
-    #cetz.canvas({
-      import cetz.draw: *
+Quando aggiungiamo una parola $w$, chiamiamo $x$ la parola $w$ privata dell'ultimo carattere. Se $x$ ha come intervallo $[a...b)$, allora $w$ avrà come intervallo:
+$
+  & [a, (a+b)/2) "se" w = x 0 \
+  & [(a+b)/2, b) "se" w = x 1 \
+$
 
-      // L rappresenta la larghezza totale del disegno (12 unità)
-      let L = 12
+#align(center)[
+  #cetz.canvas({
+    import cetz.draw: *
 
-      // 1. LIVELLO SUPERIORE: Intervallo totale
-      line((0, 3), (L, 3), mark: (start: "|", end: "|"), stroke: 1pt)
-      content((L / 2, 3.4), [Spazio unario $[0, 1)$ - parola vuota $epsilon$])
+    // L rappresenta la larghezza totale del disegno (12 unità)
+    let L = 10
 
-      // 2. LIVELLO INTERMEDIO: La parola x (e il resto dello spazio)
-      line((0, 1.5), (L / 2, 1.5), mark: (start: "|", end: "|"), stroke: 1pt)
-      content((L / 4, 1.9), [$x = [0, 1/2)$])
+    // 1. LIVELLO SUPERIORE: Intervallo totale
+    line((0, 3), (L, 3), mark: (start: "|", end: "|"), stroke: 1pt)
+    content((L / 2, 3.4), [Spazio unario $[0, 1)$ - parola vuota $epsilon$])
 
-      // Disegniamo in grigio l'altra metà per chiarezza di contesto
-      line((L / 2, 1.5), (L, 1.5), mark: (start: "|", end: "|"), stroke: (paint: gray, thickness: 1pt))
-      content((L * 0.75, 1.9), text(fill: gray)[$[1/2, 1)$])
+    // 2. LIVELLO INTERMEDIO: La parola x (e il resto dello spazio)
+    line((0, 1.5), (L / 2, 1.5), mark: (start: "|", end: "|"), stroke: 1pt)
+    content((L / 4, 1.9), [$x = [0, 1/2)$])
 
-      // 3. LIVELLO INFERIORE: Divisione in x0 e x1
-      line((0, 0), (L / 4, 0), mark: (start: "|", end: "|"), stroke: 1pt)
-      content((L / 8, 0.4), [$x 0 = [0, 1/4)$])
+    // Disegniamo in grigio l'altra metà per chiarezza di contesto
+    line((L / 2, 1.5), (L, 1.5), mark: (start: "|", end: "|"), stroke: (paint: gray, thickness: 1pt))
+    content((L * 0.75, 1.9), text(fill: gray)[$[1/2, 1)$])
 
-      line((L / 4, 0), (L / 2, 0), mark: (start: "|", end: "|"), stroke: 1pt)
-      content((L * 0.375, 0.4), [$x 1 = [1/4, 1/2)$])
+    // 3. LIVELLO INFERIORE: Divisione in x0 e x1
+    line((0, 0), (L / 4, 0), mark: (start: "|", end: "|"), stroke: 1pt)
+    content((L / 8, 0.4), [$x 0 = [0, 1/4)$])
 
-      // 4. LINEE DI PROIEZIONE E ASSE
-      // Linee tratteggiate per guidare l'occhio sulle divisioni
-      let dashed = (dash: "dashed", paint: gray, thickness: 0.5pt)
-      line((0, 3.2), (0, -0.5), stroke: dashed)
-      line((L / 4, 1.5), (L / 4, -0.5), stroke: dashed)
-      line((L / 2, 3.2), (L / 2, -0.5), stroke: dashed)
-      line((L, 3.2), (L, 1.5), stroke: dashed)
+    line((L / 4, 0), (L / 2, 0), mark: (start: "|", end: "|"), stroke: 1pt)
+    content((L * 0.375, 0.4), [$x 1 = [1/4, 1/2)$])
 
-      // Etichette dei valori matematici in fondo
-      content((0, -0.8), [$0$])
-      content((L / 4, -0.8), [$1/4$])
-      content((L / 2, -0.8), [$1/2$])
-      content((L, -0.8), [$1$])
-    })
-  ]
+    // 4. LINEE DI PROIEZIONE E ASSE
+    // Linee tratteggiate per guidare l'occhio sulle divisioni
+    let dashed = (dash: "dashed", paint: gray, thickness: 0.5pt)
+    line((0, 3.2), (0, -0.5), stroke: dashed)
+    line((L / 4, 1.5), (L / 4, -0.5), stroke: dashed)
+    line((L / 2, 3.2), (L / 2, -0.5), stroke: dashed)
+    line((L, 3.2), (L, 1.5), stroke: dashed)
 
-  Possiamo vederlo anche come un albero binario dove, per ogni livello, tutte le parole occupano lo stesso spazio.\
-
-  #align(center)[
-    #cetz.canvas({
-      import cetz.draw: *
-      import cetz.tree: *
-
-      set-style(content: (padding: 6pt))
-
-      // Configurazione dei nodi dell'albero
-      let data = (
-        [$epsilon$],
-        ([0], ([00], [000], [001]), ([01], [010], [011])),
-        ([1], ([10], [100], [101]), ([11], [110], [111])),
-      )
-
-      // Disegno dell'albero
-      tree(
-        data,
-        spread: 1, // Aumenta la distanza orizzontale tra i nodi
-        grow: 1.5, // Aumenta la distanza verticale tra i livelli
-        name: "tree",
-      )
-    })
-  ]
+    // Etichette dei valori matematici in fondo
+    content((0, -0.8), [$0$])
+    content((L / 4, -0.8), [$1/4$])
+    content((L / 2, -0.8), [$1/2$])
+    content((L, -0.8), [$1$])
+  })
 ]
 
-#note()[
-  Consideriamo $x$ e $y$ due parole binarie e i loro intervalli $I(x)$ e $I(y)$.
 
-  La relazione di prefisso diventa la relazione di inclusione tra intervalli, formalmente:
 
-  $x <= y -> I(x) supset.eq I(y)$.
+Tramite un'altra visione, possiamo vedere un codice istantaneo come un *albero binario*: Assegnare una parola $w$ al codice significa scegliere un nodo a profonidità $|w|$. A causa della regola del prefisso, una volta scelto un nodo come parola, non è possibile usare nessuno dei suoi *discendenti* (come se avessimo "prenotato" il sotto-albero che parte da quel nodo)
 
-  Se x è un prefisso di y allora l'intervallo di x contiene l'intervallo di y.
-  Siccome le parole lunghe cosumano più spazio allora il loro intervallo è più piccolo.
+#align(center)[
+  #cetz.canvas({
+    import cetz.draw: *
+    import cetz.tree: *
 
-  Se $x$ e $y$ sono inconfrontabili allora i loro intervalli sono disgiunti $I(x) inter I(y)$.
+    set-style(content: (padding: 6pt))
 
-  Questo è intuitivo se si pensa a due parole inconfrontabili come un prefisso comune ($epsilon$ nel caso base) seguite da un bit diverso, e si immagina la costruzione
-  tramite B tree. A partire dal bit diverso, le due parole si diramano e quindi i loro intervalli non si intersecano più.
+    // Configurazione dei nodi dell'albero
+    let data = (
+      [$epsilon$],
+      ([0], ([00], [000], [001]), ([01], [010], [011])),
+      ([1], ([10], [100], [101]), ([11], [110], [111])),
+    )
 
-  In formula:
+    // Disegno dell'albero
+    tree(
+      data,
+      spread: 0.9, // Aumenta la distanza orizzontale tra i nodi
+      grow: 1, // Aumenta la distanza verticale tra i livelli
+      name: "tree",
+    )
+  })
+]
+
+Pensando all'abero in termini di *budget* (l'intero albero vale 1), possiamo:
+- Scegliere un nodo a profondità $1$ (lunghezza $1$) ellimina metà albero $2^(-1)$ del budget
+- Scegliere un nodo a profondità $2$ (lunghezza $2$) ellimina un quarto dell'albero $2^(-2)$ del budget
+- in generale scegliere un nodo a profondità $k$ (lunghezza $k$) ellimina $1/2^k$ dell'albero $2^(-k)$ del budget
+
+
+=== Dimostrazione della disuguaglianza di Kraft
+
+Consideriamo due parole binarie $x$ e $y$ e i loro rispettivi intervalli $I(x)$ e $I(y)$.
+
+#theorem(title: "Prefisso insiemistico")[
+  La relazione di *prefisso* tra due parole binarie $x$ e $y$ è equivalente alla relazione di *inclusione* tra i loro intervalli:
+  $
+    x <= y <-> I(x) supset.eq I(y)
+  $
+  Se $x$ è un prefisso di $y$ allora l'intervallo di $x$ contiene l'intervallo di $y$, siccome le parole più corte occupano più spazio e quindi contengono le parole più lunghe che iniziano con esse.
+]
+
+#theorem(title: "Confrontabilità insiemistica")[
+  Se $x$ e $y$ sono *inconfrontabili* allora i loro intervalli sono *disgiunti*:
+  $
+    x || y -> I(x) inter I(y) = emptyset
+  $
+
+  Questo è intuitivo se si pensa a due parole inconfrontabili come un prefisso comune ($epsilon$ nel caso base) seguite da un bit diverso, e si immagina la costruzione tramite B tree. A partire dal bit diverso, le due parole si diramano e quindi i loro intervalli non si intersecano più. In formula:
   $
     exists z in Z^* "t.c" x = z 0 x^', y = z 1 y^'
   $
 
   #example()[
 
-    Consideriamo le parole $x = 010$ e $y = 011$. Il loro prefisso comune z è $01$.
-    Quindi possiamo scrivere $x = z 0 x^' = 01 0 epsilon$ e $y = z 1 y^' = 01 1 epsilon$.
+    Consideriamo le parole $x = mb(01) mr(0)$ e $y = mb(01) mr(1)$. Il loro prefisso comune z è $mb(01)$.
+    Quindi possiamo scrivere
+    $
+      mo(x) & = mb(z) mr(0) epsilon = mb(01) mr(0) epsilon \
+      mg(y) & = mb(z) mr(1) epsilon = mb(01) mr(1) epsilon
+    $
 
     #align(center)[
       #cetz.canvas({
@@ -168,9 +176,9 @@ Si può dedurre informalmente è che, dato un codice che soddisfa la disuguaglia
             text(fill: red)[0],
             ([00], [000], [001]),
             (
-              text(fill: red)[01],
-              (text(fill: red)[010]),
-              (text(fill: red)[011]),
+              text(fill: blue)[01 = z],
+              (text(fill: orange)[010]),
+              (text(fill: green)[011]),
             ),
           ),
           ([1], ([10], [100], [101]), ([11], [110], [111])),
@@ -215,9 +223,8 @@ Si può dedurre informalmente è che, dato un codice che soddisfa la disuguaglia
         )
       })
     ]
-
-    I loro intervalli sono $I(x) = [2/8, 3/8)$ e $I(y) = [3/8, 4/8)$, che sono
-    disgiunti, e sono inclusi nell'intervallo del prefisso comune $I(z) = [2/4, 3/4)$.
+    Dal prefisso comune $mb(z)$ le due parole si *diramano*, quindi i loro intervalli sono disgiunti. I loro intervalli sono $I(x) = [2/8, 3/8)$ e $I(y) = [3/8, 4/8)$, che sono
+    disgiunti, e sono inclusi nell'intervallo del prefisso comune $I(z) = [1/4, 1/2)$.
 
     #v(1.5em)
 
@@ -310,8 +317,8 @@ Si può dedurre informalmente è che, dato un codice che soddisfa la disuguaglia
       })
     ]
   ]
-
 ]
+
 
 #proof()[
   Dimostro la prima parte del teorema di Kraft, cioè che se un codice è istantaneo allora la somma di tutte le lunghezze dei codici deve essere minore o uguale a 1. In formula:
@@ -325,12 +332,12 @@ Si può dedurre informalmente è che, dato un codice che soddisfa la disuguaglia
   l'istantaneità, dato che l'intervallo per quella parola è libero e disgiunto da
   tutti gli altri intervalli.
 
-  Consideriamo la seguente contronominale: 
+  Consideriamo la seguente contronominale:
   se la somma di tutte le lunghezze dei codici è diversa da 1 allora il codice non è completo. In formula:
   $
     sum_(w in C) 2^(-|w|) != 1 -> C "non completo"
   $
-  Se c'è spazio libero, allora il codice è necessariamente non completo, perché posso aggiungere una parola senza 
+  Se c'è spazio libero, allora il codice è necessariamente non completo, perché posso aggiungere una parola senza
   violare l'istantaneità. Quindi se la sommatoria è < di 1 allora il codice non è completo.
 ]
 
