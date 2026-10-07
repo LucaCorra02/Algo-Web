@@ -68,7 +68,7 @@ L'hashing coerente mappa gli URL e gli agenti all'interno di un cerchio unitario
 Funzionamento:
 1. Per ogni agente si precalcola un numero fisso di *repliche* (tipicamente $300/400$) e le si piazza sul cerchio usando un generatore di numeri casuali inizializzato con l'identificatore dell'agente.
 
-2. Il posizionamento di queste repliche frammenta il cerchio in numerosi segmenti, ognuno assegnato alla replica successiva in senso orario.
+2. Il posizionamento di queste repliche *frammenta il cerchio* in numerosi segmenti, ognuno assegnato alla replica successiva in senso orario.
 
 3. Preso un URL $u$, se ne calcola l'hash $h(u)$ per trovare un punto sul cerchio unitario.
 
@@ -88,10 +88,18 @@ Funzionamento:
     let center = (4.0, 4.6)
     let points = (
       // Tutti i punti hanno distanza 2.1 dal centro dell'anello.
-      (4.0, 6.7), (5.05, 6.418), (5.819, 5.65),
-      (6.1, 4.6), (5.819, 3.55), (5.05, 2.782),
-      (4.0, 2.5), (2.95, 2.782), (2.181, 3.55),
-      (1.9, 4.6), (2.181, 5.65), (2.95, 6.418),
+      (4.0, 6.7),
+      (5.05, 6.418),
+      (5.819, 5.65),
+      (6.1, 4.6),
+      (5.819, 3.55),
+      (5.05, 2.782),
+      (4.0, 2.5),
+      (2.95, 2.782),
+      (2.181, 3.55),
+      (1.9, 4.6),
+      (2.181, 5.65),
+      (2.95, 6.418),
     )
 
     // Gli intervalli sono colorati con il colore della replica successiva.
@@ -111,58 +119,66 @@ Funzionamento:
 
     // Repliche virtuali colorate come nell'esempio: A, B, C e D.
     let nodes = (
-      (points.at(0), "A", yellow), (points.at(1), "C", green),
-      (points.at(2), "A", yellow), (points.at(3), "B", red),
-      (points.at(4), "C", green), (points.at(5), "D", blue),
-      (points.at(6), "A", yellow), (points.at(7), "B", red),
-      (points.at(8), "C", green), (points.at(9), "D", blue),
-      (points.at(10), "B", red), (points.at(11), "A", yellow),
+      (points.at(0), "A", yellow),
+      (points.at(1), "C", green),
+      (points.at(2), "A", yellow),
+      (points.at(3), "B", red),
+      (points.at(4), "C", green),
+      (points.at(5), "D", blue),
+      (points.at(6), "A", yellow),
+      (points.at(7), "B", red),
+      (points.at(8), "C", green),
+      (points.at(9), "D", blue),
+      (points.at(10), "B", red),
+      (points.at(11), "A", yellow),
     )
     for node in nodes {
-      circle(node.at(0), radius: 0.28, fill: node.at(2), stroke: node-border)
+      circle(node.at(0), radius: 0.32, fill: node.at(2), stroke: node-border)
       content(node.at(0), text(size: 9pt)[#node.at(1)])
     }
 
     // Due URL di esempio: l'hash cade sul cerchio e la ricerca continua
     // in senso orario fino alla prima replica.
-    circle((5.45, 6.0), radius: 0.09, fill: red, stroke: arrow)
-    content((6.35, 6.85), text(size: 8pt)[*hash(key1)*])
+    circle((5.45, 6.0), radius: 0.12, fill: red, stroke: arrow)
+    content((6.95, 6.85), text(size: 8pt)[*hash(key1)*])
     line((6.2, 6.7), (5.48, 6.05), stroke: arrow, mark: (end: "stealth"))
-    line((5.45, 5.9), (5.75, 5.62), stroke: arrow, mark: (end: "stealth"))
-    content((6.35, 5.15), text(size: 7pt)[prima replica successiva: *A*])
-    content((6.35, 4.78), text(size: 7pt)[URL assegnato ad *A*])
+    content((7.6, 6.5), text(size: 7pt)[prima replica successiva: *A*])
+    content((7.25, 6.1), text(size: 7pt)[URL assegnato ad *A*])
 
-    circle((2.15, 3.7), radius: 0.09, fill: red, stroke: arrow)
+    circle((2.0, 4.1), radius: 0.09, fill: red, stroke: arrow)
     content((0.1, 2.45), text(size: 8pt)[*hash(key2)*])
-    line((0.95, 2.6), (2.1, 3.65), stroke: arrow, mark: (end: "stealth"))
-    line((2.15, 3.78), (2.35, 4.12), stroke: arrow, mark: (end: "stealth"))
-    content((0.1, 2.05), text(size: 7pt)[prima replica successiva: *B*])
-    content((0.1, 1.68), text(size: 7pt)[URL assegnato a *B*])
+    line((.95, 2.25), (1.9, 4), stroke: arrow, mark: (end: "stealth"))
+    content((0.1, 2.05), text(size: 7pt)[prima replica successiva: *D*])
+    content((0.1, 1.68), text(size: 7pt)[URL assegnato a *D*])
 
     line((4.2, 7.4), (4.85, 7.25), stroke: arrow, mark: (end: "stealth"))
-    content((3.45, 7.7), text(size: 7pt)[senso orario])
-    content((7.0, 3.65), text(size: 7pt)[4 agenti, repliche virtuali])
+    content((3.2, 7.4), text(size: 10pt)[senso orario])
   })
 ]
 
-La questione del bilanciamento viene risolta inserendo molte repliche: questo riduce la varianza delle dimensioni dei segmenti, rendendoli tendenzialmente unitari. All'aggiunta di un nuovo agente, le sue repliche andranno a "spezzare" segmenti preesistenti; l'URL associato a quel frammento verrà mappato sul nuovo agente senza intaccare le parti restanti.
+Il *bilanciamento* viene *risolto inserendo molte repliche*: Esse permettono di ridurre la varianza delle dimensioni dei segmenti, rendendoli tendenzialmente unitari. All'aggiunta di un nuovo agente, le sue repliche andranno a "spezzare" segmenti preesistenti; l'URL associato a quel frammento verrà mappato sul nuovo agente senza intaccare le parti restanti.
 
-*Implementazione:*
+=== Implementazione
+
 Per implementare il cerchio si memorizzano le posizioni delle repliche sotto forma di interi in un dizionario ordinato e bilanciato (come un B-Tree). Dato l'hash $h(u)$, si cerca il *minimo maggiorante* (operazione di *upper-bound*) per determinare l'agente.
 
 - Il tempo di ricerca è *logaritmico* rispetto al numero totale di repliche nel dizionario.
-- Aggiungere o togliere un elemento da $A$ richiede tempo logaritmico $O(log|A|)$ (a differenza dei casi precedenti che richiedevano tempo costante).
 
-=== Tolleranza ai guasti: individuare i successivi responsabili
-Nella pratica reale, è fondamentale sapere chi in passato era responsabile di un URL (per verificare se è già stato crawlato) o quale sarebbe il prossimo agente responsabile nel caso in cui l'attuale crashi.
+- Aggiungere o togliere un elemento da $A$ richiede tempo logaritmico $O(log|A|)$ (a differenza dei casi precedenti che richiedevano tempo costante), in quanto è necessario inserire o rimuovere tutte le repliche dell'agente.
 
-Tutti e tre i metodi permettono di trovare i $k$ precedenti o successivi agenti responsabili:
+== Tolleranza ai guasti: individuare i successivi responsabili
+
+A livello pratico è fondamentale sapere quale agente in passato era responsabile di un URL (per verificare se è già stato crawlato) o quale sarebbe il futuro responsabile nel caso in cui l'attuale crashi.
+
+Tutti e tre i metodi permettono di trovare i *$k$ precedenti o successivi agenti* responsabili:
 - *Permutazioni aleatorie:* È sufficiente progredire nello shuffle, cercando l'elemento successivo valido nell'insieme $A$.
-- *Min hashing:* Si deve tenere traccia dei valori minimi progressivi (il minimo assoluto, il secondo classificato, ecc.).
+
+- *Min hashing:* Si deve tenere traccia dei *valori minimi progressivi* (il minimo assoluto, il secondo classificato, ecc.).
+
 - *Hashing coerente:* Basta continuare a procedere in senso orario sul cerchio fino a giungere alla replica di un *nuovo* agente (essendoci molteplici repliche per agente, potrebbero essere necessari più passi per "scartare" i duplicati dell'agente ignorato).
 
 #note(title: "Osservazione sulla distribuzione effettiva")[
-  In tutti i metodi descritti c'è una componente pseudoaleatoria. Questo fa sì che la distribuzione degli URL agli agenti non sia matematicamente "perfetta", ma segua una *distribuzione binomiale negativa*. Dato il grande numero di elementi in gioco, tuttavia, il risultato approssima in modo eccellente una distribuzione bilanciata.
+  In tutti i metodi descritti c'è una componente *pseudoaleatoria*. Questo fa sì che la distribuzione degli URL agli agenti non sia matematicamente "perfetta", ma segua una *distribuzione binomiale negativa*. Dato il grande numero di elementi in gioco, tuttavia, il risultato approssima in modo eccellente una distribuzione bilanciata.
 
   In tutti i metodi visti possono esserci delle *collisioni*. Tuttavia, possono essere risolte stabilendo un ordine di priorità tra gli agenti (ad esempio, l'ordine alfabetico dei loro identificatori). In questo modo, in caso di collisione, si assegna l'URL all'agente con priorità più alta.
 ]
@@ -170,14 +186,14 @@ Tutti e tre i metodi permettono di trovare i $k$ precedenti o successivi agenti 
 = Compressione
 
 Nei sistemi reali, i crawler si occupano di scaricare una serie di documenti per poi estrarne gli *shingles* e i *termini* importanti appartenenti al contesto, che verranno infine indicizzati.
-L'obiettivo finale è quello di proporre all'utente i documenti pertinenti in base alle parole chiave (query) inserite. Questi documenti, identificati da ID numerici (DocID), formano liste ordinate in ordine crescente (posting lists).
+L'obiettivo finale è quello di proporre all'utente i documenti pertinenti in base alle parole chiave (query) inserite. Questi documenti, identificati da ID numerici (DocID), formano liste ordinate in ordine crescente (*posting lists*).
 
 #note(title: "Rappresentazione dei Gap")[
   Come si rappresenta una lista in modo efficace?
   La lista indicizzata non salva gli interi completi, ma i *gap* (gli scarti tra un documento e il successivo), che verranno poi risistemati e sommati in fase di lettura. L'obiettivo è quello di avere numeri piccoli da codificare, specialmente in caso di liste dense dove la distanza tra due ID consecutivi è minima.
 ]
 
-Ma come si scrivono sequenze di numeri in pochissimo spazio (livello bit)? A tal scopo si introducono i codici.
+Ma come si scrivono sequenze di numeri in pochissimo spazio (livello bit)? A tal scopo si introducono i *codici*.
 
 == Codici istantanei
 
@@ -185,8 +201,10 @@ Per definire un codice istantaneo è fondamentale introdurre l'ordinamento per p
 Un codice è un insieme $C subset.eq 2^*$, cioè un insieme (al più numerabile) di parole binarie.
 
 Definiamo l'*ordinamento per prefissi* delle sequenze in $2^*$ come segue:
-$x prec.eq y <==> exists z | y = x z$
-In altri termini, $x prec.eq y$ se e solo se $x$ è un prefisso di $y$.
+$
+  x prec.eq y <==> exists z | y = x z
+$
+In altri termini, $x prec.eq y$ *se e solo se* $x$ è un prefisso di $y$.
 
 Date due parole, esse sono:
 - *Confrontabili*: se $x$ è prefisso di $y$ (o viceversa).
@@ -195,10 +213,15 @@ Date due parole, esse sono:
 Un *codice privo di prefissi* (o a *decodifica istantanea*) è un codice in cui non esistono due stringhe distinte in cui una sia prefisso dell'altra. Tutte le parole del codice sono a due a due *inconfrontabili*.
 
 #informally(title: "Proprietà della decodifica")[
-  Il grandissimo vantaggio dei codici istantanei è che esiste un solo modo di leggere e partizionare una determinata sequenza di bit. Leggendo il flusso di bit uno ad uno, sappiamo immediatamente quando una codeword termina, permettendoci di concatenare numeri adiacenti in memoria senza separatori espliciti e decodificandoli senza alcuna ambiguità.
+  Il grandissimo vantaggio dei codici istantanei è che esiste *un solo modo* di leggere e partizionare una determinata sequenza di bit. Leggendo il flusso di bit uno ad uno, sappiamo immediatamente quando una codeword termina, permettendoci di concatenare numeri adiacenti in memoria senza separatori espliciti e decodificandoli senza alcuna ambiguità.
 ]
 
 === Codice istantaneo completo
 
 Un codice istantaneo è detto *completo* (o non ridondante) se, per ogni possibile parola binaria in $2^*$, la parola è confrontabile con *almeno* una parola del codice.
-La conseguenza fondamentale è che, una volta che un codice istantaneo è diventato completo, non è più possibile estenderlo: non posso inserire nuove parole senza violare e distruggere la proprietà di decodifica istantanea.
+
+#note()[
+  La conseguenza fondamentale è che, una volta che un codice istantaneo è diventato completo, *non è* più *possibile estenderlo*: non posso inserire nuove parole senza violare e distruggere la proprietà di decodifica istantanea.
+]
+
+
