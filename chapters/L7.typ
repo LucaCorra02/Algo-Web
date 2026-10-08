@@ -407,7 +407,26 @@ uguale a 1 allora possiamo costruire un codice con queste lunghezze in maniera m
   L'invariante è dunque mantenuto.
 
   #example()[
-    Se devo rappresntare parole di lunghezza 1, 3, 3, 5. Allora la prima parola di lunghezza 1 è 0, uso 1/2 come intervallo. La seconda parola di lunghezza 3 è 100, uso 4/8 -> 5/8 come intervallo. La terza parola di lunghezza 3 è 101, uso 5/8 come intervallo. La quarta parola di lunghezza 5 è 10100, uso 20/32 come intervallo.
+    Consideriamo la rappresentazione di un codice C, contenente parole di lunghezza 1, 3, 3 e 5.
+    Calcoliamo la diseguaglianza di Kraft:
+    $
+      2^(-1) + 2^(-3) + 2^(-3) + 2^(-5) = 25/32 < 1
+    $
+
+    Consideriamo come prima parola 0, di lunghezza 1; il suo intervallo è $[0, 1/2)$.
+    Dopo l'inserimento della prima parola, si ottiene dunque d = 1/2 = 4/8.
+
+    Come seconda parola prendiamo 100, di lunghezza 3, quindi il suo intervallo sarà $[d, d + 1/8) = [4/8, 5/8)$.
+    Dopo l'inserimento otteniamo d = 5/8.
+
+    Come terza parola scegliamo 101, sempre di lunghezza 3, con intervallo $[d, d + 1/8) = [5/8, 6/8)$.
+    Si ottiene d = 6/8 = 24/32.
+
+    Proviamo ad usare come quarta parola 11000, di lunghezza 5. Il suo intervallo è $[d, d + 1/32) = [24/32, 25/32)$.
+
+    In questo ultimo caso, ad esempio, non avremmo potuto scegliere 10101, in quanto confrontabile con 101.
+    Come si evince dal teorema di Kraft infatti, la somma delle lunghezze dei codici è minore di 1, quindi è sempre
+    possibile costruire un codice istantaneo con queste lunghezze, ma non tutti i codici con queste lunghezze sono istantanei.
   ]
 
 ]
@@ -416,46 +435,78 @@ uguale a 1 allora possiamo costruire un codice con queste lunghezze in maniera m
 == Codici istantanei
 
 === Codice binario
-Un codice binario di ampiezza $k$ è istantaneo e ogni parola ha la stessa lunghezza $k$. In questo caso la lunghezza di parole è $2^k$. Se tutti i simboli hanno la stessa frequenza allora il codice binario è ottimale.\
+Un codice binario di ampiezza $k$ è istantaneo e ogni parola ha la stessa lunghezza $k$. In questo caso la lunghezza di parole è $2^k$. Se tutti i simboli hanno la stessa frequenza allora il codice binario è ottimale. \
 
 === Codice unario
 
-Abbiamo due codice $0^* 1$ e $1^* 0$.
-Il codice $1^* 0$ ha un unario lessicografico, l'ordine tra le parole corrisponde all'ordine tra gli interi intesi. Se $x <= y -> 1^x 0 <= 1^y 0$
+Esistono due tipologie di codice unario: $1^* 0$ e $0^* 1$.
 
-Lessicografico vuol dire che l'ordine tra le parole corrisponde all'ordine tra gli interi intesi. Se $x <= y -> 1^x 0 <= 1^y 0$. In questo caso fermo il confronto tra due parole alla prima differenza tra i due bit. Se il primo bit diverso è 0 allora la parola è minore, se il primo bit diverso è 1 allora la parola è maggiore.\
+Il codice $1^* 0$ ha ordine lessicografico: l'ordine tra le parole corrisponde all'ordine tra la gli interi da essi rappresentati. Formalmente se $x <= y -> 1^x 0 <= 1^y 0$
+Per effettuare il confronto tra due parole basta confrontare i bit uno alla volta, fino a trovare il primo bit a 1.
+La parola con il primo bit a 1 più a sinistra è maggiore.
 
 #note()[
   Questo codice unario viene usato da UTF-8 per rappresentare i caratteri.
 ]
 
-Con il prino non è vero, perche 0 -> 1, 1 -> 01 cioè 0 < 1 ma 1 > 01. Quindi il codice unario non è lessicografico.
+Il codice $0^* 1$ invece non ha ordine lessicografico.
+Il suo vantaggio risiede nelle operazioni di lettura del codice.
+Consideriamo infatti un codice unario rappresentato in little-endian. Per leggere il numero, è necessario calcolarne la
+sua lunghezza, ossia trovare la posizione del primo bit a 1.
+Nelle CPU moderne, esistono delle singole istruzioni per trovare il primo bit a 1, rendendo questa operazione molto più efficiente.
 
-Tutte le cpu hanno delle istruzioni per trovare il primo bit a 1, se usiamo la prima codifica allora possiamo trovare il primo bit a 1 e quindi trovare la lunghezza della parola. Se usiamo la seconda codifica allora non possiamo trovare la lunghezza della parola, dobbiamo prima invertire la parola e poi trovare il primo bit a 1. Quindi la prima codifica è più efficiente della seconda.
 
-il problema è che se voglio rappresentare un numero $k$ allora mi servono $k+1$ bit. Quindi per $k$ piccoli va bene, altrimenti no.
+Il problema dei codici unari è che, per rappresentare un numero $k$, servono $k+1$ bit. Quindi è utilizzabile solo per $k$ piccoli.
 
-=== Codice elias gamma
+=== Codice elias $gamma$ (gamma)
+Per codificare un intero x con questo codice, è necessario prima calcolare la sua "rappresentazione binaria ridotta", ottenuta
+codificando $x + 1$ in binario e rimuovendo il bit più significativo.
 
-Il numero viene scritto in binario e davanti ci metto in unario la lunghezza della parola. Dato un $x >= 0$ lo incrementiamo di 1 $x+1$, a questo punto buttiamo via il bit più significiativo.
 #example()[
-  - 5 -> 6 -> 110 -> 10
   - 0 -> 1 -> 1 -> $epsilon$
-  1 -> 2 -> 10 -> 0
+  - 1 -> 2 -> 10 -> 0
+  - 5 -> 6 -> 110 -> 10
 ]
-questa rappresentazione di chiama *codifica unaria ridotta*. Il codice è costruito cosi:
-$
-  0 -> 1 -> epsilon -> 1 epsilon = 1\
-  1 -> 2 -> 10 -> 0 -> 010 = 010\
-  2 -> 3 -> 11 -> 1 -> 011 = 011\
-  3 -> 4 -> 100 -> 00 -> 001 00
-$
 
-Lunghezza e costo di una parola: lambda è la posizione del numero più significativo. La ridotta è data da $x+1$ in binario e poi butto via il bit più significativo. Il numero in unario è data dalla lunghezza della ridotta + 1 (mi serve un bit in più in unario)
+Elias $gamma$ codifica un intero x concatenando la lunghezza della sua rappresentazione binaria ridotta in unario con la
+sua rappresentazione binaria ridotta.
+
+#example()[
+  - *Codifica di $n = 0$:* \
+    Ridotta: $0 arrow.r 1 arrow.r epsilon$ \
+    Lunghezza in unario ($0$ bit): $1$ \
+    Codice finale: $1 space epsilon = 1$
+    
+  - *Codifica di $n = 1$:* \
+    Ridotta: $1 arrow.r 2 arrow.r 10 arrow.r 0$ \
+    Lunghezza in unario ($1$ bit): $01$ \
+    Codice finale: $01 space 0 = 010$
+    
+  - *Codifica di $n = 2$:* \
+    Ridotta: $2 arrow.r 3 arrow.r 11 arrow.r 1$ \
+    Lunghezza in unario ($1$ bit): $01$ \
+    Codice finale: $01 space 1 = 011$
+    
+  - *Codifica di $n = 3$:* \
+    Ridotta: $3 arrow.r 4 arrow.r 100 arrow.r 00$ \
+    Lunghezza in unario ($2$ bit): $001$ \
+    Codice finale: $001 space 00 = 00100$
+]
+
+Lunghezza e costo di una parola: $lambda$ è la posizione del numero più significativo. La rappresentazione binaria ridotta è
+data da $x+1$ in binario e poi butto via il bit più significativo.
+
+Il numero in unario è data dalla lunghezza della ridotta + 1.
+
 $
   lambda(x+1) + lambda(x+1) + 1 \
   2 lambda(x+1) + 1 \
   2 floor(log_2(x+1)) + 1 \
 $
 
-Si tratta di un codice istantaneo, in quanto la parte dell'unaria è ovviamente istantanea e la parte ridotta è istantanea in quanto non contiene il bit più significativo.Escludendo il bit più significativo, la parte ridotta non può essere prefisso di un'altra parola, la parte ridotta è composta da parole di lunghezza $lambda(x+1) - 1$ e quindi non può essere prefisso di un'altra parola.\
+La parte in unario è istantanea per definizione. La rappresentazione binaria ridotta è istantanea in quanto non contiene 
+il bit più significativo. Escludendo il bit più significativo infatti la parte ridotta non può essere prefisso di un'altra 
+parola, perchè è composta da parole di lunghezza $lambda(x+1) - 1$ e quindi non può essere prefisso di un'altra parola.
+
+Essendo formato da due parti istantanee, il codice Elias $gamma$ è istantaneo.
+\
