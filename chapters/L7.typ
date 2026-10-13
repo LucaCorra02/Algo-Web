@@ -332,11 +332,11 @@ La dimostrazione della disuguaglianza di Kraft si divide in due parti:
   $ sum_(w in C) 2^(-|w|) <= 1 $
 ]
 
+==== Numeri diadici
+
 Per comprendere a fondo la dimostrazione di completezza, dobbiamo introdurre il concetto di *numero diadico*. Un diadico è un razionale della forma: $ k 2^(-h) = k 1 / 2^h $
 
-Questi numeri rappresentano tutti i *punti di "taglio"* che si ottengono dividendo a metà, in modo ricorsivo, l'intervallo unitario $[0, 1)$.
-
-Un *intervallo diadico* è lo spazio compreso tra due diadici consecutivi dello stesso "livello" $h$:
+Questi numeri rappresentano tutti i *punti di "taglio"* che si ottengono dividendo a metà, in modo ricorsivo, l'intervallo unitario $[0, 1)$. Un *intervallo diadico* è lo spazio compreso tra due diadici consecutivi dello stesso "livello" $h$:
 $
   [k 2^(-h), (k+1) 2^(-h))
 $
@@ -344,92 +344,112 @@ $
 #note()[
   Tali intervalli presentano una proprietà fondamentale: Dato un qualunque intervallo diadico $[k 2^(-h), (k+1) 2^(-h))$, esiste *un'unica parola di lunghezza $h$* a cui è associato l'intervallo.
 
-  Ad esempio, l'intervallo $[1/4, 2/4)$ è un intervallo diadico di livello $h=2$ (poiché $1/4 = 1/2^2$ e $2/4 = 2/2^2$). La singola parola associata ad esso è `01`.
+  #example()[
+    L'intervallo $[1/4, 2/4)$ è un intervallo diadico di livello $h=2$ (poiché $1/4 = 1/2^2$ e $2/4 = 2/2^2$). Otteniamo cosi $h = 2$ e $k=1$. La rappresentazione deil numero $k=1$ in binario è $1$, alineando a sinistra fino a raggiungere il numero di bit $h=2$, otteniamo $01$.\
+    Quindi la parola associata a questo intervallo è $01$.
+  ]
 ]
-
-
-
-
-
-
-
 
 Vogliamo dimostrare che un codice istantaneo $C$ è completo *se e solo se* la somma delle lunghezze dei suoi intervalli è esattamente 1.
 
 #proof()[
   *Parte 1: Se la somma è $< 1$ allora il codice NON è completo.* \
-  Se la sommatoria è strettamente minore di uno, deve esserci un intervallo scoperto (cioè uno spazio "vuoto" non assegnato ad alcuna parola), diciamo $[x, y)$[cite: 1].
-  Poiché la scomposizione diadica può procedere all'infinito scendendo di livello (aumentando $h$), questo intervallo $[x, y)$ contiene necessariamente un sottointervallo diadico della forma $[k 2^(-h), (k+1)2^(-h))$ per qualche $h$ e $k$[cite: 1].
-  Sappiamo che a questo intervallo diadico corrisponde un'esatta parola binaria. Poiché l'intervallo si trova in uno spazio completamente "vuoto", questa parola non si sovrappone a nessuna di quelle esistenti. Ma allora la parola associata a quest'ultimo potrebbe essere aggiunta al codice (essendo inconfrontabile con tutte le altre), che quindi risulta incompleto[cite: 1].
+
+  1. Se la sommatoria è strettamente minore di uno, deve esserci un *intervallo scoperto* (cioè uno spazio _vuoto_ non assegnato ad alcuna parola), diciamo $[x, y)$.
+
+  2. Poiché la scomposizione diadica può procedere all'infinito scendendo di livello (aumentando $h$), questo intervallo $[x, y)$ contiene necessariamente un *sottointervallo diadico* della forma $[k 2^(-h), (k+1)2^(-h))$ per qualche $h$ e $k$.
+
+  3. Sappiamo che a questo intervallo diadico corrisponde *un'esatta parola* binaria. Poiché l'intervallo si trova in uno spazio completamente "vuoto", questa parola non si sovrappone a nessuna di quelle esistenti. Ma allora la parola associata a quest'ultimo potrebbe essere aggiunta al codice (essendo inconfrontabile con tutte le altre), che quindi risulta incompleto.
 
   *Parte 2: Se il codice NON è completo allora la somma è $< 1$.* \
-  D'altra parte, se il codice è incompleto, l'intervallo corrispondente a una parola inconfrontabile con tutte quelle del codice è necessariamente scoperto[cite: 1]. La presenza di questo nuovo intervallo fisico completamente libero rende la somma totale delle frazioni di spazio precedentemente occupate strettamente minore di 1[cite: 1].
+
+  Essendo il codice incompleto, esiste almeno una parola binaria $w$ che *non è confrontabile* (cioè non è nè un prefisso, nè un'estensione) con nessuna delle parole del codice. La parola $w$ ha un intervallo associato $I(w)$, che non è coperto da nessuna delle parole del codice. Questo implica che l'intervallo $I(w)$ è *libero* e quindi la somma totale degli intervalli occupati dalle parole del codice è strettamente minore di 1.
 ]
 
-*Implicazione della disequaglianza di Kraft*
+=== *Implicazione della disequaglianza di Kraft*
 
-Supponiamo di avere una sequenza di lunghezze $t_0, t_1, t_2, t_3dots$ (eventualmente infinita) ordinata in modo crescente,
-e di voler costruire un codice istantaneo con queste lunghezze. Se la somma di tutte le lunghezze dei codici è minore o
-uguale a 1 allora possiamo costruire un codice con queste lunghezze in maniera miope (greedy).
+Supponiamo di avere una sequenza di lunghezze $t_0, t_1, t_2, t_3, dots$ (eventualmente infinita) *ordinata* in modo crescente,
+e di voler costruire un codice istantaneo con queste lunghezze. Se la somma di tutte le lunghezze dei codici è minore o uguale a 1 allora possiamo costruire un codice con queste lunghezze in maniera miope (greedy):
+$
+  "Se" sum_(n) 2^(-t_n) <= 1 -> exists C_"ist" "t.c" |w_i| = t_i
+$
+*esiste un codice privo di di prefissi* formato da parole $w_0, w_1, w_2, w_3dots$ dove $|w_i| = t_i$.
 
 #note()[
-  Che il codice sia istantaneo non è una vera e propria implicazione della disequaglianza di Kraft, perché non posso dire con certezza che il codice
-  costruito sia istantaneo, ma se non è così, l'errore non è nelle lunghezze scelte ma nella scelta dei bit delle parole
-  associate a quelle lunghezze.
+  Non è detto che qualunque codice costruito con le lunghezze date sia automaticamente istantaneo. Tuttavia *l'errore non risiede nelle lunghezze scelte*, ma nella scelta dei bit delle parole associate a quelle lunghezze.
+
+  Giocando con le permutazioni dei bit, è sempre possibile costruire un codice istantaneo.
 ]
 
 #proof()[
-  Sia 𝑑 l’estremo destro della parte di intervallo unitario correntemente coperta dagli intervalli associati alle parole già
-  generate. Vogliamo dimostrare che, per qualche intero $k$, l'invariante $𝑑 = k / 2^(t_i)$ sia vero sempre.
+  Sia $d$ l'estremo destro della parte di intervallo unitario $[0, 1)$ correntemente coperta dagli intervalli associati alle parole già generate. Inizialmente $d = 0$.
 
-  Il caso base è $d_0 = 0$.
+  Vogliamo dimostrare che, prima di generare la parola $w_n$ (di lunghezza $t_n$), vale il seguente *invariante* per un certo intero $k$:
+  $ d = k 2^(-t_n) = k / 2^(t_n) $
 
-  L'intervallo diadico per una parola di lunghezza $t_i$ sarà:
-  $
-    [ k / 2^(t_i), (k+1) / 2^(t_i) )
-  $
-  per un certo $k$ intero, ossia di lunghezza k.
+  Questo invariante ci garantisce di poter scegliere come $w_n$ (la parola successiva) l'unica parola di lunghezza $t_n$ il cui intervallo associato ha come estremo sinistro esattamente $d$.
 
-  Se $𝑑 = k / 2^(t_i)$ è vero, dopo l'inserimento della parola $w_n$, d sarà dunque $(k+1) / 2^(t_i)$.
+  *Dimostrazione per induzione:*
+  1. *Caso base ($n=0$):* Prima di inserire la prima parola $w_0$, abbiamo $d = 0$, che si può scrivere come $0 * 2^(-t_0)$. L'invariante è banalmente vero con $k=0$.
 
-  $
-    (k+1) 2^(-t_i)
-  $
-
-  Moltiplico $2^(-t_i)$ per $2^(-t_(i+1)) * 2^(t_(i+1))$, ottenendo:
-
-  $
-    underbrace((k+1) * 2^(t_(i+1) - t_i), k) 2^(-t_(i+1))
-  $
-
-  Dove $t_(i+1) >= t_i$
-
-  L'invariante è dunque mantenuto.
-
-  #example()[
-    Consideriamo la rappresentazione di un codice C, contenente parole di lunghezza 1, 3, 3 e 5.
-    Calcoliamo la diseguaglianza di Kraft:
+  2. *Passo induttivo:* Supponiamo che l'invariante sia vero per il passo $n$, cioè prima di inserire la parola $w_n$ abbiamo $d = k 2^(-t_n)$. Generiamo la parola $w_n$. L'intervallo diadico occupato da questa parola ha lunghezza $2^(-t_n)$, quindi coprirà lo spazio:
     $
-      2^(-1) + 2^(-3) + 2^(-3) + 2^(-5) = 25/32 < 1
+      [d, d + 2^(-t_n)) = [k 2^(-t_n), (k+1) 2^(-t_n))
+    $
+    Il nuovo estremo destro (lo chiameremo $d_"nuovo"$) diventa quindi l'estremo superiore di questo intervallo:
+    $
+      d_"nuovo" = (k+1) 2^(-t_n)
     $
 
-    Consideriamo come prima parola 0, di lunghezza 1; il suo intervallo è $[0, 1/2)$.
-    Dopo l'inserimento della prima parola, si ottiene dunque d = 1/2 = 4/8.
+    Ora dobbiamo dimostrare che questo $d_"nuovo"$ rispetta l'invariante per il *passo successivo*, in cui dovremo inserire la parola $w_(n+1)$ di lunghezza $t_(n+1)$. Dobbiamo cioè dimostrare che $d_"nuovo"$ può essere scritto nella forma $k' 2^(-t_(n+1))$ per un qualche nuovo numero intero $k'$.
 
-    Come seconda parola prendiamo 100, di lunghezza 3, quindi il suo intervallo sarà $[d, d + 1/8) = [4/8, 5/8)$.
-    Dopo l'inserimento otteniamo d = 5/8.
+    1. Prendiamo $d_"nuovo"$ e moltiplichiamolo per $2^(t_(n+1)) 2^(-(t_(n+1)))$ (che equivale a moltiplicare per 1, non alterando il valore):
+    $
+      d_"nuovo" = (k+1) 2^(-t_n) * (2^(t_(n+1)) 2^(-t_(n+1)))
+    $
 
-    Come terza parola scegliamo 101, sempre di lunghezza 3, con intervallo $[d, d + 1/8) = [5/8, 6/8)$.
-    Si ottiene d = 6/8 = 24/32.
+    2. Raggruppando i termini centrali per le proprietà delle potenze:
+      $ d_"nuovo" = (k+1) 2^(t_(n+1) - t_n) * 2^(-t_(n+1)) $
 
-    Proviamo ad usare come quarta parola 11000, di lunghezza 5. Il suo intervallo è $[d, d + 1/32) = [24/32, 25/32)$.
+      Per ipotesi iniziale sappiamo che le lunghezze sono ordinate in modo non decrescente, quindi $t_(n+1) >= t_n$. Di conseguenza, la differenza $t_(n+1) - t_n$ è un numero intero $>=0$. Essendo l'esponente un intero positivo o nullo, la quantità $(k+1) 2^(t_(n+1) - t_n)$ è sicuramente un numero intero, senza frazioni o decimali. Chiamiamo questo nuovo numero intero $k'$.
 
-    In questo ultimo caso, ad esempio, non avremmo potuto scegliere 10101, in quanto confrontabile con 101.
-    Come si evince dal teorema di Kraft infatti, la somma delle lunghezze dei codici è minore di 1, quindi è sempre
-    possibile costruire un codice istantaneo con queste lunghezze, ma non tutti i codici con queste lunghezze sono istantanei.
-  ]
+    3. Sostituendo, otteniamo esattamente:
+      $ d_"nuovo" = k' 2^(-t_(n+1)) $
 
+      *L'invariante è mantenuto*. L'algoritmo miope (greedy) troverà sempre un estremo sinistro valido per la parola successiva.
 ]
+
+#example()[
+  Consideriamo la rappresentazione di un codice $C$, contenente parole di lunghezza 1, 3, 3 e 5.
+  Calcoliamo la diseguaglianza di Kraft:
+  $
+    2^(-1) + 2^(-3) + 2^(-3) + 2^(-5) = 25/32 < 1
+  $
+
+  Consideriamo come *prima parola* $0$, di lunghezza $1$: il suo intervallo è $[0, 1/2)$. Dopo l'inserimento della prima parola, si ottiene dunque $d = 1/2 = 4/8$.
+
+  Come *seconda parola* prendiamo $100$, di lunghezza $3$, quindi il suo intervallo sarà:
+  $
+    [d, d + 1/2^3) = [d, d + 1/8)= [4/8, 5/8)
+  $
+  Dopo l'inserimento otteniamo $d = 5/8$.
+
+  Come *terza parola* scegliamo $101$, sempre di lunghezza $3$, con intervallo:
+  $
+    [d, d + 1/8) = [5/8, 6/8)
+  $
+  Si ottiene $d = 6/8 = 24/32$.
+
+  Proviamo ad usare come *quarta parola* $11000$, di lunghezza $5 = 2^5 = 32$. Il suo intervallo è:
+  $
+    [d, d + 1/32) = [24/32, 25/32]
+  $
+  In questo ultimo caso, ad esempio, non avremmo potuto scegliere $mr(101)01$, in quanto confrontabile con $mr(101)$.
+  Come si evince dal teorema di Kraft infatti, la somma delle lunghezze dei codici è minore di 1, quindi è sempre
+  possibile costruire un codice istantaneo con queste lunghezze, ma non tutti i codici con queste lunghezze sono istantanei.
+]
+
+
 
 
 == Codici istantanei
@@ -476,17 +496,17 @@ sua rappresentazione binaria ridotta.
     Ridotta: $0 arrow.r 1 arrow.r epsilon$ \
     Lunghezza in unario ($0$ bit): $1$ \
     Codice finale: $1 space epsilon = 1$
-    
+
   - *Codifica di $n = 1$:* \
     Ridotta: $1 arrow.r 2 arrow.r 10 arrow.r 0$ \
     Lunghezza in unario ($1$ bit): $01$ \
     Codice finale: $01 space 0 = 010$
-    
+
   - *Codifica di $n = 2$:* \
     Ridotta: $2 arrow.r 3 arrow.r 11 arrow.r 1$ \
     Lunghezza in unario ($1$ bit): $01$ \
     Codice finale: $01 space 1 = 011$
-    
+
   - *Codifica di $n = 3$:* \
     Ridotta: $3 arrow.r 4 arrow.r 100 arrow.r 00$ \
     Lunghezza in unario ($2$ bit): $001$ \
@@ -504,8 +524,8 @@ $
   2 floor(log_2(x+1)) + 1 \
 $
 
-La parte in unario è istantanea per definizione. La rappresentazione binaria ridotta è istantanea in quanto non contiene 
-il bit più significativo. Escludendo il bit più significativo infatti la parte ridotta non può essere prefisso di un'altra 
+La parte in unario è istantanea per definizione. La rappresentazione binaria ridotta è istantanea in quanto non contiene
+il bit più significativo. Escludendo il bit più significativo infatti la parte ridotta non può essere prefisso di un'altra
 parola, perchè è composta da parole di lunghezza $lambda(x+1) - 1$ e quindi non può essere prefisso di un'altra parola.
 
 Essendo formato da due parti istantanee, il codice Elias $gamma$ è istantaneo.
