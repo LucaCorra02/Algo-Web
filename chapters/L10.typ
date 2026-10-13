@@ -104,8 +104,12 @@ Per le devisioni le possiamo fare in modo che siano precomputate
 
 Per tornare indietro. Il colore di $x$ è dato da $s = "sym"(x mod 2^d)$ (in questo modo trovo il simbolo, ovvero a). Devo ora trovare lo stato precedente: I naturali di colore $s$ che precedono $x$ sono:
 - f_s per ognuno dei $x>>d$ blocchi precedenti
-- più degli $x mod 2^d-c_s$ che lo precedono nel suo blocco. 
+- più degli $x mod 2^d-c_s$ che lo precedono nel suo blocco.
 
 === Dettagli implementativi
 
-Quando butto via i bit, vado a perdere man mano la precisione. 
+Quando butto via i bit, vado a perdere man mano la precisione.
+
+#warning()[
+  In questo caso non possiamo più appredere la distribuzione ma dobbiamo conoscere la distribuzione. Dobbiamo salvarci i dati ancillari di un blocco (f_s) da qualche parte. Se essi occupano troppo spazio vanno a intaccare la rappresentazione dei codici. La soluzione è usare delle tecniche di packing per gli f_s
+]
