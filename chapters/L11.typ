@@ -122,3 +122,7 @@ Per leggere un codice:
 La tablla indica le operazioni da fare in base alla parola di memoria che stiamo considerando nel bit stram. Ci indica come ottenere la parola originale.
 
 Funziona molto bene con i codici parametrici. Solitamente la tabella è sufficiente per coprire l'intera distribuzione.
+
+#note()[
+  Il vantaggio di leggere big endian è che le tabelle di lookup vengono utilizzate meglio dalla cache, ci sono meno cache miss in quanto quelli più frequenti (1 inziale) sono tutti vicini
+]
