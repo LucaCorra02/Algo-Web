@@ -169,3 +169,7 @@ Il funzionamento di questa politica è il seguente:
 
   Questo problema, insieme a quello della concorrenza, si risolve con la *coda degli host*.
 ]
+
+#note()[
+  Gran parte dei siti web hanno un *file robots.txt* che specifica la politeness desiderata. Tramite l'uso delle clausole "Disallow" e "Allow", si definiscono per ogni User-Agent (crawler) quali path possono essere visitate e quali no, con priorità crescente.
+]

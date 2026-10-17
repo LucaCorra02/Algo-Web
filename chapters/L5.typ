@@ -255,31 +255,12 @@ Indichiamo con $A$ l'insieme degli agenti e con $U$ l'insieme degli URL. Serve u
   $
     abs(delta_A^(-1)(a)) approx abs(U) / abs(A)
   $
-- *Controvarianza* (utile quando $A$ cambia nel tempo): se $B supset.eq A$ e $a in A$, allora $delta_B^(-1)(a) subset.eq delta_A^(-1)(a)$. Aumentando gli agenti, gli insiemi di URL dei preesistenti possono solo *ridursi*: aggiungendo un agente, i preesistenti non ricevono nessun nuovo URL.
+- *Controvarianza* (utile quando $A$ cambia nel tempo): L'assegnazione deve essere resiliente alle variazioni del numero di agenti: se $B supset.eq A$ e $a in A$, allora $delta_B^(-1)(a) subset.eq delta_A^(-1)(a)$.\
 
-Esistono varie architetture:
-- *Macchina centrale:* Un nodo distribuisce il carico dinamicamente. Rischioso perché costituisce un *Single Point of Failure (SPOF)*.
-
-- *Divisione per IP:* Gli indirizzi IP vengono assegnati agli agenti. Molto rischioso perché la risoluzione IP di un host può cambiare nel tempo o distribuirsi su CDN.
-
-- *Divisione per Host (Hash mod N):* Si estrae l'host dall'URL, se ne calcola un hash e si divide per il numero di macchine attive ($"Hash"("host") space mod space N$).
-
-#warning(title: "Il problema del modulo")[
-  L'approccio $mod N$ ha un difetto critico: se una macchina fallisce o se ne aggiunge una nuova (quindi $N$ cambia in $N-1$ o $N+1$), quasi tutti gli URL cambieranno assegnazione, invalidando le code e le cache locali degli agenti.
+  #informally(title: "Controvarianza")[
+    Dal punto di vista insiemistico: se aumenta il numero di agenti (da $A$ a $B$), l'insieme degli URL gestito da un agente preesistente può solo *diminuire* o *rimanere uguale*. I nuovi URL andranno unicamente ai nuovi agenti, senza stravolgere gli assegnamenti precedenti.
 ]
 
-=== L'approccio Robusto: Hashing per l'assegnamento (Rendezvous Hashing)
-Per risolvere il problema dell'*assegnazione instabile*, si utilizza una funzione di hash a due argomenti $h(u, a)$, dove:
-- $u$ è l'URL (o l'host)
-- $a$ è l'identificativo dell'agente.
-
-L'agente incaricato di scaricare l'URL $u$ sarà quello che minimizza la funzione:
-$ "Agente assegnato" = min_(a in A) h(u, a) $
-
-Questa tecnica è *bilanciata* (se $h$ è casuale) e *controvariante*. Se all'insieme degli agenti si *aggiunge* un nodo, gli unici URL che cambiano assegnatario sono quelli per cui il nuovo nodo produce un valore di hash strettamente minore di tutti quelli degli agenti preesistenti. Se si *rimuove* un agente, cambiano assegnatario solo gli URL che erano assegnati a lui. Tutte le altre assegnazioni restano stabili.
-
-*Costi:* tempo proporzionale a $abs(A)$, spazio costante (basta tenere il minimo trovato); modificare $A$ costa tempo costante, perché non c'è nulla da aggiornare.
-
-#warning(title: "Non confondere i due \"min hash\"")[
-  Il *min hashing* per distribuire il carico ($min_(a in A) h(u, a)$) è una tecnica diversa dal *MinHash* di Broder per stimare la similarità di Jaccard: hanno in comune solo l'idea di prendere il minimo di valori di hash.
+#note(title: "Insiemi di agenti statici")[
+  Nel caso semplice in cui l'insieme degli *agenti* sia *fisso*, è sufficiente numerarli da $0$ ad $n$ e applicare una semplice funzione di hash: l'agente assegnato sarà $h(u) mod |A|$. Tuttavia, se l'insieme varia nel tempo, l'hashing semplice perde completamente la coerenza, causando la ridistribuzione di quasi tutto il carico.
 ]

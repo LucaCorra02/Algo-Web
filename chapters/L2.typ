@@ -66,6 +66,11 @@ In queste strutture è preferibile sostituire l'URL con una *firma* ottenuta tra
     $
       approx n^2 / (2u) "per" n "grande"
     $
+    mentre la probabilità di collisione per una chiave è
+    $
+      approx n / u "per" n "grande"
+    $
+    
     Il numero effettivo di collisioni è una variabile aleatoria; per valori grandi può essere approssimato tramite una distribuzione di Poisson.
   ]
 ]
@@ -87,6 +92,9 @@ Le *riallocazioni* delle tabelle hash sono estremamente instabili rispetto all'o
   Le tabelle hash non sono adatte a questo scopo perché, quando lo spazio è esaurito, spesso devono essere riallocate con una capacità doppia. Se non c'è più memoria disponibile, il crawler si blocca.
 ]
 
+#note()[
+  In realtà, nei sistemi moderni le scritture su disco non avvengono quasi mai invocando direttamente le classiche chiamate di I/O, ma sfruttando mmap (memory-mapped files). Questa tecnica mappa il file su disco direttamente nello spazio di indirizzamento della memoria virtuale del processo. I vantaggi sono notevoli: si evitano i continui overhead dei context switch tra user space e kernel space e si delega l'ottimizzazione della RAM al sistema operativo (tramite la Page Cache). Proprio in ottica di graceful degradation, se la memoria fisica si satura, l'OS gestisce autonomamente lo scarico (flush) delle pagine in eccesso sul disco. Il sistema inizia a fare paging, rallentando in modo fluido le operazioni del crawler ma evitandone il crash per mancanza di memoria.
+]
 == Filtri di bloom
 
 Si tratta di una struttura dati probabilistica che rappresenta un dizionario approssimato. Permette di aggiungere elementi all’insieme e chiedere se un elemento appartiene o no all’insieme, con il rischio di ottenere _falsi positivi_.
