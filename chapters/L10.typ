@@ -2,7 +2,8 @@
 
 = Codifiche entropiche
 
-Le tecniche di codifica entropica cercano di rappresentare una stringa usando un numero di bit vicino all'entropia del sorgente. In pratica, i simboli più frequenti costano meno, quelli rari costano di più.
+Le tecniche di codifica entropica cercano di rappresentare una stringa usando un numero di bit vicino all'entropia del sorgente.
+In pratica, i simboli più frequenti costano meno, quelli rari costano di più.
 
 Ci sono due modi principali per farlo:
 
@@ -13,22 +14,41 @@ L'idea di fondo è sempre la stessa: ogni nuovo simbolo fa crescere il costo in 
 
 = Codifica aritmetica
 
-La codifica aritmetica assegna a ogni simbolo un sottointervallo di $[0,1)$.
-Le ampiezze dei sottointervalli sono proporzionali alla distribuzione dei simboli che rappresentano. Fissato un ordine dell'alfabeto, il sottointervallo del simbolo $s$ è $[F(s), F(s)+p(s))$, dove $F(s)$ è la somma delle probabilità dei simboli che precedono $s$.
+La codifica aritmetica associa a ogni sequenza di simboli un sottointervallo di $[0, 1)$ di lunghezza esattamente uguale
+alla probabilità della sequenza.
 
-Ipotizziamo di voler rappresentare una sequenza $s_0, s_1, ..., s_n$.
-
-Dato il simbolo $s_0$, con distribuzione $p(s_0)$, il suo intervallo avrà ampiezza $p(s_0)$.
-
-Per codificare il simbolo successivo, si parte dall'intervallo corrente $I=[L,U)$, di ampiezza $w=U-L$, e lo si restringe al sottointervallo relativo al simbolo:
+Sia $Sigma = [0 .. k)$ l'alfabeto dei simboli, $p_s$ la probabilità del simbolo $s in Sigma$, e sia:
 $
-  I_s = [L + w F(s), L + w (F(s) + p(s)))
+  C_s = sum_(t < s) p_t
 $
-Quindi l'intervallo rappresenta l'intero prefisso già letto, non soltanto l'ultimo simbolo. L'operazione si ripete per ogni simbolo della sequenza.
+la *probabilità cumulativa* dei simboli che precedono strettamente $s$.
 
-#example()[
+L'algoritmo di codifica procede come segue:
+1. Si parte dall'intervallo iniziale $[l, l+w) = [0, 1)$, che ha estremo inferiore $l = 0$ e ampiezza $w=1$.
+2. Per codificare un simbolo $s$, si suddivide l'intervallo corrente $[l, l+w)$ in $k$ sottointervalli consecutivi di ampiezza
+proporzionale alle probabilità dei simboli e si seleziona quello corrispondente a $s$:
+$
+  [l + w C_s, \; l + w (C_s + p_s))
+$
+Il nuovo estremo inferiore diventa quindi $l' = l + w C_s$ e la nuova ampiezza diventa $w' = w p_s$. L'operazione si ripete
+per tutti i simboli della sequenza.
 
-  Dati i simboli A e B, tali che la loro distribuzione sia rispettivamente 3/4 e 1/4, l'intervallo unitario viene diviso come segue:
+== Lunghezza dell'intervallo e contenuto informativo
+
+Poiché a ogni passo l'ampiezza dell'intervallo viene moltiplicata per la probabilità $p_s$ del simbolo letto, dopo aver codificato una sequenza di $n$ simboli $s_0, s_1, dots, s_(n-1)$ l'ampiezza dell'intervallo finale è:
+$
+  P = product_(i=0)^(n-1) p_(s_i)
+$
+che corrisponde esattamente alla probabilità dell'intera sequenza (assumendo simboli indipendenti).
+
+Prendendo il logaritmo in base $2$ dell'inverso di $P$, otteniamo:
+$
+  log_2 frac(1, P) = sum_(i=0)^(n-1) log_2 frac(1, p_(s_i))
+$
+Il termine a destra è la *somma esatta dei contenuti informativi* dei singoli simboli: non c'è alcun arrotondamento all'intero superiore simbolo per simbolo.
+
+#example(title: "Secondo esempio passo-passo: sequenza AAB")[
+  Dati due simboli $A$ e $B$ con probabilità $p(A) = 3/4$ e $p(B) = 1/4$, l'intervallo unitario iniziale è diviso in $[0, 3/4)$ per $A$ e $[3/4, 1)$ per $B$:
 
   #figure()[
     #cetz.canvas({
@@ -48,9 +68,8 @@ Quindi l'intervallo rappresenta l'intero prefisso già letto, non soltanto l'ult
     })
   ]
 
-  Rappresentiamo la sequenza A A B.
-
-  La prima A seleziona l'intervallo $[0, 3/4)$. Per leggere il simbolo successivo, dividiamo nuovamente questo intervallo nelle proporzioni $3/4$ e $1/4$: A occupa $[0, 9/16)$, mentre B occupa $[9/16, 3/4)$.
+  Codifichiamo la sequenza `AAB`:
+  1. La prima `A` seleziona $[0, 3/4)$. Suddividendolo nelle proporzioni $3/4$ e $1/4$, `A` occupa $[0, 9/16)$ e `B` occupa $[9/16, 3/4)$:
 
   #figure()[
     #cetz.canvas({
@@ -71,7 +90,7 @@ Quindi l'intervallo rappresenta l'intero prefisso già letto, non soltanto l'ult
     })
   ]
 
-  Scegliendo la seconda A, l'intervallo diventa $[0, 9/16)$. Al suo interno A occupa $[0, 27/64)$ e B occupa $[27/64, 9/16)$.
+  2. La seconda `A` seleziona $[0, 9/16)$, che viene diviso in $[0, 27/64)$ per `A` e $[27/64, 9/16)$ per `B`:
 
   #figure()[
     #cetz.canvas({
@@ -92,11 +111,11 @@ Quindi l'intervallo rappresenta l'intero prefisso già letto, non soltanto l'ult
     })
   ]
 
-  Per l'ultimo simbolo, B, scegliamo quindi $[27/64, 9/16)=[27/64, 36/64)$. L'ampiezza è $9/64$, proprio la probabilità della sequenza:
+  3. L'ultimo simbolo `B` seleziona $[27/64, 9/16) = [27/64, 36/64)$. L'ampiezza è $9/64$, proprio la probabilità della sequenza:
   $
     p(A A B) = 3/4 dot 3/4 dot 1/4 = 9/64
   $
-  Qualunque numero in questo intervallo identifica la sequenza, se il decoder ne conosce la lunghezza. Per esempio, $7/16=28/64$ è interno all'intervallo e in binario si scrive $0.0111_2$.
+  Il numero diadico $7/16 = 28/64 = 0.0111_2$ cade nell'intervallo finale:
 
   #figure()[
     #cetz.canvas({
@@ -118,7 +137,9 @@ Quindi l'intervallo rappresenta l'intero prefisso già letto, non soltanto l'ult
   ]
 ]
 
-Dopo aver letto una sequenza $s_1, s_2, dots, s_n$, il nuovo intervallo è il risultato del restringimento progressivo della partizione iniziale. Le formule e l'esempio assumono un modello con probabilità dei simboli fissate,
+
+Dopo aver letto una sequenza $s_1, s_2, dots, s_n$, il nuovo intervallo è il risultato del restringimento progressivo della
+partizione iniziale. Le formule e l'esempio assumono un modello con probabilità dei simboli fissate,
 
 Se la sequenza è $x_1, x_2, dots, x_n$, allora l'ampiezza del suo intervallo finale è:
 $
@@ -130,379 +151,394 @@ $
   -log_2 P(x_1, dots, x_n) = -sum_{i=1}^n log_2 p(x_i)
 $
 
-Questo è il costo informativo ideale della sequenza, espresso in bit: una codifica effettiva usa un numero intero di bit e può richiedere qualche bit aggiuntivo per terminazione e sincronizzazione.
+Questo è il costo informativo ideale della sequenza, espresso in bit: una codifica effettiva usa un numero intero di bit
+e può richiedere qualche bit aggiuntivo per terminazione e sincronizzazione.
+
+== Trasmissione e limite superiore alla lunghezza del codice
+
+Per trasmettere la sequenza codificata non serve inviare entrambi gli estremi dell'intervallo finale: basta trasmettere
+un *numero diadico* $j 2^(-h)$ contenuto al suo interno.
+Un numero diadico $j 2^(-h) in [0, 1)$ è completamente descritto dalla parola di $h$ bit che rappresenta l'intero $j$ in
+binario, ovvero dalle sue prime $h$ cifre binarie dopo la virgola.
+
+Quanti bit $h$ servono al massimo?
+- Se il passo della griglia diadica non supera l'ampiezza dell'intervallo, cioè se $2^(-h) <= P$, allora un intervallo di
+lunghezza $P$ contiene *sempre* almeno un multiplo di $2^(-h)$.
+- Basta quindi scegliere:
+$
+  h = ceil(log_2(1/P)) < log_2(1/P) + 1 = sum_(i=0)^(n-1) log_2 frac(1, p_(s_i)) + 1
+$
+
+In conclusione, la codifica aritmetica spende *al più $1$ bit in più rispetto al contenuto informativo dell'intera sequenza*.
+Ripartendo questo singolo bit di sovraccosto su tutti gli $n$ simboli della sequenza, per $n$ grande il costo aggiuntivo per simbolo ($1/n$) diventa nullo e il costo medio per simbolo tende all'entropia.
 
 == Costo medio e distribuzione empirica
-// TODO: di sta roba non ho capito niente
-// Tanto c'è la review
 
-*GUARDA QUI C'È UN COMMENTO*
-
-Se nella sequenza il simbolo $s$ compare $n_s$ volte, il costo ideale complessivo e il costo medio per simbolo sono:
+Supponiamo di avere una sequenza $S$ di lunghezza $n$ in cui ciascun simbolo distinto $s in Sigma$ compare un numero di
+volte pari a $"#s"$ (con $sum_s "#s" = n$).
+Possiamo raggruppare i termini del costo informativo totale della sequenza raccogliendo le occorrenze dello stesso simbolo:
 $
-  L = sum_(s in S) n_s log_2(1/p(s))
-  quad
-  L/n = sum_(s in S) (n_s/n) log_2(1/p(s))
+  log_2 frac(1, P) = sum_(i=0)^(n-1) log_2 frac(1, p_(s_i)) = sum_(s in Sigma) "#s" dot log_2 frac(1, p_s)
 $
-La frequenza empirica è $q(s)=n_s/n$, quindi il costo medio è $sum_s q(s) log_2(1/p(s))$. Se il modello usa proprio le frequenze empiriche, $p(s)=q(s)$, questa quantità coincide con l'entropia empirica $H(q)=-sum_s q(s) log_2 q(s)$. Se il modello non coincide con la distribuzione osservata, il costo medio dipende da entrambe e può essere maggiore.
-Più precisamente, quando $q(s)>0$ implica $p(s)>0$, vale:
+Dividendo per il numero totale di simboli $n$, otteniamo il *costo informativo medio per simbolo*:
 $
-  sum_s q(s) log_2(1/p(s)) = H(q) + D_"KL"(q || p)
+  frac(1, n) log_2 frac(1, P) = sum_(s in Sigma) frac("#s", n) log_2 frac(1, p_s)
 $
-dove $D_"KL"(q || p)=sum_s q(s) log_2(q(s)/p(s)) >= 0$ misura il costo aggiuntivo dovuto alla differenza fra modello e frequenze osservate.
-
-== Trasmissione del codice
-
-Al termine della codifica, il decoder deve ricevere un valore che cada nell'intervallo finale. È sufficiente trasmettere un numero diadico interno, cioè un numero rappresentabile con un numero finito di bit dopo la virgola, purché il decoder conosca anche il modello di probabilità e la lunghezza del messaggio (oppure sia presente un simbolo di fine messaggio). Nell'esempio, $7/16=0.0111_2$ appartiene a $[27/64,9/16)$ e identifica quindi `AAB`.
-
-In generale, più l'intervallo finale è stretto, più bit servono per specificare un punto al suo interno. Questo spiega il legame fra ampiezza dell'intervallo e costo informativo.
-
-#note()[
-  Più una stringa è probabile, più grande è il suo intervallo e quindi più facile da distinguere. Più una stringa è rara, più l'intervallo è piccolo e più bit servono a identificarla.
-]
-
-#example()[
-  Sia l'alfabeto ${A, B}$ con probabilità $p(A)=0.75$ e $p(B)=0.25$. Per la sequenza $A A B$ si ottiene:
-  $P(A A B)=0.75 dot 0.75 dot 0.25 = 0.140625$
-  quindi l'intervallo finale è molto piccolo. In generale, la probabilità totale decresce esponenzialmente con la lunghezza della stringa.
-]
-
-== Legame con l'entropia
-
-L'entropia di un sorgente $X$ è:
+Osserviamo che il rapporto $"#s" / n$ (numero di occorrenze di $s$ diviso la lunghezza della sequenza) è esattamente la
+*probabilità (o frequenza) empirica* del simbolo $s$ nella sequenza.
+Se la distribuzione di probabilità $p_s$ usata dal codificatore coincide con la distribuzione empirica della sequenza ($p_s = "#s" / n$),
+allora il costo medio per simbolo diventa uguale all'entropia:
 $
-  H(X) = -sum_{s in S} p(s) log_2 p(s)
+  sum_(s in Sigma) p_s log_2 frac(1, p_s) = H
 $
-
-Per una sorgente senza memoria descritta correttamente dal modello, il costo informativo atteso per simbolo è $H(X)$. La lunghezza di una codifica concreta si avvicina a questo valore per simbolo, con una differenza dovuta alla lunghezza finita del messaggio e alla sua terminazione.
 
 == Decodifica della codifica aritmetica
 
-Il decoder parte dal valore trasmesso e applica la stessa partizione usata dal codificatore:
-
-- individua in quale sottointervallo iniziale cade il valore, ottenendo il primo simbolo;
-- restringe l'intervallo a quello del simbolo e ripete l'operazione per il simbolo successivo;
-- continua fino a raggiungere la lunghezza nota o il simbolo di fine messaggio.
+Il decoder parte dal valore trasmesso e applica la stessa logica usata dal codificatore.
 
 #example()[
-  Il valore trasmesso è $7/16$. Per decodificare, si cerca in quale sottointervallo di $[0,1)$ cade il valore corrente. Dopo aver scelto il simbolo, si riscalano sia l'intervallo scelto sia il valore al suo interno riportandoli a $[0,1)$: se il simbolo occupa $[F, F+p)$, il nuovo valore è $(x-F)/p$.
+  Il decodificatore riceve la parola binaria (ad esempio `0111`) e la interpreta come il numero reale diadico $x = 0.0111_2 = 7/16$, assumendo che tutte le cifre binarie successive siano uguali a zero.
 
-  Con $p(A)=3/4$ e $p(B)=1/4$, i passaggi sono:
-  - $x_0=7/16$ cade nell'intervallo di A, $[0,3/4)$; riscalando si ottiene $x_1=(7/16)/(3/4)=7/12$.
-  - $x_1=7/12$ cade ancora nell'intervallo di A; riscalando si ottiene $x_2=(7/12)/(3/4)=7/9$.
-  - $x_2=7/9$ cade nell'intervallo di B, $[3/4,1)$, quindi il terzo simbolo è B.
+  A questo punto ripete esattamente le stesse suddivisioni dell'intervallo fatte dal codificatore:
+  1. Guarda in quale sottointervallo cade $x$ ed emette il simbolo corrispondente;
+  2. Restringe l'intervallo corrente al sottointervallo scelto e ripete il procedimento.
 
-  #figure(caption: [A ogni passo si individua il simbolo e si riscalano a $[0,1)$ l'intervallo selezionato e il valore.])[
+  #figure(
+    caption: [Decodifica di `0111` ($x = 7/16$) per `abaa` *senza riscalare* ($p_a=5/8, p_b=1/4, p_c=1/8$). La linea verticale rossa individua ad ogni riga il sottointervallo in cui cade $x$.],
+  )[
     #cetz.canvas({
       import cetz.draw: *
 
-      rect((0, 4), (9, 4.7), fill: blue.lighten(75%), stroke: black)
-      rect((9, 4), (12, 4.7), fill: gray.lighten(85%), stroke: black)
-      content((4.5, 4.35), [$A$])
-      content((10.5, 4.35), [$B$])
-      line((5.25, 5), (5.25, 4.75), stroke: blue, mark: (end: "stealth"))
-      content((5.25, 5.25), [$7/16$])
-      content((1, 5.25), [Passo 1])
-      content((0, 3.6), [$0$])
-      content((9, 3.6), [$3/4$])
-      content((12, 3.6), [$1$])
+      // Scala: [0, 1] -> [0, 12]
+      // x = 7/16 -> 7/16 * 12 = 5.25
+      let x_pos = 5.25
 
-      rect((0, 2), (9, 2.7), fill: blue.lighten(75%), stroke: black)
-      rect((9, 2), (12, 2.7), fill: gray.lighten(85%), stroke: black)
-      content((4.5, 2.35), [$A$])
-      content((10.5, 2.35), [$B$])
-      line((7, 3), (7, 2.75), stroke: blue, mark: (end: "stealth"))
-      content((7, 3.25), [$7/12$])
-      content((1, 3.25), [Passo 2])
-      content((0, 1.6), [$0$])
-      content((9, 1.6), [$3/4$])
-      content((12, 1.6), [$1$])
+      // Riga 1: [0, 1) -> a:[0, 7.5), b:[7.5, 10.5), c:[10.5, 12)
+      rect((0, 4.5), (7.5, 5.1), fill: white, stroke: (paint: black, thickness: 1.5pt))
+      rect((7.5, 4.5), (10.5, 5.1), fill: gray.lighten(60%), stroke: black)
+      rect((10.5, 4.5), (12, 5.1), fill: gray.lighten(30%), stroke: black)
+      content((3.75, 4.8), [`a`])
+      content((9.0, 4.8), [`b`])
+      content((11.25, 4.8), [`c`])
+      content((0, 4.2), [$0$])
+      content((12, 4.2), [$1$])
+      content((12.8, 4.8), [*`a`*])
 
-      rect((0, 0), (9, 0.7), fill: gray.lighten(85%), stroke: black)
-      rect((9, 0), (12, 0.7), fill: red.lighten(75%), stroke: black)
-      content((4.5, 0.35), [$A$])
-      content((10.5, 0.35), [$B$])
-      line((9.333, 1), (9.333, 0.75), stroke: red, mark: (end: "stealth"))
-      content((9.333, 1.25), [$7/9$])
-      content((1, 1.25), [Passo 3])
+      // Riga 2: [0, 5/8) -> [0, 7.5): a:[0, 4.6875), b:[4.6875, 6.5625), c:[6.5625, 7.5)
+      line((0, 3.3), (12, 3.3), stroke: gray.lighten(50%))
+      rect((0, 3.0), (4.6875, 3.6), fill: white, stroke: black)
+      rect((4.6875, 3.0), (6.5625, 3.6), fill: gray.lighten(60%), stroke: (paint: black, thickness: 1.5pt))
+      rect((6.5625, 3.0), (7.5, 3.6), fill: gray.lighten(30%), stroke: black)
+      content((2.34, 3.3), [`a`])
+      content((5.625, 3.3), [`b`])
+      content((7.03, 3.3), [`c`])
+      content((12.8, 3.3), [*`b`*])
 
-      content((0, -0.45), [$0$])
-      content((9, -0.45), [$3/4$])
-      content((12, -0.45), [$1$])
+      // Riga 3: [25/64, 35/64) -> [4.6875, 6.5625): a:[4.6875, 5.859375), b:[5.859375, 6.328125), c:[6.328125, 6.5625)
+      line((0, 1.8), (12, 1.8), stroke: gray.lighten(50%))
+      rect((4.6875, 1.5), (5.859375, 2.1), fill: white, stroke: (paint: black, thickness: 1.5pt))
+      rect((5.859375, 1.5), (6.328125, 2.1), fill: gray.lighten(60%), stroke: black)
+      rect((6.328125, 1.5), (6.5625, 2.1), fill: gray.lighten(30%), stroke: black)
+      content((12.8, 1.8), [*`a`*])
+
+      // Riga 4: [25/64, 125/256) -> [4.6875, 5.859375): a:[4.6875, 5.41992), b:[5.41992, 5.71289), c:[5.71289, 5.859375)
+      line((0, 0.3), (12, 0.3), stroke: gray.lighten(50%))
+      rect((4.6875, 0.0), (5.41992, 0.6), fill: white, stroke: (paint: black, thickness: 1.5pt))
+      rect((5.41992, 0.0), (5.71289, 0.6), fill: gray.lighten(60%), stroke: black)
+      rect((5.71289, 0.0), (5.859375, 0.6), fill: gray.lighten(30%), stroke: black)
+      content((12.8, 0.3), [*`a`*])
+
+      // Linea rossa per x = 7/16
+      line((x_pos, -0.4), (x_pos, 5.5), stroke: (paint: red, thickness: 1.5pt))
+      content((x_pos, 5.85), text(fill: red)[$x = 0.0111_2 = 7/16$])
     })
   ]
 
+
   Il decoder ricostruisce così `AAB`. Ma il valore $7/16$ da solo non dice che il messaggio è finito: dopo aver decodificato B si arresta perché in questo esempio conosce già la lunghezza, pari a tre simboli.
-  Se la lunghezza non è nota in anticipo, il messaggio deve invece includere un simbolo speciale di fine sequenza (EOF). 
+  Se la lunghezza non è nota in anticipo, il messaggio deve invece includere un simbolo speciale di fine sequenza (EOF).
 ]
 
-== Precisione finita
+#note(title: "Il problema della precisione finita")[
+  Su un calcolatore non si può lavorare con numeri reali a precisione arbitraria: gli estremi dell'intervallo sono rappresentati mediante *interi di dimensione fissa* (es. registri a 32 o 64 bit), ma per intervalli molto piccoli i bit potrebbero non essere sufficienti.
 
-Tramite registri di interi a dimensione fissa (es. 32/64 bit) è possibile rappresentare intervalli sempre più piccoli solo fino ad una certa soglia. Per evitare che l'intervallo diventi troppo piccolo e perda precisione, appena i due estremi  di un intervallo iniziano con lo stesso bit (entrambi 0 nella metà inferiore o entrambi 1 nella metà superiore), quel bit è ormai definitivo: viene subito scritto sul file compresso ed eliminato dal registro. Tolto il bit certo, il registro fa uno shift a sinistra (<< 1), raddoppiando l'intervallo rimasto per riportarlo a grandezza piena e fare spazio ai simboli successivi.
+  Non appena i bit più significativi dei due estremi dell'intervallo coincidono (entrambi `0` se l'intervallo è tutto nella metà inferiore $[0, 1/2)$, oppure entrambi `1` se è tutto nella metà superiore $[1/2, 1)$), quei bit non potranno più cambiare.
 
-Se l'intervallo si restringe a cavallo della metà (es. 0111... e 1000...), il primo bit non è ancora sicuro, ma il secondo sì. L'algoritmo scala comunque l'intervallo e accumula un contatore di "bit in sospeso", che verranno scaricati tutti insieme non appena si sblocca la prima cifra certa.
+  Questo consente quindi che tali bit "definitivi" vengano subito emessi in output e l'intervallo viene raddoppiato (shift a sinistra `<< 1`), ripristinando la precisione disponibile.
+
+  *Problema dell'underflow a cavallo di $1/2$*: occorre prestare particolare cura quando l'intervallo diventa molto piccolo restando però a cavallo di $1/2$ (ad esempio gli estremi iniziano con `0111...` e `1000...`). In questo caso il primo bit non è ancora deciso, ma i bit successivi sono già bloccati: si espande allora la regione centrale tenendo un contatore dei "bit in sospeso", che verranno scaricati (invertiti) non appena il primo bit si deciderà.
+]
+
+#warning(title: "Limiti pratici della codifica aritmetica")[
+  - *Lentezza in decodifica*: per individuare a quale sottointervallo appartiene $x$, il decodificatore deve eseguire *una divisione per ogni simbolo*, risultando sensibilmente più lento rispetto a un codice istantaneo (come Huffman).
+  - *Bit di scarico (flush)*: al termine della codifica occorre emettere alcuni bit di scarico per disambiguare l'intervallo finale; per questo motivo un flusso compresso con codifica aritmetica non si presta facilmente a essere interrotto e inframmezzato con altri dati non compressi.
+]
 
 #note(title: "Modello adattivo")[
-  La codifica aritmetica può essere *adattiva*: se non si conosce a priori le distribuzione dei simboli, encoder e decoder possono iniziare da iniziare da una stima delle distribuzioni oppure da distribuzione equiprobabile. Durante l'elaborazione del testo essi apprendono e aggiornano la distribuzione, rimanendo sincronizzati. In questo modo ogni simbolo viene codificato e decodificato con le stesse $p$, che diventano sempre più corrette al procedere della de/codifica.
+  La codifica aritmetica si presta molto bene a essere usata in modo *adattivo*: se non si conosce a priori la distribuzione dei simboli, codificatore e decodificatore possono partire da una distribuzione uniforme (equiprobabile) e aggiornare i conteggi delle frequenze man mano che codificano e decodificano i simboli in ordine. Poiché procedono nella stessa direzione, rimangono perfettamente sincronizzati senza bisogno di trasmettere in anticipo la distribuzione di probabilità.
 ]
 
-= Sistemmi di numerazione asimmetrica (ANS)
+= Sistemi di numerazione asimmetrica (ANS)
 
-La codifica ANS usa uno stato numerico intero invece di un intervallo continuo. Invece di costruire un insieme di intervalli, aggiorna un valore $x$ ogni volta che legge un nuovo simbolo.
+I *Sistemi di Numerazione Asimmetrica (ANS)* :
+- garantiscono una *velocità di decodifica confrontabile o superiore a un codice di Huffman*;
+- raggiungono un *rapporto di compressione confrontabile con la codifica aritmetica*, e quindi vicinissimo all'entropia.
 
-Dato un simbolo s e l'accumulatore x, l'idea è:
+Per queste ragioni sono oggi utilizzati in alcuni dei importanti compressori e formati moderni (zstd, JPEG XL, ...)
+
+Invece di rappresentare la sequenza con un intervallo reale sempre più piccolo, codifichiamo l'intera sequenza con un singolo *intero naturale molto grande $x$*, il quale richiede circa $log_2 x$ bit per essere scritto in binario.
+
+Quando aggiungiamo alla sequenza un simbolo $s$ di probabilità $p_s$, vogliamo aggiornare lo stato intero $x$ in un nuovo intero $x'$ tale che:
 $
-  x' approx x / p(s)
+  x' approx frac(x, p_s)
 $
 
-perché allora
+Considerando la dimensione della rappresentazione binaria si ottiene:
 $
-  log_2 x' approx log_2 x + log_2 (1/p(s))
+  log_2 x' approx log_2 x + log_2 frac(1, p_s)
 $
 
-Quindi ogni simbolo aggiunge un costo proporzionale a $log_2 (1/p(s))$, cioè alla sua rarità.
+Aggiungere il simbolo $s$ fa quindi crescere il numero di bit di $x$ esattamente del *contenuto informativo* $log_2(1/p_s)$ del simbolo. Di conseguenza, sull'intera sequenza, il costo medio per simbolo coinciderà con l'*entropia*.
 
-#figure(
-  caption: [ANS: il nuovo stato dipende da quello vecchio e dal simbolo letto.],
-)[
-  #cetz.canvas({
-    import cetz.draw: *
+== Il caso banale (sorgente binaria equiprobabile) e la struttura a pila
 
-    rect((0, 0), (2, 1), fill: gray.lighten(70%), stroke: black)
-    content((1, 0.5), [$x$])
+Consideriamo la sorgente più semplice possibile: due simboli $0$ e $1$ equiprobabili
+($p_0 = p_1 = 1/2$).
+Se $x$ è l'intero che codifica i simboli visti finora, per aggiungere il nuovo simbolo
+$s in {0, 1}$ dividiamo per $p_s = 1/2$ (cioè moltiplichiamo per $2$) e sommiamo $s$:
+$x' = 2x + s$
+In binario, moltiplicare per $2$ sposta tutti i bit di $x$ a sinistra di una posizione
+(aggiungendo uno `0` in fondo) e sommare $s$ scrive il nuovo bit nel posto appena liberato. In pratica, ogni passo *appende
+il bit $s$ a destra della rappresentazione binaria di $x$*.
 
-    line((2, 0.5), (4, 0.5), stroke: black, mark: (end: "stealth"))
+Per decodificare $x'$ basta fare l'operazione opposta:
+- l'*ultimo simbolo inserito* è l'ultimo bit a destra, cioè il resto $s = x' mod 2$;
+- lo *stato precedente* si ottiene eliminando l'ultimo bit a destra, cioè calcolando il quoziente $x = floor(x' / 2)$.
 
-    rect((4, 0), (7, 1), fill: blue.lighten(70%), stroke: black)
-    content((5.5, 0.5), [$x' = 2x + s$])
-    content((5.5, 1.6), [se $s=0$: $x' = 2x$])
-    content((5.5, 2.3), [se $s=1$: $x' = 2x + 1$])
-  })
+#example(title: "Codifica e decodifica passo-passo di 011")[
+  Partiamo dallo stato iniziale $x_0 = 1$ (in binario `1`, usato come stato di partenza per non perdere eventuali zeri iniziali) e codifichiamo la sequenza `0`, `1`, `1`:
+
+  1. *Stato iniziale*: $x_0 = 1$ (binario: `1`)
+  2. *Codifica `0`*: $x_1 = 2 dot 1 + 0 = 2$ (binario: `10`)
+  3. *Codifica `1`*: $x_2 = 2 dot 2 + 1 = 5$ (binario: `101`)
+  4. *Codifica `1`*: $x_3 = 2 dot 5 + 1 = 11$ (binario: `1011`)
+
+  Lo stato finale è $11$. Ora decodifichiamo partendo da $x_3 = 11$:
+  1. Da $11$ (`1011`): simbolo $s = 11 mod 2 = bold(1)$, nuovo stato $x_2 = floor(11/2) = 5$ (`101`);
+  2. Da $5$ (`101`): simbolo $s = 5 mod 2 = bold(1)$, nuovo stato $x_1 = floor(5/2) = 2$ (`10`);
+  3. Da $2$ (`10`): simbolo $s = 2 mod 2 = bold(0)$, nuovo stato $x_0 = floor(2/2) = 1$ (`1`, stato iniziale).
+
+  I simboli estratti sono `1, 1, 0`, ovvero la sequenza codificata `0, 1, 1` ma *in ordine inverso*.
 ]
 
-Nel caso binario, la regola più semplice è:
-$
-  x' = 2x + s
-$
+Questa è una caratteristica strutturale di tutti i sistemi ANS: *si codifica in una direzione e si decodifica nella direzione
+opposta, esattamente come in una pila (LIFO)*
 
-dove $s in {0,1}$. Questa regola illustra il caso binario equiprobabile: equivale ad aggiungere il bit $s$ in fondo alla rappresentazione binaria di $x$. Non è la formula generale di ANS e, da sola, non comprime una sorgente sbilanciata.
+== La numerazione come colorazione
 
-== Intuizione con colori e ranghi
-
-Possiamo capire l'idea dello stato ANS colorando i numeri naturali con i simboli dell'alfabeto. Per esempio, con probabilità $p(A)=3/4$ e $p(B)=1/4$, ripetiamo il blocco di colori `A A A B`:
+Possiamo reinterpretare la numerazione binaria standard in termini di *colori* e *ranghi* sui numeri naturali:
+- *Colore*: coloriamo ogni numero naturale $y$ con la sua ultima cifra binaria $s = y mod 2$ (i numeri pari hanno colore $0$, i dispari hanno colore $1$).
+- *Rango*: definiamo il *rango* di un naturale $y$ come il numero di naturali *dello stesso colore* che lo precedono strettamente (cioè minori di $y$).
 
 #figure(
-  caption: [Ogni numero ha un colore; sotto è indicato il suo rango fra i numeri dello stesso colore.],
+  caption: [Ogni naturale $y$ è colorato in base a $y mod 2$ (azzurro per i pari `0`, rosso per i dispari `1`).],
 )[
-  #cetz.canvas({
-    import cetz.draw: *
+  #table(
+    columns: 19,
+    align: center + horizon,
+    fill: (col, row) => if row == 0 and col > 0 {
+      if calc.even(col - 1) { blue.lighten(75%) } else { red.lighten(75%) }
+    },
+    [*$y$*], ..range(18).map(str),
+    [*rango*], ..range(18).map(y => str(calc.quo(y, 2))),
+  )
+]
+In questa vista:
+- *Codificare (`push`)*: $2x + s$ è esattamente l'unico naturale di *colore $s$* e *rango $x$* (ad esempio, per $x = 8$ e $s = 1$, il naturale di colore $1$ e rango $8$ è $2 dot 8 + 1 = 17$).
+- *Decodificare (`pop`)*: dato $y$, significa determinare il suo *colore* (l'ultimo simbolo) e il suo *rango* (lo stato precedente $x$).
 
-    let colors = (
-      blue.lighten(75%),
-      blue.lighten(75%),
-      blue.lighten(75%),
-      red.lighten(75%),
-      blue.lighten(75%),
-      blue.lighten(75%),
-      blue.lighten(75%),
-      red.lighten(75%),
-    )
-    let symbols = ("A", "A", "A", "B", "A", "A", "A", "B")
-    let ranks = ("0", "1", "2", "0", "3", "4", "5", "1")
+Nel sistema binario standard ogni colore occupa esattamente metà dei naturali: il sistema è *simmetrico* (tutti i simboli hanno lo stesso peso, proprio come in base $k$ con $k$ simboli equiprobabili), quindi il naturale di colore $s$ e rango $x$ vale sempre circa $2x$ e ogni simbolo costa $1$ bit.
 
-    for i in range(8) {
-      let x = i * 1.2
-      rect((x, 0), (x + 1.1, 1), fill: colors.at(i), stroke: black)
-      content((x + 0.55, 0.72), text(size: 9pt)[#str(i)])
-      content((x + 0.55, 0.25), text(size: 10pt)[#symbols.at(i)])
-      content((x + 0.55, -0.35), text(size: 8pt)[rango #ranks.at(i)])
+== Dal caso base alla colorazione assimetrica
+
+Per passare dal caso base del sistema binario ad un qualsiasi scenario reale, si colorano i numeri naturali in modo *asimmetrico*,
+facendo sì che il colore $s$ occupi una *frazione dei naturali pari alla sua probabilità $p_s$*.
+In questo modo, poiché solo una frazione $p_s$ dei naturali ha colore $s$, per incontrare $x$ naturali di colore $s$ bisognerà
+scorrere circa $x / p_s$ numeri naturali. Il naturale di colore $s$ e rango $x$ varrà quindi circa $x / p_s$, che è esattamente la crescita desiderata.
+
+Definiamo quindi per qualsiasi colorazione:
+- $"push"(x, s)$: restituisce il naturale $y$ di colore $s$ e rango $x$;
+- $"pop"(y)$: restituisce la coppia $< "rango"(y), "colore"(y) >$, cioè lo stato precedente e l'ultimo simbolo codificato.
+
+Per realizzare in modo efficiente la colorazione asimmetrica:
+1. Fissiamo un parametro di *precisione* intero $d > 0$ e approssimiamo la probabilità di ciascun simbolo con una frazione di denominatore $2^d$:
+$p_s approx frac(f_s, 2^d)$
+dove $f_s$ è un intero positivo (la frequenza scalata di $s$) e $sum_(s in Sigma) f_s = 2^d$. Più grande è $d$, migliore è l'approssimazione delle probabilità e quindi la compressione.
+2. Dividiamo il blocco dei primi $2^d$ naturali $[0 .. 2^d)$ in $k$ segmenti contigui di lunghezza $f_s$. Ponendo la cumulativa delle frequenze:
+$
+  c_s = sum_(t < s) f_t quad "per " s in [0 .. k]
+$
+il segmento associato al simbolo $s$ all'interno del blocco base è $[c_s .. c_(s+1))$, dove $c_(s+1) = c_s + f_s$.
+3. Per ogni $z in [0 .. 2^d)$, definiamo la tabella $"sym"(z)$ come l'unico simbolo $s$ tale che $c_s <= z < c_(s+1)$.
+4. Coloriamo infine ogni numero naturale $y >= 0$ periodicamente a blocchi di $2^d$numeri, assegnandogli il colore:$ "colore"(y) = "sym"(y mod 2^d) $
+In ogni blocco di $2^d$ naturali ci sono esattamente $f_s$ naturali consecutivi di colore $s$: la densità del colore $s$ è quindi esattamente $f_s / 2^d approx p_s$.
+
+#example(title: "Colorazione con d = 3 (blocchi di 8 naturali)")[
+  Con $d = 3$ abbiamo blocchi di $2^3 = 8$ naturali. Scegliamo le frequenze $f_a = 5$, $f_b = 2$, $f_c = 1$ (cioè $p_a = 5/8$, $p_b = 2/8$, $p_c = 1/8$), con cumulative $c_a = 0$, $c_b = 5$, $c_c = 7$.
+  Ogni blocco di $8$ naturali è colorato con 5 *`a`* (azzurro), 2 *`b`* (verde) e 1 *`c`* (arancione):
+
+  #figure(
+    caption: [Ogni naturale $y$ è colorato secondo $y mod 8$: primi 5 in azzurro (`a`), poi 2 in verde (`b`) e 1 in arancione (`c`).],
+  )[
+    #let sym(y) = {
+      let r = calc.rem(y, 8)
+      if r < 5 { "a" } else if r < 7 { "b" } else { "c" }
     }
-  })
+    #let rank(y) = {
+      let q = calc.quo(y, 8)
+      let r = calc.rem(y, 8)
+      if r < 5 { q * 5 + r } else if r < 7 { q * 2 + (r - 5) } else { q * 1 + (r - 7) }
+    }
+    #table(
+      columns: 19,
+      align: center + horizon,
+      fill: (col, row) => if row == 0 and col > 0 {
+        let s = sym(col - 1)
+        if s == "a" { blue.lighten(75%) } else if s == "b" { green.lighten(75%) } else { orange.lighten(75%) }
+      },
+      [*$y$*], ..range(18).map(str),
+      [*rango*], ..range(18).map(y => str(rank(y))),
+    )
+  ]
+
+  *Codifica e decodifica passo-passo di `aa` partendo da $x_0 = 5$ (visibile tutta nella tabella):*
+  1. *Stato iniziale*: $x_0 = 5$.
+  2. *Codifica `a`*: cerchiamo nella tabella la cella *azzurra* (`a`) con *rango $5$* $arrow.r$ troviamo *$y = 8$* ($"push"(5, a) = 8$).
+  3. *Codifica `a`*: ora lo stato è $8$; cerchiamo la cella *azzurra* (`a`) con *rango $8$* $arrow.r$ troviamo *$y = 11$* ($"push"(8, a) = 11$, moltiplicando lo stato per circa $8/5 = 1.6$ invece che per $2$).
+  4. *Se ora codificassimo `b`*: dallo stato $11$, cercheremmo la cella *verde* (`b`) con *rango $11$*. Poiché ci sono solo $2$ celle verdi ogni $8$ numeri, il rango $11$ cade nel $5°$ blocco ($floor(11/2) = 5$), precisamente in *$y = 46$* ($"push"(11, b) = 46$, moltiplicando lo stato per circa $8/2 = 4$).
+  
+  *Decodifica (`pop`) da $y = 11$*:
+  1. guardiamo $y = 11$: la cella è *azzurra* (simbolo *`a`*) e sotto leggiamo *rango $8$* (nuovo stato $x = 8$);
+  2. guardiamo $y = 8$: la cella è *azzurra* (simbolo *`a`*) e sotto leggiamo *rango $5$* (tornati allo stato iniziale $x_0 = 5$).
+
+  Notiamo l'effetto sulla compressione: il simbolo frequente `a` compare $5$ volte per blocco e fa crescere $y$ molto lentamente 
+  ($approx times 8/5$, costo $log_2(8/5) approx 0.68$ bit), mentre il simbolo raro `c` (arancione) compare solo una volta 
+  ogni $8$ numeri e fa crescere $y$ molto velocemente ($approx times 8$, costo $log_2(8/1) = 3$ bit).
 ]
 
-Il *rango* di un numero $y$ è il numero di numeri più piccoli che hanno lo stesso colore di $y$. Il rango è dunque numerato a partire da zero. Per esempio:
+=== Formula di `push` (Codifica)
 
-- $y=4$ è colorato con $A$ e ha rango $3$: prima di lui ci sono tre numeri colorati con $A$ ($0, 1, 2$);
-- $y=7$ è colorato con $B$ e ha rango $1$: prima di lui c'è un solo numero colorato con $B$ ($3$).
+Dato lo stato corrente $x$ e il simbolo $s$, dove si trova il naturale di colore $s$ e rango $x$?
+- Poiché ogni blocco di $2^d$ numeri contiene esattamente $f_s$ elementi di colore $s$, per accumulare $x$ elementi di colore $s$ dobbiamo superare $floor(x / f_s)$ blocchi completi: il numero cercato si trova quindi nel *blocco di indice $floor(x / f_s)$*, che inizia all'intero $floor(x / f_s) dot 2^d = (floor(x / f_s) << d)$.
+- All'interno di quel blocco, è l'elemento di colore $s$ di indice locale $x mod f_s$.
+- Poiché i numeri di colore $s$ nel blocco partono dall'offset $c_s$, la sua posizione all'interno del blocco è $c_s + (x mod f_s)$.
 
-=== Formula di push e pop
-
-Nel ciclo `A A A B`, in ogni blocco ci sono $M=4$ numeri: $f_A=3$ di colore $A$ e $f_B=1$ di colore $B$. Indichiamo con $C_s$ il numero di colori che precedono $s$ nel blocco: $C_A=0$ e $C_B=3$.
-
-In generale, si sceglie un totale di frequenze intero $M$ e si assegna a ogni simbolo una frequenza $f_s$, con $sum_s f_s=M$. La probabilità è approssimata da $p(s) approx f_s/M$. Spesso si sceglie $M=2^d$, così alcune operazioni sullo stato si possono realizzare con shift e maschere di bit. Definendo $C_s=sum_(t<s) f_t$ secondo l'ordine scelto per i simboli, a ogni simbolo corrispondono le posizioni $[C_s,C_s+f_s)$ in ciascun blocco di $M$ numeri. Il ciclo `A A A B` è il caso $M=4$, $f_A=3$, $f_B=1$.
-
-La funzione *push* prende lo stato/rango precedente $x$ e un simbolo $s$, e restituisce il numero $y$ che ha colore $s$ e rango $x$:
+Sommando l'inizio del blocco e l'offset interno otteniamo:
 $
-  op("push")(x,s) = M floor(x / f_s) + C_s + (x mod f_s)
+  "push"(x, s) = (floor(x / f_s) << d) + c_s + (x mod f_s)
 $
+*(Ad esempio, con $d=3, f_a=5, c_a=0$: $"push"(8, a) = (floor(8/5) << 3) + 0 + (8 mod 5) = 8 + 0 + 3 = 11$).*
+In pratica, poiché le frequenze $f_s$ dei simboli sono fisse per tutto il blocco di testo, anche la divisione intera per $f_s$ in fase di codifica può essere velocizzata tramite costanti moltiplicative precomputate.
 
-La funzione *pop* fa l'inverso. Dato $y$, si scrive $y = q M + r$, con $q=floor(y/M)$ e $r=y mod M$. Il colore del blocco nella posizione $r$ determina il simbolo $s$; il rango restituisce lo stato precedente:
+=== Formula di `pop` (Decodifica)
+
+Dato lo stato intero $x$, dobbiamo risalire all'ultimo simbolo $s$ (il colore di $x$) e allo stato precedente (il rango di $x$):
+- L'indice del blocco in cui si trova $x$ è $floor(x / 2^d) = (x >> d)$, mentre la posizione di $x$ all'interno del suo blocco è $r = x mod 2^d$ (calcolabile istantaneamente con la maschera di bit $x and (2^d - 1)$).
+- Il colore di $x$si ottiene subito accedendo alla tabella:$ s = "sym"(x mod 2^d) $
+- Quanti naturali di colore $s$ precedono $x$ (cioè qual è il suo rango)?
+  - Ci sono esattamente $f_s$ naturali di colore $s$ in ciascuno dei $(x >> d)$ blocchi completi che precedono il blocco di $x$;
+  - più gli $(x mod 2^d) - c_s$ naturali di colore $s$ che precedono $x$ all'interno del suo stesso blocco.
+
+Otteniamo quindi la formula di decodifica:
 $
-  op("pop")(y) = (s, f_s q + r - C_s)
+  "pop"(x) = < (x >> d) dot f_s + (x mod 2^d) - c_s, \; s >
 $
+(Ad esempio, per $x = 46$ con $d=3$: abbiamo $46 mod 8 = 6$, da cui $s = "sym"(6) = b$ con $f_b = 2, c_b = 5$; il rango è $(46 >> 3) dot 2 + 6 - 5 = 5 dot 2 + 1 = 11$, quindi $"pop"(46) = < 11, b >$).
 
-In altre parole, `push` inserisce il vecchio stato nella sezione riservata al simbolo; `pop` legge il simbolo dalla sezione in cui cade il nuovo stato e recupera il vecchio rango.
+=== Proprietà di `push` e `pop`
 
-Questa costruzione usa frequenze intere, quindi la distribuzione effettivamente codificata è $f_s/M$: se non coincide con quella desiderata, introduce un errore di quantizzazione. Aumentare $M$ permette in genere un'approssimazione più precisa, ma richiede intervalli di stato e tabelle più grandi.
+1. *Invertibilità*: per costruzione, `push` e `pop` sono esattamente una l'inversa dell'altra.
+2. *Crescita proporzionale a $1/p_s$*: vale$ "push"(x, s) approx frac(x, f_s) dot 2^d = frac(x, f_s / 2^d) approx frac(x, p_s) $
+Più precisamente, l'errore rispetto a $(x / f_s) dot 2^d$ è inferiore a $2^d$, ed è quindi del tutto trascurabile quando lo stato $x$ è mantenuto molto più grande di $2^d$.
+3. *Estrema velocità di decodifica*: a differenza della codifica aritmetica, *`pop(x)` non richiede alcuna divisione*, ma soltanto shift/maschere di bit, un accesso alla tabella `sym` e una singola moltiplicazione!
 
-#example()[
-  Per illustrare il funzionamento, partiamo dallo stato iniziale $x_0=8$, che funge da soglia di normalizzazione. Quindi il primo rango da codificare è *8*, non 0. Usiamo il ciclo di colori `A A A B` e codifichiamo `ABB`:
+#example(title: "Visualizzazione grafica e tabellare di ANS")[
+  Disponendo i numeri naturali in colonne di altezza $2^d = 8$ (i blocchi), il colore dipende solo dalla riga ($0..4 -> a$, $5..6 -> b$, $7 -> c$). Partendo dallo stato iniziale $x_0 = 8$:
+  - Codifica di `abaa`: $8 arrow.r^a 11 arrow.r^b 46 arrow.r^a 73 arrow.r^a 115$. Lo stato cresce di $log_2(115/8) approx 3.85$ bit (contro $4.03$ bit di contenuto informativo). Decodificando da $115$ si percorre la catena a ritroso ($115 arrow.r^a 73 arrow.r^a 46 arrow.r^b 11 arrow.r^a 8$) ottenendo i simboli invertiti `aaba`.
 
-  - $op("push")(8,A)=4 floor(8/3) + 0 + (8 mod 3)=10$;
-  - $op("push")(10,B)=4 floor(10/1) + 3 + (10 mod 1)=43$;
-  - $op("push")(43,B)=4 floor(43/1) + 3 + (43 mod 1)=175$.
+  Vediamo anche la tabella completa dei lucidi per la codifica e decodifica della sequenza più lunga `abacaaba` partendo da $x = 8$:
 
-  Quindi lo stato finale è $175$. Facendo pop:
+    #figure(caption: [Codifica (`push`) di `abacaaba`])[
+      #table(
+        columns: 6,
+        align: center,
+        [*$x$*], [*$s$*], [*$floor(x/f_s) << 3$*], [*$c_s$*], [*$x mod f_s$*], [*$"push"(x,s)$*],
+        [8], [a], [8], [0], [3], [11],
+        [11], [b], [40], [5], [1], [46],
+        [46], [a], [72], [0], [1], [73],
+        [73], [c], [584], [7], [0], [591],
+        [591], [a], [944], [0], [1], [945],
+        [945], [a], [1512], [0], [0], [1512],
+        [1512], [b], [6048], [5], [0], [6053],
+        [6053], [a], [9680], [0], [3], [*9683*],
+      )
+    ]
 
-  - $op("pop")(175)=(B,43)$;
-  - $op("pop")(43)=(B,10)$;
-  - $op("pop")(10)=(A,8)$.
-
-  La decodifica recupera i simboli nell'ordine inverso, `BBA`, e risale fino allo stato iniziale $8$. Invertendo l'ordine dei simboli si ritrova la stringa codificata `ABB`.
+    #figure(caption: [Decodifica (`pop`) da $x = 9683$])[
+      #table(
+        columns: 5,
+        align: center,
+        [*$x$*], [*$x >> 3$*], [*$x mod 8$*], [*$s$*], [*rango*],
+        [9683], [1210], [3], [a], [6053],
+        [6053], [756], [5], [b], [1512],
+        [1512], [189], [0], [a], [945],
+        [945], [118], [1], [a], [591],
+        [591], [73], [7], [c], [73],
+        [73], [9], [1], [a], [46],
+        [46], [5], [6], [b], [11],
+        [11], [1], [3], [a], [*8*],
+      )
+    ]
+  L'intero è cresciuto di $log_2(9683/8) approx 10.24$ bit, a fronte di un contenuto informativo totale di circa $10.39$ bit ($6 dot log_2(8/5) + 2 dot 2 + 1 dot 3$). La decodifica emette `abaacaba`, ovvero la sequenza originale al contrario.
 ]
 
-Lo stato cresce perché `push` cerca il numero con il rango richiesto fra quelli del colore scelto. In questo esempio:
-$
-  op("push")(x,A) approx x / p(A) = 4x/3
-  quad
-  op("push")(x,B) approx x / p(B) = 4x
-$
-
-Il fattore di crescita è quindi circa $1/p(s)$; in termini di informazione, l'aumento del logaritmo dello stato è circa $log_2(1/p(s))$. I simboli frequenti fanno crescere lo stato meno di quelli rari, e richiedono quindi meno bit.
-
-#note(title: "Stato iniziale")[
-  In questo esempio partiamo da $x_0=8$: è lo stato iniziale (o soglia inferiore di normalizzazione), non il rango zero. Nelle implementazioni pratiche si sceglie spesso una soglia comoda, per esempio una potenza di due; il valore preciso dipende dalla variante ANS e dalla sua normalizzazione. Il ciclo di colori qui sopra serve a illustrare l'idea, non è una regola universale per inizializzare ogni codificatore ANS.
+#warning(title: "Perché non conviene partire dallo stato x = 0?")[
+  Per il primo simbolo dell'alfabeto (`a`) si ha sempre $c_a = 0$. Di conseguenza:
+  $
+    "push"(0, a) = (floor(0 / f_a) << d) + 0 + (0 mod f_a) = 0
+  $
+  Se partissimo da $x = 0$, codificare una o più `a` all'inizio lascerebbe lo stato fermo a $0$, perdendo completamente 
+  l'informazione sul numero di `a` iniziali! Per questo motivo si parte sempre da uno stato iniziale positivo fissato 
+  (come $x = 2^d = 8$, oppure la soglia inferiore $L$ di rinormalizzazione).
 ]
 
-#note()[
-  Questo modello con colori e ranghi è un modo intuitivo di vedere la corrispondenza reversibile fra coppia (stato precedente, simbolo) e nuovo stato. Un ANS pratico realizza una mappatura analoga usando frequenze intere e, di solito, operazioni di rinormalizzazione; il semplice ciclo periodico è un esempio didattico, non un'implementazione completa.
+== Rinormalizzazione e dettagli implementativi
+
+Se applicassimo solo `push`, lo stato intero $x$ crescerebbe indefinitamente con la lunghezza del messaggio. Nelle implementazioni 
+pratiche (note come *rANS* o *tANS*), lo stato $x$ viene mantenuto sempre all'interno di un intervallo fissato:
+$x in [L .. 2^b L)$
+dove $L$ è un multiplo di $2^d$ e $b$ è il numero di bit trasferiti a ogni operazione di I/O (ad esempio $b = 8$ per scrivere 
+un byte alla volta).
+
+- *Rinormalizzazione in codifica (`push`)*: prima di eseguire $"push"(x, s)$, si controlla se il nuovo stato supererebbe 
+il limite superiore $2^b L$. Precisamente, *finché $x >= 2^b L f_s / 2^d$*, i *$b$ bit meno significativi* di $x$ vengono 
+scritti nel buffer di output ed eliminati dallo stato ($x <- x >> b$). Quando $x$ è tornato abbastanza piccolo, si esegue 
+$"push"(x, s)$, che cadrà garantitamente in $[L .. 2^b L)$.
+- *Rinormalizzazione in decodifica (`pop`)*: simmetricamente, dopo aver eseguito $"pop"(x)$, lo stato può scendere sotto 
+$L$. *Finché $x < L$*, si rileggono blocchi di $b$ bit dal buffer di input e si inseriscono come bit meno significativi di $x$ 
+($x <- (x << b) + "bits"$), riportando $x$ nell'intervallo $[L .. 2^b L)$.
+
+Si dimostra che in questo modo la decodifica rilegge esattamente gli stessi blocchi di $b$ bit emessi dalla codifica. L'emissione 
+dei bit meno significativi comporta una piccola perdita di precisione (e quindi di compressione), che però è del tutto trascurabile 
+se si sceglie $L$ molto più grande di $2^d$.
+In compenso, l'intero algoritmo opera esclusivamente su *interi di dimensione fissa*: ad esempio, scegliendo $L = 2^23$ e 
+$b = 8$, lo stato resta in $[2^23 .. 2^31)$ e bastano normali registri a *32 bit*.
+
+#warning(title: "Distribuzione statica a blocchi e memorizzazione delle frequenze")[
+  Poiché ANS codifica in una direzione e decodifica nella direzione opposta (dalla fine del blocco verso l'inizio), non è 
+  possibile apprendere e aggiornare la distribuzione in modo adattivo simbolo per simbolo.
+  In ANS occorre quindi dividere l'input in blocchi, calcolare le frequenze $f_s$ del blocco e *salvarle come dati ancillari (metadati)* 
+  nell'intestazione del blocco compresso affinché il decodificatore le conosca prima di iniziare le `pop`. 
+  Se il vettore delle frequenze $f_s$ occupasse troppo spazio, ridurrebbe il guadagno della compressione: per questo nei 
+  compressori reali si utilizzano apposite tecniche di *packing* (compressione compatta delle tabelle delle frequenze) per memorizzare gli $f_s$ con il minimo numero possibile di bit.
 ]
-
-=== Modello e rinormalizzazione
-
-Il codificatore e il decodificatore devono usare gli stessi $f_s$, lo stesso ordine dei simboli e gli stessi valori cumulativi $C_s$. La tabella può essere fissata a priori oppure costruita dal messaggio: in quest'ultimo caso deve essere trasmessa o ricostruibile dal decoder, e i bit necessari a descriverla fanno parte del costo totale della compressione.
-
-Le formule di `push` e `pop` descrivono la mappatura reversibile, ma da sole non limitano la dimensione dello stato, che cresce con i simboli codificati. Un'implementazione pratica mantiene lo stato in un intervallo numerico gestibile: quando supera la soglia prevista dalla variante, trasferisce bit fra lo stato e un flusso ausiliario; durante la decodifica quei bit vengono reinseriti in modo inverso e coordinato. Questa *rinormalizzazione* consente di usare registri a dimensione finita e non cambia la corrispondenza fra stato, simbolo e rango. I dettagli dipendono dalla variante ANS, per esempio rANS o tANS.
-
-== Decodifica
-
-In generale, la decodifica ANS inverte la codifica: dal nuovo stato determina il simbolo associato e il rango di quel simbolo, che restituisce lo stato precedente. Con i colori e ranghi appena definiti, questa è esattamente l'operazione `pop`. Nel caso binario equiprobabile $x'=2x+s$, invece, si riduce a:
-
-- si recupera il simbolo con $s = x' mod 2$;
-- si recupera lo stato precedente con $x = floor(x'/2)$.
-
-La decodifica restituisce i simboli in ordine inverso rispetto alle operazioni di push. Per ricostruire la stringa nell'ordine originale, si inverte l'ordine dei simboli decodificati oppure si codifica e decodifica secondo la convenzione scelta dall'implementazione.
-
-Per sapere quando fermarsi, il decoder deve conoscere la lunghezza della sequenza oppure incontrare un simbolo speciale di fine messaggio. Il solo stato intero non distingue sempre una sequenza vuota da una sequenza che ha raggiunto lo stesso stato dopo un push.
-
-
-=== Old
-
-#import "../template.typ": *
-
-= Codifica aritmetica
-
-Se abbiamo una sequenza di solito abbiamo una distribuzione empirica (non sempre è cosi). Possiamo andare a calcolare l'entropia empirica della sequenza e quindi la lunghezza minima di bit per codificare la sequenza. La codifica aritmetica ci permette di arrivare a questa lunghezza minima.
-$
-  log 1 / p_"si"
-$
-entropia della codifica del singolo simbolo. Se la probabiià della sequenza è P, allora la lunghezza minima di bit per codificare la sequenza è
-$
-  log 1 / P = sum_(i=1)^n log 1 / p_"si"
-$
-
-L'intervallo si restringe ogni volta in base alla probabilità del simbolo che stiamo codificando.
-
-== Trasmissione
-
-per trasmettere la sequenza basta trasmettere un diadico all'interno dell'intervallo finale. Conoscendo un punto dell'intervallo, conosiamo anche l'intervallo finale.
-
-Data una sequenza $S$, possiamo riscrivere il costo come:
-$
-  (sum_(s in S) "#s" 1 /p_"s") / n
-$
-ma la cardinalità di s fratto n è letteralmente la probabilità empirica del simbolo s. Quindi se la distribuzione effettiva della sorgente è la stessa della distribuzione empirica, allora il costo medio per simbolo è l'entropia della sorgente (si semplifica nella formula sopra).
-
-
-
-
-== Decodifica
-
-Dato un punto nell'intervallo unitario (un diadico). L'ide è quel quel diadico attraversa la scalatura dei vari intervalli, partendo da quello più piccolo possiamo risalire alla sequenxza degli intervalli originali.
-
-//rgiaurdare e completare. Aggiungere un immagine che mostra la figura non scalata e mostra il punto dell'intervallo originario che denota intervallo diversi
-
-#note()[
-  Al momento supponiamo di conoscere la distribuzione dei simboli. In realtà possiamo partire da una distribuzione uniforme e aggiornare la distribuzione dei simboli man mano che decodifichiamo e codifichiamo, fino a convergere all'entropia.
-]
-
-== Codifica in pratica
-
-Gli estremi dell'intervallo vengono approssimati in interi a dimensione fissa. Quando i bit significativi dei due estremi coincidono non potranno più cambiare. Possiamo quindi emettere quei bit e scalare l'intervallo. In questo modo man mano che l'intervallo diventa più piccolo, possiamo emettere bit e scalare l'intervallo. In questo modo non abbiamo bisogno di una precisione infinita.
-
-Siccome è richiesta una divisione nella fase di decodifica questa rappresentazione è molto più lenta di un codice istantaneo.
-
-= Sistmea di numerazione aritmetica
-
-Codifichiamo la sequenza con un intero molto grande $X$ (a differenza della codifica aritmetica che aveva un intervallo piccolo). Aggiungendo un simbolo $s$ di probabiità $p_s$ vorremmo ottenere:
-$
-  x^' approx x / p_s
-$
-In questo modo i bit che servono per specificare la nuova sequenza è dato dal logaritmo della vecchia sequenza più il logaritmo della probabilità del simbolo che stiamo aggiungendo. Quindi la lunghezza della sequenza codificata è data dalla somma dei logaritmi delle probabilità dei simboli che è esattamente l'entropia della sequenza.
-
-=== Caso banale
-
-Se $x$ è la codifica dei simboli visti fino ad ora, allora aggiungendo s otteniamo:
-$
-  x^' = 2x+s
-$
-ogni volta che arriva un bit moltilica per 2 e aggiunge il bit che arriva. Il risultato è l'intero che in base 2 è descritto dalla sequenza.
-
-Per decodificare x' l'ultimo simbolo è x^' mod 2, la sequenza rimane $x^' / 2$.
-
-
-#note()[
-  ANS non è in grado di codificare e decodificare nella stessa direzione, decodifica al contrario.
-]
-
-Il rango si ricorda il numero di pari o dispari precedenti (sempre numero di diviso 2), il colore s è l'ultima cifra binario mod 2.
-
-//aggiugere esempio con immagine
-
-=== COlorazione assimetrica
-
-I simboli più frequenti si prendono più colore. L'idea è che coloriamo i colori in modo che il colore $s$ occupi una frazione $p_s$.
-
-Fissaimo una precisione $d$ e approssimiamo ogni probabilità con $p_s approx f_s/2^d$ darà un errore di approssimazione, ma con un d grande possiamo rendere l'errore trascurabile.
-
-Sia c_s la cumulativa, essa mi servira per capire un intero in che blocco sta.
-
-#example()[
-  Da 0 a 8 divido gli interi inmodo proporzionale alla probabilità dei simboli. ora ho tante a un po di b e pochisseme c. Tutti gli interi sono divisi in blocchi da 2^8. Ogni blocco lo colore in modo proporzionale alla probabilità dei simboli.
-
-  I ranghi crescono in base al blocco di a, nell'immagine c cresce di 1 alla volta.
-
-  Quando dobbiamo codificare c dobbiamo prendere un inter molto grande in quanto il ranfo di c è cresce molto in fretta.
-
-  C ci costa 5 volte tanto quanto a quando codifichiamo un elemento di ordine c.
-]
-
-il naturale di colore $s$ di rango $x$ è dato dat:
-- si trova il blocco di indice $floor(x / f_s)$
-- è il naturale di colore $s$ di rango $x mod f_s$ all'interno del blocco.
-- cioè si trova in posizione $c_s + x mod f_s$
-
-Per le devisioni le possiamo fare in modo che siano precomputate
-
-Per tornare indietro. Il colore di $x$ è dato da $s = "sym"(x mod 2^d)$ (in questo modo trovo il simbolo, ovvero a). Devo ora trovare lo stato precedente: I naturali di colore $s$ che precedono $x$ sono:
-- f_s per ognuno dei $x>>d$ blocchi precedenti
-- più degli $x mod 2^d-c_s$ che lo precedono nel suo blocco.
-
-=== Dettagli implementativi
-
-Quando butto via i bit, vado a perdere man mano la precisione.
-
-#warning()[
-  In questo caso non possiamo più appredere la distribuzione ma dobbiamo conoscere la distribuzione. Dobbiamo salvarci i dati ancillari di un blocco (f_s) da qualche parte. Se essi occupano troppo spazio vanno a intaccare la rappresentazione dei codici. La soluzione è usare delle tecniche di packing per gli f_s
-]
-
