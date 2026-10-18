@@ -125,8 +125,8 @@ Tramite un'altra visione, possiamo vedere un codice istantaneo come un *albero b
 ]
 
 Pensando all'abero in termini di *budget* (l'intero albero vale 1), possiamo:
-- Scegliere un nodo a profondità $1$ (lunghezza $1$) ellimina metà albero $2^(-1)$ del budget
-- Scegliere un nodo a profondità $2$ (lunghezza $2$) ellimina un quarto dell'albero $2^(-2)$ del budget
+- Scegliere un nodo a profondità $1$ (lunghezza $1$) elimina metà albero $2^(-1)$ del budget
+- Scegliere un nodo a profondità $2$ (lunghezza $2$) elimina un quarto dell'albero $2^(-2)$ del budget
 - in generale scegliere un nodo a profondità $k$ (lunghezza $k$) ellimina $1/2^k$ dell'albero $2^(-k)$ del budget
 
 
