@@ -14,8 +14,9 @@ L'idea di fondo è sempre la stessa: ogni nuovo simbolo fa crescere il costo in 
 
 = Codifica aritmetica
 
-La codifica aritmetica associa a ogni sequenza di simboli un sottointervallo di $[0, 1)$ di lunghezza esattamente uguale
-alla probabilità della sequenza.
+Il problema classico della codifica di sorgente (come il codice di Huffman) assegna a ciascun simbolo un numero intero di bit. Questo approccio impedisce di rappresentare un singolo simbolo con meno di un bit (ad esempio, un simbolo con probabilità $p > 0.5$ richiederebbe teoricamente $log_2 p < 1$ bit, ma Huffman è costretto ad assegnargli almeno $1$ bit). 
+
+La *codifica aritmetica* supera questo limite fondamentale associando un'intera *sequenza* di simboli a un unico intervallo sui numeri reali all'interno di $[0, 1)$, la cui ampiezza è proporzionale alla probabilità con cui la sequenza stessa si verifica.
 
 Sia $Sigma = [0 .. k)$ l'alfabeto dei simboli, $p_s$ la probabilità del simbolo $s in Sigma$, e sia:
 $
