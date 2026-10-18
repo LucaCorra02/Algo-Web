@@ -1,5 +1,124 @@
 #import "../template.typ": *
 
+== Codice binario
+
+Un codice binario di *ampiezza $k$* è istantaneo e ogni parola ha la stessa lunghezza $k$. In questo caso, la lunghezza delle parole è $2^k$.
+
+Se tutti i simboli hanno la stessa frequenza allora il codice *binario è ottimale*, in quanto ogni parola ha la stessa lunghezza e quindi non ci sono parole più lunghe di altre.
+
+== Codice unario
+
+Esistono due tipologie di codice unario:
+- *$1^* 0$*: tanti $1$ quanti la lunghezza del numero, seguito da uno $0$.
+
+  #note()[
+    Il codice *$1^* 0$* ha un *ordine lessicografico*: l'ordine tra le parole del codice corrisponde all'ordine tra la gli interi da essi rappresentati. Formalmente:
+    $ "se" x <= y -> 1^x 0 <= 1^y 0 $
+
+    Ad esempio:
+    - $0 = 0$
+    - $1 = 10$
+    - $2 = 110$
+    - $3 = 1110$
+  ]
+
+  Nel caso del codice $1^* 0$, per confrontare due parole basta confrontare i bit uno alla volta, fino a trovare il primo bit a $0$. la parola con il primo bit a $0$ più a sinistra è la *minore*, mentre quella con il bit a $0$ più a destra è la *maggiore*.
+
+
+- *$0^* 1$*: tanti $0$ quanti la lunghezza del numero, seguito da uno $1$.
+
+  Il codice $0^* 1$ invece *non ha ordine lessicografico*. Il suo vantaggio risiede nelle operazioni di lettura del codice. Consideriamo infatti un codice unario rappresentato in little-endian. Per leggere il numero, è necessario calcolarne la sua lunghezza, ossia trovare la *posizione del primo bit a $1$*. Nelle CPU moderne, esistono delle istruzioni apposite per trovare il primo bit a $1$, rendendo questa operazione molto più efficiente.
+
+#warning()[
+  Il problema dei codici unari è che, per rappresentare un numero $k$, servono $k+1$ bit.\ Quindi è *utilizzabile solo per $k$ piccoli*.
+]
+
+== Codice di Elias $gamma$ (gamma)
+
+Il codice di *Elias $gamma$* è un codice universale per interi non negativi ($x >= 0$), particolarmente efficiente quando la distribuzione dei dati favorisce i numeri piccoli (la lunghezza del codice cresce logaritmicamente con $x$).
+
+=== Rappresentazione binaria ridotta
+Per codificare un intero $x >= 0$, si calcola innanzitutto la sua *rappresentazione binaria ridotta*:
+1. Si trasla l'intero calcolando *$x + 1$* (necessario poiché il valore $0$ non avrebbe un bit più significativo a $1$).
+
+2. Si scrive $x + 1$ in binario standard.
+
+3. Si rimuove il *bit più significativo* (MSB), che per costruzione è sempre pari a `1`.
+
+Chiamiamo con *$lambda(x+1) = floor(log_2(x+1))$* la lunghezza in bit della rappresentazione binaria ridotta (ovvero la posizione a base zero del bit più significativo di $x+1$). La rappresentazione binaria standard di $x+1$ ha quindi lunghezza $lambda(x+1) + 1$, mentre quella ridotta ha esattamente lunghezza $lambda(x+1)$.
+
+#example()[
+  Calcolo della rappresentazione binaria ridotta per alcuni valori di $x$:
+  - $mr(x = 0) -> underbrace(x+1, "somma +1") = 1 -> "binario:" 1 -> "rap ridotta:" mb(epsilon)$ (stringa vuota, lunghezza $lambda(1) = 0$)
+
+  - $x = 1 -> x+1 = 2 -> "binario:" 10 -> "ridotta:" 0$ (lunghezza $lambda(2) = 1$)
+
+  - $x = 5 -> x+1 = 6 -> "binario:" 110 -> "ridotta:" 10$ (lunghezza $lambda(6) = 2$)
+]
+
+=== Costruzione del codice Elias $gamma$
+Il codice Elias $gamma(x)$ si ottiene concatenando due componenti:
+1. *Prefisso (Lunghezza in unario):* la lunghezza $lambda(x+1)$ della rappresentazione binaria ridotta, codificata in *unario invertito $0^* 1$* (ovvero $lambda(x+1)$ bit uguali a `0` seguiti da un bit `1` di terminazione).
+
+  #note()[
+    L'uno finale funge contemporaneamente da terminatore dell'unario e da bit più significativo implicito di $x+1$.
+  ]
+
+
+2. *Suffisso (Mantissa):* la *rappresentazione binaria ridotta* di $x$, di lunghezza $lambda(x+1)$.
+
+#example()[
+  - *Codifica di $x = 0$:* \
+    Ridotta: $0 -> 1 -> mb(epsilon)$ (lunghezza $0$ bit)\
+    Lunghezza in unario ($0^* 1$): $mr(1)$ \
+    Codice finale: $mr(1)mb(epsilon) =$ *`1`*
+
+  - *Codifica di $x = 1$:* \
+    Ridotta: $1 arrow.r 2 arrow.r 10 arrow.r mb(0)$ (lunghezza $1$ bit) \
+    Lunghezza in unario ($0^* 1$): $mr(01)$ \
+    Codice finale: `01` `0` $=$ *$mr(01)mb(0)$*
+
+  - *Codifica di $x = 2$:* \
+    Ridotta: $2 arrow.r 3 arrow.r 11 arrow.r$ `1` (lunghezza $1$ bit) \
+    Lunghezza in unario ($0^* 1$): `01` \
+    Codice finale: `01` `1` $=$ *`011`*
+
+  - *Codifica di $x = 3$:* \
+    Ridotta: $3 arrow.r 4 arrow.r 100 arrow.r mb(00)$ (lunghezza $2$ bit) \
+    Lunghezza in unario ($0^* 1$): $mr(001)$ \
+    Codice finale: `001` `00` $=$ *$mr(001)mb(00)$*
+]
+
+Sia $lambda(x+1) = floor(log_2(x+1))$ la *lunghezza della rappresentazione binaria ridotta* di $x$:
+
+- La *parte binaria ridotta* richiede esattamente $lambda(x+1)$ bit.
+
+- La *parte in unario* ($0^(lambda(x+1)) 1$) richiede $lambda(x+1) + 1$ bit.
+
+Sommando i due contributi, la lunghezza totale in bit della parola codificata è:
+$
+  |gamma(x)| & = underbrace(mr(lambda(x+1)), "ridotta") + underbrace(mb(lambda(x+1) + 1), "unario") \
+             & = 2 lambda(x+1) + 1 \
+             & = 2 floor(log_2(x+1)) + 1
+$
+
+=== Proprietà del codice
+
+Il codice Elias $gamma$ è un *codice istantaneo (o codice prefisso)*, in quanto:
+
+1. *La parte in unario è istantanea per definizione:* leggendo il flusso di bit da sinistra verso destra, contiamo il numero $L$ di zeri consecutivi fino a incontrare il primo bit `1`. Non può esserci ambiguità su dove termini la parte unaria.
+
+2. *La parte binaria ridotta diventa un codice a lunghezza fissa nota:* una volta decodificata la parte unaria, il decodificatore conosce esattamente il valore *$L = lambda(x+1)$*, ovvero sa esattamente quanti bit successivi compongono la rappresentazione ridotta. Poiché tutte le parole con lo stesso prefisso unario hanno una mantissa della *stessa lunghezza fissa* $L$, nessuna può essere prefisso di un'altra.
+
+*Procedura di decodifica:*
+1. Si contano gli `0` iniziali fino al primo `1`: sia $L$ il numero di zeri letti.
+2. Si leggono i successivi $L$ bit dopo l'`1`.
+3. Prependendo l'`1` ai bit appena letti si ottiene direttamente la rappresentazione binaria di $x+1$, da cui si ricava $x$.
+
+#note()[
+  Poiché la parte unaria usa la convenzione $0^* 1$, i numeri più grandi hanno più `0` all'inizio. Pertanto, per il codice Elias $gamma$ così definito, l'ordine lessicografico *inverte* l'ordine tra blocchi di diversa grandezza (più il numero ha ordine di grandezza elevato, più zeri iniziali possiede), mentre *preserva* l'ordine naturale all'interno dello stesso blocco di lunghezza $L$ (ad esempio `010` $<$ `011` per $1 < 2$).
+]
+
 == Codice di Elias $delta$ (Delta)
 
 Come possiamo migliorare il codice di Elias $gamma$ (Gamma)? Il problema principale di $gamma$ è che richiede circa $2 log(x)$ bit per rappresentare un numero $x$. Quella costante moltiplicativa $2$ davanti al logaritmo può comportare uno spreco di spazio considerevole per numeri molto grandi.
@@ -164,12 +283,15 @@ $ mb(X) = P + sum_{i=1}^{b-1} 2^{i(k-1)} $
       [1], [7 bit], [$0$], [$2^7 - 1$ #h(1fr) (127)],
       [2], [14 bit], [$2^7$ #h(1fr) (128)], [$2^7 + 2^{14} - 1$ #h(1fr) (16.511)],
       [3], [21 bit], [$2^7 + 2^{14}$ #h(1fr) (16.512)], [$2^7 + 2^{14} + 2^{21} - 1$ #h(1fr) (2.113.663)],
-      [4], [28 bit], [$2^7 + 2^{14} + 2^{21}$ #h(1fr) (2.113.664)], [$2^7 + 2^{14} + 2^{21} + 2^{28} - 1$ #h(1fr) (270.549.119)],
+      [4],
+      [28 bit],
+      [$2^7 + 2^{14} + 2^{21}$ #h(1fr) (2.113.664)],
+      [$2^7 + 2^{14} + 2^{21} + 2^{28} - 1$ #h(1fr) (270.549.119)],
     )
   ]
 
   *Come funziona nella pratica?* \
-  Immagina di decodificare una sequenza di 2 byte il cui payload binario vale $P = 5$. 
+  Immagina di decodificare una sequenza di 2 byte il cui payload binario vale $P = 5$.
   - Nel *vByte standard*, questo decodificherebbe al numero $5$ (una ridondanza sprecata, dato che il 5 si poteva benissimo scrivere in 1 solo byte).
   - Nel *vByte biiettivo*, sapendo di aver letto 2 byte, il valore reale è $P + "Offset"$, ovvero $5 + 2^7 = 5 + 128 = 133$. Lo spazio generato dai 2 byte viene così sfruttato al 100% per rappresentare numeri "nuovi".
 ]
@@ -179,7 +301,7 @@ $ mb(X) = P + sum_{i=1}^{b-1} 2^{i(k-1)} $
 
 Un approccio che ha rivoluzionato la compressione delle liste di affissioni (e in generale degli interi che rappresentano distanze o "scarti" in indici invertiti) è il *PFOR-DELTA* (Patched Frame Of Reference).
 
-L'algoritmo (cui ha contribuito significativamente il ricercatore *Daniel Lemire*) è progettato per massimizzare il throughput sulle moderne *CPU superscalari*. Leggendo lo stream a blocchi e non elemento per elemento, si elimina quasi del tutto la necessità di istruzioni di controllo (branching) nel ciclo di decodifica principale. 
+L'algoritmo (cui ha contribuito significativamente il ricercatore *Daniel Lemire*) è progettato per massimizzare il throughput sulle moderne *CPU superscalari*. Leggendo lo stream a blocchi e non elemento per elemento, si elimina quasi del tutto la necessità di istruzioni di controllo (branching) nel ciclo di decodifica principale.
 L'obiettivo primario di PFor non è raggiungere la massima compressione teorica, ma garantire *velocità di decodifica estreme*, elaborando dati in blocchi (SIMD/Streaming).
 
 *Come funziona l'algoritmo?*
