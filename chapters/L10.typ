@@ -14,25 +14,22 @@ L'idea di fondo è sempre la stessa: ogni nuovo simbolo fa crescere il costo in 
 
 = Codifica aritmetica
 
-Il problema classico della codifica di sorgente (come il codice di Huffman) assegna a ciascun simbolo un numero intero di bit. Questo approccio impedisce di rappresentare un singolo simbolo con meno di un bit (ad esempio, un simbolo con probabilità $p > 0.5$ richiederebbe teoricamente $log_2 p < 1$ bit, ma Huffman è costretto ad assegnargli almeno $1$ bit). 
+Il problema classico della codifica di sorgente (come il codice di Huffman) assegna a ciascun simbolo un *numero intero di bit*. Questo approccio impedisce di rappresentare un singolo simbolo con meno di un bit (ad esempio, un simbolo con probabilità $p > 0.5$ richiederebbe teoricamente $log_2 p < 1$ bit, ma Huffman è costretto ad assegnargli almeno $1$ bit).
 
-La *codifica aritmetica* supera questo limite fondamentale associando un'intera *sequenza* di simboli a un unico intervallo sui numeri reali all'interno di $[0, 1)$, la cui ampiezza è proporzionale alla probabilità con cui la sequenza stessa si verifica.
+La *codifica aritmetica* supera questo limite fondamentale associando un'*intera sequenza di simboli a un unico intervallo* sui numeri reali all'interno di $[0, 1)$, la cui ampiezza è proporzionale alla probabilità con cui la sequenza stessa si verifica.
 
-Sia $Sigma = [0 .. k)$ l'alfabeto dei simboli, $p_s$ la probabilità del simbolo $s in Sigma$, e sia:
-$
-  C_s = sum_(t < s) p_t
-$
-la *probabilità cumulativa* dei simboli che precedono strettamente $s$.
+Sia:
+- $Sigma = [0 .. k)$ l'alfabeto dei simboli
+- $p_s$ la probabilità del simbolo $s in Sigma$
+- $C_s = sum_(t < s) p_t$ la *probabilità cumulativa* dei simboli che precedono strettamente $s$.
 
 L'algoritmo di codifica procede come segue:
 1. Si parte dall'intervallo iniziale $[l, l+w) = [0, 1)$, che ha estremo inferiore $l = 0$ e ampiezza $w=1$.
-2. Per codificare un simbolo $s$, si suddivide l'intervallo corrente $[l, l+w)$ in $k$ sottointervalli consecutivi di ampiezza
-proporzionale alle probabilità dei simboli e si seleziona quello corrispondente a $s$:
-$
-  [l + w C_s, \; l + w (C_s + p_s))
-$
-Il nuovo estremo inferiore diventa quindi $l' = l + w C_s$ e la nuova ampiezza diventa $w' = w p_s$. L'operazione si ripete
-per tutti i simboli della sequenza.
+2. Per codificare un simbolo $s$, si suddivide l'intervallo corrente $[l, l+w)$ in $k$ sottointervalli consecutivi di ampiezza proporzionale alle probabilità dei simboli e si seleziona quello corrispondente a $s$:
+  $
+    [l + w C_s space , space l + w (C_s + p_s))
+  $
+  Il nuovo estremo inferiore diventa quindi *$l' = l + w C_s$* e la nuova ampiezza diventa *$w' = w p_s$*. L'operazione si ripete per tutti i simboli della sequenza.
 
 == Lunghezza dell'intervallo e contenuto informativo
 
@@ -70,7 +67,11 @@ Il termine a destra è la *somma esatta dei contenuti informativi* dei singoli s
   ]
 
   Codifichiamo la sequenza `AAB`:
-  1. La prima `A` seleziona $[0, 3/4)$. Suddividendolo nelle proporzioni $3/4$ e $1/4$, `A` occupa $[0, 9/16)$ e `B` occupa $[9/16, 3/4)$:
+  1. La prima `A` seleziona $[0, 3/4)$. Suddividendolo nelle proporzioni $3/4$ e $1/4$, `A` occupa:
+  $
+    [0, 9/16) = [l + w C_s , w p_s] = [0 + 3/4 * 0, 3/4 * 3/4]
+  $
+  e `B` occupa $[9/16, 3/4)$:
 
   #figure()[
     #cetz.canvas({
@@ -142,14 +143,14 @@ Il termine a destra è la *somma esatta dei contenuti informativi* dei singoli s
 Dopo aver letto una sequenza $s_1, s_2, dots, s_n$, il nuovo intervallo è il risultato del restringimento progressivo della
 partizione iniziale. Le formule e l'esempio assumono un modello con probabilità dei simboli fissate,
 
-Se la sequenza è $x_1, x_2, dots, x_n$, allora l'ampiezza del suo intervallo finale è:
+Se la sequenza è $x_1, x_2, dots, x_n$, allora l'ampiezza del suo *intervallo finale* è:
 $
-  P(x_1, dots, x_n) = product_{i=1}^n p(x_i)
+  P(x_1, dots, x_n) = product_(i=1)^n p(x_i)
 $
 
 Quindi il numero di bit necessari per rappresentare l'intervallo è circa:
 $
-  -log_2 P(x_1, dots, x_n) = -sum_{i=1}^n log_2 p(x_i)
+  -log_2 P(x_1, dots, x_n) = -sum_(i=1)^n log_2 p(x_i)
 $
 
 Questo è il costo informativo ideale della sequenza, espresso in bit: una codifica effettiva usa un numero intero di bit
@@ -158,21 +159,24 @@ e può richiedere qualche bit aggiuntivo per terminazione e sincronizzazione.
 == Trasmissione e limite superiore alla lunghezza del codice
 
 Per trasmettere la sequenza codificata non serve inviare entrambi gli estremi dell'intervallo finale: basta trasmettere
-un *numero diadico* $j 2^(-h)$ contenuto al suo interno.
-Un numero diadico $j 2^(-h) in [0, 1)$ è completamente descritto dalla parola di $h$ bit che rappresenta l'intero $j$ in
-binario, ovvero dalle sue prime $h$ cifre binarie dopo la virgola.
+un *numero diadico* $j 2^(-h)$ *contenuto al suo interno*.
+
+#note()[
+  Un numero diadico $j 2^(-h) in [0, 1)$ è completamente descritto dalla parola di $h$ bit che rappresenta l'intero $j$ in
+  binario, ovvero dalle sue prime $h$ cifre binarie dopo la virgola.
+]
 
 Quanti bit $h$ servono al massimo?
-- Se il passo della griglia diadica non supera l'ampiezza dell'intervallo, cioè se $2^(-h) <= P$, allora un intervallo di
-lunghezza $P$ contiene *sempre* almeno un multiplo di $2^(-h)$.
-- Basta quindi scegliere:
-$
-  h = ceil(log_2(1/P)) < log_2(1/P) + 1 = sum_(i=0)^(n-1) log_2 frac(1, p_(s_i)) + 1
-$
+- Se il passo della griglia diadica non supera l'ampiezza dell'intervallo, cioè se $2^(-h) <= P$, allora un intervallo di lunghezza $P$ contiene *sempre* almeno un multiplo di $2^(-h)$. Basta quindi scegliere:
+  $
+    h = ceil(log_2(1/P)) < log_2(1/P) + 1 = sum_(i=0)^(n-1) log_2 frac(1, p_(s_i)) + 1
+  $
 
 In conclusione, la codifica aritmetica spende *al più $1$ bit in più rispetto al contenuto informativo dell'intera sequenza*.
-Ripartendo questo singolo bit di sovraccosto su tutti gli $n$ simboli della sequenza, per $n$ grande il costo aggiuntivo per simbolo ($1/n$) diventa nullo e il costo medio per simbolo tende all'entropia.
 
+#note()[
+  Ripartendo questo singolo bit di sovraccosto su tutti gli $n$ simboli della sequenza, per $n$ grande il costo aggiuntivo per simbolo ($1/n$) diventa nullo e il costo medio per simbolo tende all'entropia.
+]
 == Costo medio e distribuzione empirica
 
 Supponiamo di avere una sequenza $S$ di lunghezza $n$ in cui ciascun simbolo distinto $s in Sigma$ compare un numero di
@@ -276,7 +280,7 @@ Il decoder parte dal valore trasmesso e applica la stessa logica usata dal codif
 ]
 
 #note(title: "Modello adattivo")[
-  La codifica aritmetica si presta molto bene a essere usata in modo *adattivo*: se non si conosce a priori la distribuzione dei simboli, codificatore e decodificatore possono partire da una distribuzione uniforme (equiprobabile) e aggiornare i conteggi delle frequenze man mano che codificano e decodificano i simboli in ordine. Poiché procedono nella stessa direzione, rimangono perfettamente sincronizzati senza bisogno di trasmettere in anticipo la distribuzione di probabilità.
+  La codifica aritmetica si presta molto bene a essere usata in modo *adattivo*: se *non si conosce a priori la distribuzione dei simboli*, codificatore e decodificatore possono partire da una distribuzione uniforme (equiprobabile) e aggiornare i conteggi delle frequenze man mano che codificano e decodificano i simboli in ordine. Poiché procedono nella stessa direzione, rimangono perfettamente sincronizzati senza bisogno di trasmettere in anticipo la distribuzione di probabilità.
 ]
 
 = Sistemi di numerazione asimmetrica (ANS)
@@ -293,6 +297,7 @@ Quando aggiungiamo alla sequenza un simbolo $s$ di probabilità $p_s$, vogliamo 
 $
   x' approx frac(x, p_s)
 $
+Ovvero il nuovo intero $x'$ deve essere circa $1/p_s$ volte più grande di $x$, in modo da avere lo stesso effetto della codifica aritmetica: restringere l'intervallo di un fattore $p_s$.
 
 Considerando la dimensione della rappresentazione binaria si ottiene:
 $
@@ -417,13 +422,13 @@ In ogni blocco di $2^d$ naturali ci sono esattamente $f_s$ naturali consecutivi 
   2. *Codifica `a`*: cerchiamo nella tabella la cella *azzurra* (`a`) con *rango $5$* $arrow.r$ troviamo *$y = 8$* ($"push"(5, a) = 8$).
   3. *Codifica `a`*: ora lo stato è $8$; cerchiamo la cella *azzurra* (`a`) con *rango $8$* $arrow.r$ troviamo *$y = 11$* ($"push"(8, a) = 11$, moltiplicando lo stato per circa $8/5 = 1.6$ invece che per $2$).
   4. *Se ora codificassimo `b`*: dallo stato $11$, cercheremmo la cella *verde* (`b`) con *rango $11$*. Poiché ci sono solo $2$ celle verdi ogni $8$ numeri, il rango $11$ cade nel $5°$ blocco ($floor(11/2) = 5$), precisamente in *$y = 46$* ($"push"(11, b) = 46$, moltiplicando lo stato per circa $8/2 = 4$).
-  
+
   *Decodifica (`pop`) da $y = 11$*:
   1. guardiamo $y = 11$: la cella è *azzurra* (simbolo *`a`*) e sotto leggiamo *rango $8$* (nuovo stato $x = 8$);
   2. guardiamo $y = 8$: la cella è *azzurra* (simbolo *`a`*) e sotto leggiamo *rango $5$* (tornati allo stato iniziale $x_0 = 5$).
 
-  Notiamo l'effetto sulla compressione: il simbolo frequente `a` compare $5$ volte per blocco e fa crescere $y$ molto lentamente 
-  ($approx times 8/5$, costo $log_2(8/5) approx 0.68$ bit), mentre il simbolo raro `c` (arancione) compare solo una volta 
+  Notiamo l'effetto sulla compressione: il simbolo frequente `a` compare $5$ volte per blocco e fa crescere $y$ molto lentamente
+  ($approx times 8/5$, costo $log_2(8/5) approx 0.68$ bit), mentre il simbolo raro `c` (arancione) compare solo una volta
   ogni $8$ numeri e fa crescere $y$ molto velocemente ($approx times 8$, costo $log_2(8/1) = 3$ bit).
 ]
 
@@ -469,37 +474,37 @@ Più precisamente, l'errore rispetto a $(x / f_s) dot 2^d$ è inferiore a $2^d$,
 
   Vediamo anche la tabella completa dei lucidi per la codifica e decodifica della sequenza più lunga `abacaaba` partendo da $x = 8$:
 
-    #figure(caption: [Codifica (`push`) di `abacaaba`])[
-      #table(
-        columns: 6,
-        align: center,
-        [*$x$*], [*$s$*], [*$floor(x/f_s) << 3$*], [*$c_s$*], [*$x mod f_s$*], [*$"push"(x,s)$*],
-        [8], [a], [8], [0], [3], [11],
-        [11], [b], [40], [5], [1], [46],
-        [46], [a], [72], [0], [1], [73],
-        [73], [c], [584], [7], [0], [591],
-        [591], [a], [944], [0], [1], [945],
-        [945], [a], [1512], [0], [0], [1512],
-        [1512], [b], [6048], [5], [0], [6053],
-        [6053], [a], [9680], [0], [3], [*9683*],
-      )
-    ]
+  #figure(caption: [Codifica (`push`) di `abacaaba`])[
+    #table(
+      columns: 6,
+      align: center,
+      [*$x$*], [*$s$*], [*$floor(x/f_s) << 3$*], [*$c_s$*], [*$x mod f_s$*], [*$"push"(x,s)$*],
+      [8], [a], [8], [0], [3], [11],
+      [11], [b], [40], [5], [1], [46],
+      [46], [a], [72], [0], [1], [73],
+      [73], [c], [584], [7], [0], [591],
+      [591], [a], [944], [0], [1], [945],
+      [945], [a], [1512], [0], [0], [1512],
+      [1512], [b], [6048], [5], [0], [6053],
+      [6053], [a], [9680], [0], [3], [*9683*],
+    )
+  ]
 
-    #figure(caption: [Decodifica (`pop`) da $x = 9683$])[
-      #table(
-        columns: 5,
-        align: center,
-        [*$x$*], [*$x >> 3$*], [*$x mod 8$*], [*$s$*], [*rango*],
-        [9683], [1210], [3], [a], [6053],
-        [6053], [756], [5], [b], [1512],
-        [1512], [189], [0], [a], [945],
-        [945], [118], [1], [a], [591],
-        [591], [73], [7], [c], [73],
-        [73], [9], [1], [a], [46],
-        [46], [5], [6], [b], [11],
-        [11], [1], [3], [a], [*8*],
-      )
-    ]
+  #figure(caption: [Decodifica (`pop`) da $x = 9683$])[
+    #table(
+      columns: 5,
+      align: center,
+      [*$x$*], [*$x >> 3$*], [*$x mod 8$*], [*$s$*], [*rango*],
+      [9683], [1210], [3], [a], [6053],
+      [6053], [756], [5], [b], [1512],
+      [1512], [189], [0], [a], [945],
+      [945], [118], [1], [a], [591],
+      [591], [73], [7], [c], [73],
+      [73], [9], [1], [a], [46],
+      [46], [5], [6], [b], [11],
+      [11], [1], [3], [a], [*8*],
+    )
+  ]
   L'intero è cresciuto di $log_2(9683/8) approx 10.24$ bit, a fronte di un contenuto informativo totale di circa $10.39$ bit ($6 dot log_2(8/5) + 2 dot 2 + 1 dot 3$). La decodifica emette `abaacaba`, ovvero la sequenza originale al contrario.
 ]
 
@@ -508,38 +513,38 @@ Più precisamente, l'errore rispetto a $(x / f_s) dot 2^d$ è inferiore a $2^d$,
   $
     "push"(0, a) = (floor(0 / f_a) << d) + 0 + (0 mod f_a) = 0
   $
-  Se partissimo da $x = 0$, codificare una o più `a` all'inizio lascerebbe lo stato fermo a $0$, perdendo completamente 
-  l'informazione sul numero di `a` iniziali! Per questo motivo si parte sempre da uno stato iniziale positivo fissato 
+  Se partissimo da $x = 0$, codificare una o più `a` all'inizio lascerebbe lo stato fermo a $0$, perdendo completamente
+  l'informazione sul numero di `a` iniziali! Per questo motivo si parte sempre da uno stato iniziale positivo fissato
   (come $x = 2^d = 8$, oppure la soglia inferiore $L$ di rinormalizzazione).
 ]
 
 == Rinormalizzazione e dettagli implementativi
 
-Se applicassimo solo `push`, lo stato intero $x$ crescerebbe indefinitamente con la lunghezza del messaggio. Nelle implementazioni 
+Se applicassimo solo `push`, lo stato intero $x$ crescerebbe indefinitamente con la lunghezza del messaggio. Nelle implementazioni
 pratiche (note come *rANS* o *tANS*), lo stato $x$ viene mantenuto sempre all'interno di un intervallo fissato:
 $x in [L .. 2^b L)$
-dove $L$ è un multiplo di $2^d$ e $b$ è il numero di bit trasferiti a ogni operazione di I/O (ad esempio $b = 8$ per scrivere 
+dove $L$ è un multiplo di $2^d$ e $b$ è il numero di bit trasferiti a ogni operazione di I/O (ad esempio $b = 8$ per scrivere
 un byte alla volta).
 
-- *Rinormalizzazione in codifica (`push`)*: prima di eseguire $"push"(x, s)$, si controlla se il nuovo stato supererebbe 
-il limite superiore $2^b L$. Precisamente, *finché $x >= 2^b L f_s / 2^d$*, i *$b$ bit meno significativi* di $x$ vengono 
-scritti nel buffer di output ed eliminati dallo stato ($x <- x >> b$). Quando $x$ è tornato abbastanza piccolo, si esegue 
+- *Rinormalizzazione in codifica (`push`)*: prima di eseguire $"push"(x, s)$, si controlla se il nuovo stato supererebbe
+il limite superiore $2^b L$. Precisamente, *finché $x >= 2^b L f_s / 2^d$*, i *$b$ bit meno significativi* di $x$ vengono
+scritti nel buffer di output ed eliminati dallo stato ($x <- x >> b$). Quando $x$ è tornato abbastanza piccolo, si esegue
 $"push"(x, s)$, che cadrà garantitamente in $[L .. 2^b L)$.
-- *Rinormalizzazione in decodifica (`pop`)*: simmetricamente, dopo aver eseguito $"pop"(x)$, lo stato può scendere sotto 
-$L$. *Finché $x < L$*, si rileggono blocchi di $b$ bit dal buffer di input e si inseriscono come bit meno significativi di $x$ 
+- *Rinormalizzazione in decodifica (`pop`)*: simmetricamente, dopo aver eseguito $"pop"(x)$, lo stato può scendere sotto
+$L$. *Finché $x < L$*, si rileggono blocchi di $b$ bit dal buffer di input e si inseriscono come bit meno significativi di $x$
 ($x <- (x << b) + "bits"$), riportando $x$ nell'intervallo $[L .. 2^b L)$.
 
-Si dimostra che in questo modo la decodifica rilegge esattamente gli stessi blocchi di $b$ bit emessi dalla codifica. L'emissione 
-dei bit meno significativi comporta una piccola perdita di precisione (e quindi di compressione), che però è del tutto trascurabile 
+Si dimostra che in questo modo la decodifica rilegge esattamente gli stessi blocchi di $b$ bit emessi dalla codifica. L'emissione
+dei bit meno significativi comporta una piccola perdita di precisione (e quindi di compressione), che però è del tutto trascurabile
 se si sceglie $L$ molto più grande di $2^d$.
-In compenso, l'intero algoritmo opera esclusivamente su *interi di dimensione fissa*: ad esempio, scegliendo $L = 2^23$ e 
+In compenso, l'intero algoritmo opera esclusivamente su *interi di dimensione fissa*: ad esempio, scegliendo $L = 2^23$ e
 $b = 8$, lo stato resta in $[2^23 .. 2^31)$ e bastano normali registri a *32 bit*.
 
 #warning(title: "Distribuzione statica a blocchi e memorizzazione delle frequenze")[
-  Poiché ANS codifica in una direzione e decodifica nella direzione opposta (dalla fine del blocco verso l'inizio), non è 
+  Poiché ANS codifica in una direzione e decodifica nella direzione opposta (dalla fine del blocco verso l'inizio), non è
   possibile apprendere e aggiornare la distribuzione in modo adattivo simbolo per simbolo.
-  In ANS occorre quindi dividere l'input in blocchi, calcolare le frequenze $f_s$ del blocco e *salvarle come dati ancillari (metadati)* 
-  nell'intestazione del blocco compresso affinché il decodificatore le conosca prima di iniziare le `pop`. 
-  Se il vettore delle frequenze $f_s$ occupasse troppo spazio, ridurrebbe il guadagno della compressione: per questo nei 
+  In ANS occorre quindi dividere l'input in blocchi, calcolare le frequenze $f_s$ del blocco e *salvarle come dati ancillari (metadati)*
+  nell'intestazione del blocco compresso affinché il decodificatore le conosca prima di iniziare le `pop`.
+  Se il vettore delle frequenze $f_s$ occupasse troppo spazio, ridurrebbe il guadagno della compressione: per questo nei
   compressori reali si utilizzano apposite tecniche di *packing* (compressione compatta delle tabelle delle frequenze) per memorizzare gli $f_s$ con il minimo numero possibile di bit.
 ]
