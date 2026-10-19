@@ -343,7 +343,8 @@ opposta, esattamente come in una pila (LIFO)*
 == La numerazione come colorazione
 
 Possiamo reinterpretare la numerazione binaria standard in termini di *colori* e *ranghi* sui numeri naturali:
-- *Colore*: coloriamo ogni numero naturale $y$ con la sua ultima cifra binaria $s = y mod 2$ (i numeri pari hanno colore $0$, i dispari hanno colore $1$).
+- *Colore*: coloriamo ogni numero naturale $y$ con la sua ultima cifra binaria $s = y mod 2$ (i numeri pari hanno colore $mb(0)$, i dispari hanno colore $mr(1)$).
+
 - *Rango*: definiamo il *rango* di un naturale $y$ come il numero di naturali *dello stesso colore* che lo precedono strettamente (cioè minori di $y$).
 
 #figure(
@@ -363,7 +364,7 @@ In questa vista:
 - *Codificare (`push`)*: $2x + s$ è esattamente l'unico naturale di *colore $s$* e *rango $x$* (ad esempio, per $x = 8$ e $s = 1$, il naturale di colore $1$ e rango $8$ è $2 dot 8 + 1 = 17$).
 - *Decodificare (`pop`)*: dato $y$, significa determinare il suo *colore* (l'ultimo simbolo) e il suo *rango* (lo stato precedente $x$).
 
-Nel sistema binario standard ogni colore occupa esattamente metà dei naturali: il sistema è *simmetrico* (tutti i simboli hanno lo stesso peso, proprio come in base $k$ con $k$ simboli equiprobabili), quindi il naturale di colore $s$ e rango $x$ vale sempre circa $2x$ e ogni simbolo costa $1$ bit.
+Nel sistema binario standard ogni colore occupa esattamente metà dei naturali: il sistema è *simmetrico* (tutti i simboli hanno lo stesso peso, proprio come in base $k$ con $k$ simboli equiprobabili), quindi *il naturale di colore $s$ e rango $x$ vale sempre circa $2x$ e ogni simbolo costa $1$ bit*.
 
 == Dal caso base alla colorazione assimetrica
 
