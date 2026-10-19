@@ -121,12 +121,13 @@ Il codice Elias $gamma$ è un *codice istantaneo (o codice prefisso)*, in quanto
 
 == Codice di Elias $delta$ (Delta)
 
-Come possiamo migliorare il codice di Elias $gamma$ (Gamma)? Il problema principale di $gamma$ è che richiede circa $2 log(x)$ bit per rappresentare un numero $x$. Quella costante moltiplicativa $2$ davanti al logaritmo può comportare uno spreco di spazio considerevole per numeri molto grandi.
+Come possiamo migliorare il codice di Elias $gamma$ (Gamma)? Il problema principale di Elias-$gamma$ è che richiede circa *$2 log(x)$* bit per rappresentare un numero $x$. La costante moltiplicativa $2$ davanti al logaritmo può comportare uno spreco di spazio considerevole per numeri molto grandi.
 
-- L'obiettivo del codice *Elias $delta$* è ottenere una rappresentazione più compatta per i numeri grandi, avvicinandosi al limite inferiore teorico di $log(x)$ bit, sacrificando solo una piccola quantità per i metadati (senza sprecare la costante).
+- L'obiettivo del codice *Elias $delta$* è ottenere una *rappresentazione più compatta per i numeri grandi*, avvicinandosi al limite inferiore teorico di $log(x)$ bit, sacrificando solo una piccola quantità per i metadati (senza sprecare la costante).
 
 L'algoritmo funziona in questo modo (assumendo la mappatura $k -> x = k + 1$ per codificare numeri a partire da zero):
 + Si prende la rappresentazione binaria del numero $x$. Sia $L$ la sua lunghezza in bit, ovvero $L = floor(log(x)) + 1$.
+
 + Invece di scrivere $L$ in unario (come fa $gamma$), *scriviamo $L$ in codice Elias $gamma$*.
 + Di seguito, scriviamo la rappresentazione binaria di $x$, *omettendo il bit più significativo* (che sappiamo essere sempre 1).
 
@@ -153,28 +154,38 @@ L'algoritmo funziona in questo modo (assumendo la mappatura $k -> x = k + 1$ per
   ]
 ]
 
-*Analisi della lunghezza:* \
+=== Analisi della lunghezza del codice
+
 Quanto è lungo il codice $delta$?
-- La parte "ridotta" (il resto) occupa $floor(log(x))$ bit.
-- La lunghezza $L$ codificata in $gamma$ occupa $2 floor(log(L)) + 1 = 2 floor(log(floor(log(x)) + 1)) + 1$ bit.
+- La parte "*ridotta*" (il resto) occupa *$floor(log(x))$* bit. Poichè questa lunghezza può valere zero, per poterla decodificare nella versione per interi $>=1$ le sommiamo 1, ottenendo $floor(log(x)) + 1$ bit.
+
+- La lunghezza $L$ codificata in $gamma$ occupa:
+$
+  |gamma(L)| & = 2 floor(log(mr(L))) + 1 \
+             & "per definizione" mr(L) = floor(log(x)) + 1 \
+             & = 2 floor(log(mr(floor(log(x)) + 1))) + 1 "bit"
+$
 
 Definendo $lambda(x)$ come la lunghezza in bit dell'intero, e sommando il tutto, otteniamo:
-$abs(delta(x)) = lambda(x+1) + 2 lambda(lambda(x+1)) + 1 approx log(x) + 2 log(log(x)) + 1$
+$
+  abs(delta(x)) = lambda(x+1) + 2 lambda(lambda(x+1)) + 1 approx log(x) + 2 log(log(x)) + 1
+$
 
-Inizialmente, per valori di $x$ piccoli, il codice $delta$ è più lungo del $gamma$. Tuttavia, asintoticamente, il termine $2 log(log(x))$ cresce in maniera estremamente lenta (tende ad essere *"evanescente"*), rendendo Elias $delta$ vincente sui grandi numeri.
+Inizialmente, per valori di $x$ piccoli, il codice $delta$ è più lungo del $gamma$. Tuttavia, *asintoticamente*, il termine $2 log(log(x))$ cresce in maniera estremamente lenta (tende ad essere *"evanescente"*), rendendo Elias $delta$ vincente sui grandi numeri.
 
 #note(title: [Codici di Levenshtein (Elias Omega)])[
   Potremmo spingerci oltre e fare una versione iterata di questo ragionamento (chiamata codifica *Elias $omega$* o codici di *Levenshtein*, definiti in maniera ricorsiva applicando ripetutamente il logaritmo).
-  Tuttavia, i vantaggi di comprimere ulteriormente il termine $log(log(x))$ inizierebbero a vedersi solo per interi astronomicamente grandi (es. $10^{100}$). Per questo motivo, nessuno usa queste varianti estreme nella pratica.
+  Tuttavia, i vantaggi di comprimere ulteriormente il termine $log(log(x))$ inizierebbero a vedersi solo per interi astronomicamente grandi (es. $10^(100)$). Per questo motivo, nessuno usa queste varianti estreme nella pratica.
 ]
 
 
 == Codice di Golomb
 
-Rispetto ai codici di Elias, il codice di Golomb ha un parametro di sintonizzazione $b >= 1$. È estremamente efficiente quando i dati seguono una distribuzione geometrica (es. intervalli tra occorrenze in indici invertiti).
+Rispetto ai codici di Elias, il codice di Golomb ha un *parametro di sintonizzazione* $b >= 1$. È estremamente efficiente quando i *dati seguono una distribuzione geometrica* (es. intervalli tra occorrenze in indici invertiti).
 
 Dato un numero $x >= 0$ e un parametro $b$, la codifica divide $x$ in due parti:
 + *Quoziente* $q = floor(x / b)$: codificato in *unario* (ovvero $q$ zeri seguiti da un $1$, o viceversa $0^q 1$).
+
 + *Resto* $r = x mod b$: codificato in *binario minimale* (o troncato).
 
 Ma come gestiamo il resto se $b$ *non* è una potenza di 2? Non possiamo usare la codifica binaria standard senza sprecare bit. Qui entra in gioco il *binario minimale*.
@@ -187,7 +198,7 @@ Ma come gestiamo il resto se $b$ *non* è una potenza di 2? Non possiamo usare l
   - Le prime *$S - b$* parole di codice usano *$k - 1$ bit*.
   - Le restanti *$2b - S$* parole di codice usano *$k$ bit*.
 
-  *Da sapere per l'esame:* questa tecnica a volte usa più bit del limite inferiore teorico e a volte ne usa di meno. Nel limite, facendo la media, tende a un valore di entropia ottimo. È il modo standard per scrivere i resti modulari nei codici di Golomb quando $b != 2^k$.
+  *Da sapere per l'esame:* questa tecnica a volte *usa più bit del limite inferiore teorico* e a volte ne usa di meno. Nel limite, facendo la media, tende a un valore di entropia ottimo. È il modo standard per scrivere i resti modulari nei codici di Golomb quando *$b != 2^k$*.
 ]
 
 #example(title: [Esempi di Codifica Golomb e Binario Minimale])[
@@ -200,13 +211,13 @@ Ma come gestiamo il resto se $b$ *non* è una potenza di 2? Non possiamo usare l
     - $1 -> q=0$ `(1)`, $r=1$ `(1)` $->$ *11*
 
   - *Caso $b = 3$:*
-    Calcoliamo i limiti: $k = ceil(log(3)) = 2$. $S = 2^2 = 4$.
-    Prime $S-b = 4-3 = 1$ parole (il valore $0$) usano $1$ bit.
-    Restanti $2b-S = 6-4 = 2$ parole (i valori $1, 2$) usano $2$ bit.
-    - $0 -> q=0$ `(1)`, $r=0$ `(0)` $->$ *10*
-    - $1 -> q=0$ `(1)`, $r=1$ `(10)` $->$ *110*
-    - $2 -> q=0$ `(1)`, $r=2$ `(11)` $->$ *111*
-    - $3 -> q=1$ `(01)`, $r=0$ `(0)` $->$ *010*
+    Calcoliamo i limiti: $k = ceil(log(3)) = 2$. $S = 2^2 = 4$:
+      - Prime $S-b = 4-3 = 1$ parole (il valore $0$) usano $1$ bit.
+      - Restanti $2b-S = 6-4 = 2$ parole (i valori $1, 2$) usano $2$ bit.
+        - $0 -> q=0$ `(1)`, $r=0$ `(0)` $->$ *10*
+        - $1 -> q=0$ `(1)`, $r=1$ `(10)` $->$ *110*
+        - $2 -> q=0$ `(1)`, $r=2$ `(11)` $->$ *111*
+        - $3 -> q=1$ `(01)`, $r=0$ `(0)` $->$ *010*
 
   - *Caso $b = 4$:*
     Essendo potenza di 2, usa bit costanti per il resto ($k=2$).
@@ -224,7 +235,7 @@ Ma come gestiamo il resto se $b$ *non* è una potenza di 2? Non possiamo usare l
 === Varianti del Golomb
 
 - *Golomb-Rice ($b = 2^k$):*
-  È una restrizione in cui il parametro $b$ deve obbligatoriamente essere una potenza di $2$. In hardware/software:
+  È una restrizione in cui il parametro $b$ deve obbligatoriamente essere una potenza di $2$. Questo ha delle implicazioni in hardware/software:
   - La divisione diventa uno *shift a destra* dei bit.
   - Il modulo diventa un'*operazione AND* bit a bit (maschera).
 
@@ -239,18 +250,20 @@ Ma come gestiamo il resto se $b$ *non* è una potenza di 2? Non possiamo usare l
 
 I codici a blocchi (come il codice variabile a *nibble* o a *byte*, spesso noto come *vByte*) sono tra i più utilizzati in pratica. Essendo allineati ai limiti di byte (o multipli), sono estremamente "*hardware-friendly*", garantendo velocità di decodifica eccezionali.
 
-L'idea generale è che ogni parola è formata da un numero variabile di blocchi di $k$ bit (es. $k=4$ per il nibble, $k=8$ per il byte).
+L'idea generale è che *ogni parola è formata da un numero variabile di blocchi di $k$ bit* (es. $k=4$ per il nibble, $k=8$ per il byte).
 - Il *primo bit* del blocco è il *bit di continuazione*: se è `1`, indica che il codice continua nel blocco successivo; se è `0`, indica l'ultimo blocco.
 - I restanti *$k-1$ bit* (il *payload*) contengono la rappresentazione binaria dell'intero $x$.
 
 *Formula della Lunghezza:* \
 Un intero $x$ viene scritto in notazione binaria e diviso in blocchi da $k-1$ bit. La lunghezza totale in bit della parola di codice per $x$ sarà quindi:
-$mr(L) = ceil((log(x) + 1) / (k - 1)) dot k$
+$
+  mr(L) = ceil((log(x) + 1) / (k - 1)) dot k
+$
 
 Poiché per ogni 7 bit di informazione utile siamo costretti ad aggiungere 1 bit di overhead (il bit di continuazione), il costo asintotico di questo codice è circa $8/7 log(x)$. Pur essendo leggermente meno compresso di Elias, la sua natura byte-aligned lo rende immensamente più veloce in decodifica.
 
 #warning(title: [Il problema dell'Incompletezza (Ridondanza)])[
-  I codici a lunghezza variabile classici sono privi di prefissi, ma *non sono completi*. Questo accade perché permettono di aggiungere blocchi di zeri non necessari (padding).
+  I codici a lunghezza variabile classici sono *privi di prefissi*, ma *non sono completi*. Questo accade perché permettono di aggiungere blocchi di zeri non necessari (padding).
   Ad esempio, una lista di blocchi contenente solo bit a zero decodifica allo stesso numero $0$ rappresentato da un singolo blocco di zeri. Nello spazio sintattico del codice esistono parole (e combinazioni) valide che non codificano nuovi valori utili, sprecando capienza.
 ]
 
