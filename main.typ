@@ -52,3 +52,4 @@
 #include "chapters/L7.typ"
 #include "chapters/L8.typ"
 #include "chapters/L9.typ"
+#include "chapters/L10.typ"
