@@ -212,12 +212,12 @@ Ma come gestiamo il resto se $b$ *non* è una potenza di 2? Non possiamo usare l
 
   - *Caso $b = 3$:*
     Calcoliamo i limiti: $k = ceil(log(3)) = 2$. $S = 2^2 = 4$:
-      - Prime $S-b = 4-3 = 1$ parole (il valore $0$) usano $1$ bit.
-      - Restanti $2b-S = 6-4 = 2$ parole (i valori $1, 2$) usano $2$ bit.
-        - $0 -> q=0$ `(1)`, $r=0$ `(0)` $->$ *10*
-        - $1 -> q=0$ `(1)`, $r=1$ `(10)` $->$ *110*
-        - $2 -> q=0$ `(1)`, $r=2$ `(11)` $->$ *111*
-        - $3 -> q=1$ `(01)`, $r=0$ `(0)` $->$ *010*
+    - Prime $S-b = 4-3 = 1$ parole (il valore $0$) usano $1$ bit.
+    - Restanti $2b-S = 6-4 = 2$ parole (i valori $1, 2$) usano $2$ bit.
+      - $0 -> q=0$ `(1)`, $r=0$ `(0)` $->$ *10*
+      - $1 -> q=0$ `(1)`, $r=1$ `(10)` $->$ *110*
+      - $2 -> q=0$ `(1)`, $r=2$ `(11)` $->$ *111*
+      - $3 -> q=1$ `(01)`, $r=0$ `(0)` $->$ *010*
 
   - *Caso $b = 4$:*
     Essendo potenza di 2, usa bit costanti per il resto ($k=2$).
@@ -254,6 +254,14 @@ L'idea generale è che *ogni parola è formata da un numero variabile di blocchi
 - Il *primo bit* del blocco è il *bit di continuazione*: se è `1`, indica che il codice continua nel blocco successivo; se è `0`, indica l'ultimo blocco.
 - I restanti *$k-1$ bit* (il *payload*) contengono la rappresentazione binaria dell'intero $x$.
 
+#example()[
+  Fissato $x=130$, in binario è `10000010`. Con blocchi da $k=8$ bit, il codice vByte sarà:
+  $
+    underbrace(1, "bit di"\ "continuazione") space underbrace(0000001, "primo blocco") space 0 space underbrace(0000010, "secondo blocco")
+  $
+]
+
+
 *Formula della Lunghezza:* \
 Un intero $x$ viene scritto in notazione binaria e diviso in blocchi da $k-1$ bit. La lunghezza totale in bit della parola di codice per $x$ sarà quindi:
 $
@@ -265,6 +273,13 @@ Poiché per ogni 7 bit di informazione utile siamo costretti ad aggiungere 1 bit
 #warning(title: [Il problema dell'Incompletezza (Ridondanza)])[
   I codici a lunghezza variabile classici sono *privi di prefissi*, ma *non sono completi*. Questo accade perché permettono di aggiungere blocchi di zeri non necessari (padding).
   Ad esempio, una lista di blocchi contenente solo bit a zero decodifica allo stesso numero $0$ rappresentato da un singolo blocco di zeri. Nello spazio sintattico del codice esistono parole (e combinazioni) valide che non codificano nuovi valori utili, sprecando capienza.
+
+  Ad esempio, $5$ può codificato in diversi modi:
+  - $underbrace(mr(0), "continuazione") space 0000101$
+
+  - $underbrace(mr(1), "continuazione") space 0000000 space 0000101$
+
+  - $mr(1) space 0000000 space mr(1) space 0000000 space 0000101$
 ]
 
 === Miglioramenti alla Decodifica (Prefissi e Biiettività)
@@ -277,11 +292,14 @@ Per rendere il codice più veloce e ridurre i salti condizionali (branch) della 
 *2. Rendere il codice Completo (vByte Biiettivo o Shifted)* \
 Per recuperare lo spazio sprecato dalle ridondanze, si modifica la logica di codifica. Nel vByte standard, un numero come $5$ può essere scritto usando un solo blocco, ma tecnicamente anche usando due blocchi (aggiungendo un blocco di zeri). Questo significa che lo spazio semantico non è coperto in modo ottimale.
 
-Nel vByte biiettivo (o shifted), *ogni intero ha una e una sola rappresentazione valida*. L'idea è che con $b$ blocchi codifichiamo *esclusivamente* i valori successivi a quelli già coperti usando $b-1$ blocchi.
+Nel vByte biiettivo (o shifted), *ogni intero ha una e una sola rappresentazione valida*. L'idea è che con $b$ blocchi codifichiamo *esclusivamente* i valori successivi a quelli già coperti usando $b-1$ blocchi. Per farlo andiamo ad applicare un *offset* al valore binario letto:
+- Con 1 byte ($b=1,7$ bit di payload) possiamo esprimere $2^7 = 128$ valori, quindi i numeri da $0$ a $127$ vengono codificati in un solo blocco.
+
+- Con 2 byte ($b=2,14$ bit di payload) possiamo esprimere $2^14 = 16.384$ valori, quindi i numeri da $128$ a $16.511$ vengono codificati in due blocchi.
 
 In fase di decodifica, al valore binario letto (il payload $P$) sommiamo un *offset* pari al numero totale di valori esprimibili con stringhe più corte. Formalmente, per blocchi con $k-1$ bit di payload, la decodifica di una parola lunga $b$ blocchi è:
 
-$ mb(X) = P + sum_{i=1}^{b-1} 2^{i(k-1)} $
+$ mb(X) = underbrace(P,"payload letto"\ "nei" b "blocchi") + underbrace(sum_(i=1)^(b-1) 2^(i(k-1)), "offset") $
 
 #example(title: [Rappresentazione Visiva: Intervalli nel vByte Biiettivo ($k=8$)])[
   In questo schema, usando blocchi da 1 byte ($k=8$, di cui 7 bit di payload), vediamo come gli intervalli si impilino perfettamente sfruttando le potenze di due. L'offset è esattamente la somma delle capacità di tutte le righe precedenti.
@@ -294,19 +312,20 @@ $ mb(X) = P + sum_{i=1}^{b-1} 2^{i(k-1)} $
       fill: (x, y) => if y == 0 { luma(240) },
       [*Byte ($b$)*], [*Payload*], [*Inizio Range (Offset)*], [*Fine Range*],
       [1], [7 bit], [$0$], [$2^7 - 1$ #h(1fr) (127)],
-      [2], [14 bit], [$2^7$ #h(1fr) (128)], [$2^7 + 2^{14} - 1$ #h(1fr) (16.511)],
-      [3], [21 bit], [$2^7 + 2^{14}$ #h(1fr) (16.512)], [$2^7 + 2^{14} + 2^{21} - 1$ #h(1fr) (2.113.663)],
+      [2], [14 bit], [$2^7$ #h(1fr) (128)], [$2^7 + 2^(14) - 1$ #h(1fr) (16.511)],
+      [3], [21 bit], [$2^7 + 2^(14)$ #h(1fr) (16.512)], [$2^7 + 2^(14) + 2^(21) - 1$ #h(1fr) (2.113.663)],
       [4],
       [28 bit],
-      [$2^7 + 2^{14} + 2^{21}$ #h(1fr) (2.113.664)],
-      [$2^7 + 2^{14} + 2^{21} + 2^{28} - 1$ #h(1fr) (270.549.119)],
+      [$2^7 + 2^(14) + 2^(21)$ #h(1fr) (2.113.664)],
+      [$2^7 + 2^(14) + 2^(21) + 2^(28) - 1$ #h(1fr) (270.549.119)],
     )
   ]
 
   *Come funziona nella pratica?* \
   Immagina di decodificare una sequenza di 2 byte il cui payload binario vale $P = 5$.
   - Nel *vByte standard*, questo decodificherebbe al numero $5$ (una ridondanza sprecata, dato che il 5 si poteva benissimo scrivere in 1 solo byte).
-  - Nel *vByte biiettivo*, sapendo di aver letto 2 byte, il valore reale è $P + "Offset"$, ovvero $5 + 2^7 = 5 + 128 = 133$. Lo spazio generato dai 2 byte viene così sfruttato al 100% per rappresentare numeri "nuovi".
+
+  - Nel *vByte biiettivo*, sapendo di aver letto 2 byte, il valore reale è *$P + "Offset"$*, ovvero $5 + 2^7 = 5 + 128 = 133$. Lo spazio generato dai 2 byte viene così sfruttato al 100% per rappresentare numeri "nuovi".
 ]
 
 
@@ -314,15 +333,15 @@ $ mb(X) = P + sum_{i=1}^{b-1} 2^{i(k-1)} $
 
 Un approccio che ha rivoluzionato la compressione delle liste di affissioni (e in generale degli interi che rappresentano distanze o "scarti" in indici invertiti) è il *PFOR-DELTA* (Patched Frame Of Reference).
 
-L'algoritmo (cui ha contribuito significativamente il ricercatore *Daniel Lemire*) è progettato per massimizzare il throughput sulle moderne *CPU superscalari*. Leggendo lo stream a blocchi e non elemento per elemento, si elimina quasi del tutto la necessità di istruzioni di controllo (branching) nel ciclo di decodifica principale.
+L'algoritmo è progettato per massimizzare il throughput sulle moderne *CPU superscalari*. Leggendo lo stream a blocchi e non elemento per elemento, si elimina quasi del tutto la necessità di istruzioni di controllo (branching) nel ciclo di decodifica principale.
 L'obiettivo primario di PFor non è raggiungere la massima compressione teorica, ma garantire *velocità di decodifica estreme*, elaborando dati in blocchi (SIMD/Streaming).
 
 *Come funziona l'algoritmo?*
 + Si divide la sequenza degli scarti in *blocchi di dimensione fissa $B$* (generalmente $B = 128$ o $B = 256$).
 + Per ogni blocco, si analizza la distribuzione dei numeri e si sceglie un numero di bit *$b$* tale che la maggioranza degli elementi (es. il 95%) possa essere rappresentata in esattamente $b$ bit.
-+ Si alloca un vettore (Vettore Principale) di $B$ slot, ognuno grande esattamente $b$ bit.
++ Si alloca un vettore (*Vettore Principale*) di $B$ slot, ognuno grande esattamente $b$ bit.
 + Gli elementi che superano il valore massimo rappresentabile in $b$ bit (ovvero $> 2^b - 1$) vengono definiti *eccezioni* (il restante 5%). Nello slot del vettore principale corrispondente all'eccezione si inserisce temporaneamente uno $0$ (o un segnaposto).
-+ I veri valori delle eccezioni vengono salvati in un array separato (Vettore delle Eccezioni), tipicamente come coppie `(indice, valore vero)`.
++ I veri valori delle eccezioni vengono salvati in un array separato (*Vettore delle Eccezioni*), tipicamente come coppie `(indice, valore vero)`.
 
 #example(title: [Rappresentazione della Memoria in PFor-Delta])[
   Ipotizziamo un mini-blocco di $B=8$ elementi: `[3, 5, 12, 300, 2, 8, 450, 1]`. \
