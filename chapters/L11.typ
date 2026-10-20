@@ -191,23 +191,124 @@ Procedere bit a bit può andar bene solo per codici semplicissimi come l'unario 
 
 === Decodifica tramite tabelle di lookup
 
-Per capire il funzionamento, immaginiamo di costruire una tabella indicizzata da prefissi di lunghezza fissa pari a $k$ bit (ad esempio, con $k = 4$ bit avremo una tabella di $2^4 = 16$ righe, una per ogni possibile configurazione di 4 bit da `0000` a `1111`; nella pratica si usano solitamente tabelle da $k = 16$ bit, cioè di $2^16 = 65536$ righe).
+Per capire il funzionamento, immaginiamo di costruire una tabella indicizzata da prefissi di lunghezza fissa pari a $k = 4$ bit: avremo una tabella di $2^4 = 16$ righe, una per ogni possibile configurazione di 4 bit da `0000` a `1111` (nella pratica si usano solitamente tabelle da $k = 16$ bit, cioè di $2^16 = 65536$ righe).
 
-Ogni riga della tabella corrisponde a ciò che "vediamo" ispezionando i primi $k$ bit del nostro buffer e memorizza due informazioni:
-+ *Il valore decodificato* (oppure un valore speciale di *escape* / flag se il codice è più lungo di $k$ bit e non è contenuto interamente nel prefisso).
-+ *Il numero di bit consumati* (cioè la lunghezza effettiva della parola di codice appena riconosciuta, ossia i bit da scartare).
+Ogni riga della tabella corrisponde a ciò che "vediamo" ispezionando i primi $4$ bit del nostro buffer e memorizza due informazioni:
++ *Il valore decodificato* (oppure un valore speciale di *escape*, es. `-1`, se il codice inizia con troppi zeri ed è più lungo di $4$ bit).
++ *Il numero di bit da scartare* (cioè la lunghezza effettiva della parola di codice appena riconosciuta, di cui fare lo *shift*).
 
-Ad esempio, supponendo di voler decodificare il codice $gamma$ con una tabella a $4$ bit:
-- Se i primi 4 bit sono `1011`, il primo simbolo è `1` (che codifica il valore $0$ ed è lungo $1$ bit): la riga `1011` della tabella conterrà quindi `(valore = 0, bit da scartare = 1)`.
-- Se i primi 4 bit sono `0110`, il prefisso inizia con `011` (che codifica il valore $2$ ed è lungo $3$ bit): la riga `0110` conterrà `(valore = 2, bit da scartare = 3)`.
-- Se i primi 4 bit sono `0010`, la parola di codice $gamma$ è lunga $5$ bit e non entra nella finestra da $4$ bit: la riga conterrà un codice di *escape* che indica di procedere con la decodifica manuale (oppure di leggere i bit successivi).
+Ricordando le prime parole del codice $gamma$ di Elias (convenzione su $\NN$: $0 mapsto "1"$, $1 mapsto "010"$, $2 mapsto "011"$, $3 mapsto "00100"$, ecc.), tutti i codici per $x >= 3$ sono lunghi almeno $5$ bit e non entrano nella finestra da $4$ bit. La tabella di lookup a $4$ bit per il codice $gamma$ avrà quindi esattamente questa struttura:
 
-Per decodificare un intero dal *bit stream* si procede quindi così:
-+ *Ispezione (Peek):* si leggono i primi $k$ bit presenti in cima alla parola di memoria (*bit buffer*) senza ancora rimuoverli, usandoli come indice per accedere alla tabella.
-+ *Lookup e Shift:* si recupera dalla tabella il valore decodificato e si effettua uno scorrimento (*shift*) del buffer di un numero di posizioni pari ai bit da scartare (ad esempio 1 o 3 bit), preparando il buffer per la lettura del codice successivo. Se il buffer si svuota sotto una certa soglia, viene ricaricato dal flusso in memoria.
+#figure(
+  table(
+    columns: (auto, auto, auto, auto),
+    align: (center + horizon, center + horizon, center + horizon, left + horizon),
+    inset: 3pt,
+    stroke: 0.5pt + luma(180),
+    fill: (x, y) => if y == 0 { luma(230) } else if y <= 4 { rgb("#ffebee") } else if y <= 6 {
+      rgb("#e3f2fd")
+    } else if y <= 8 { rgb("#e8f5e9") } else { rgb("#fff8e1") },
+    [*Indice (4 bit)*], [*Valore letto*], [*Bit da scartare (Shift)*], [*Spiegazione del pattern*],
+    [`0000`], [`ESCAPE (-1)`], [`0` (o manuale)], [Inizia con `00...` (codice lungo $>= 5$ bit)],
+    [`0001`], [`ESCAPE (-1)`], [`0` (o manuale)], [Inizia con `00...` (codice lungo $>= 5$ bit)],
+    [`0010`], [`ESCAPE (-1)`], [`0` (o manuale)], [Inizia con `0010...` (manca il 5° bit)],
+    [`0011`], [`ESCAPE (-1)`], [`0` (o manuale)], [Inizia con `0011...` (manca il 5° bit)],
+    [`0100`], [*1*], [*3*], [Prefisso *`010`* ($x=1$, 3 bit) + `0` del prossimo codice],
+    [`0101`], [*1*], [*3*], [Prefisso *`010`* ($x=1$, 3 bit) + `1` del prossimo codice],
+    [`0110`], [*2*], [*3*], [Prefisso *`011`* ($x=2$, 3 bit) + `0` del prossimo codice],
+    [`0111`], [*2*], [*3*], [Prefisso *`011`* ($x=2$, 3 bit) + `1` del prossimo codice],
+    [`1000` .. `1111` \ _(8 righe)_], [*0*], [*1*], [Prefisso *`1`* ($x=0$, 1 bit) + `xxx` (3 bit successivi ignorati)],
+  ),
+  caption: [Tabella di lookup a $4$ bit per la decodifica di Elias $gamma$. Nota come le 8 righe da `1000` a `1111` siano tutte contigue in fondo alla tabella.\
+  Le prime non vengono lette perchè iniziano con troppi zeri, la parola è più lunga della capacità della finestra
+  ],
+)
 
-Questa tecnica funziona estremamente bene anche con i codici parametrici e universali: poiché le parole di codice corte sono statisticamente le più frequenti (rappresentano i gap piccoli), una tabella di dimensione ragionevole (es. $2^16$ voci) riesce a coprire la stragrande maggioranza della distribuzione, relegando la decodifica manuale a pochissimi casi rari.
+Per decodificare una sequenza dal *bit stream* si procede quindi in due passi ciclici:
++ *Ispezione (Peek):* si leggono i primi $4$ bit in cima al *bit buffer* (senza rimuoverli) usandoli come indice della tabella.
++ *Lookup e Shift:* si legge il valore corrispondente e si fa scorrere (*shift* a sinistra) il buffer del numero di bit indicato nella seconda colonna.
+
+
+
+#figure(
+  block(
+    width: 100%,
+    inset: 10pt,
+    radius: 4pt,
+    stroke: 0.5pt + luma(200),
+    fill: luma(250),
+    [
+      #set text(size: 9.5pt)
+      *Passo 1: Decodifica del primo simbolo*
+      #v(4pt)
+      #grid(
+        columns: (auto, 1fr),
+        column-gutter: 14pt,
+        align: (left + horizon, left + horizon),
+        table(
+          columns: (20pt, 20pt, 20pt, 20pt, 20pt, 20pt, 20pt, 20pt),
+          align: center + horizon,
+          fill: (x, y) => if x == 0 { rgb("#ffe082") } else if x < 4 { rgb("#fff8e1") } else { white },
+          stroke: (x, y) => if x < 4 { 1.2pt + rgb("#f57f17") } else { 0.5pt + gray },
+          [*1*], [`0`], [`1`], [`1`], [`0`], [`1`], [`0`], [`1`],
+        ),
+        [
+          + *Peek (4 bit):* leggo `1011` (evidenziati).
+          + *Lookup[`1011`]:* valore = *0*, bit da scartare = *1*.
+          + *Shift:* butto via 1 bit (`1`) e scorro a sinistra.
+        ],
+      )
+      #v(8pt)
+      #line(length: 100%, stroke: 0.5pt + luma(200))
+      #v(8pt)
+      *Passo 2: Decodifica del secondo simbolo (dopo shift di 1 bit)*
+      #v(4pt)
+      #grid(
+        columns: (auto, 1fr),
+        column-gutter: 14pt,
+        align: (left + horizon, left + horizon),
+        table(
+          columns: (20pt, 20pt, 20pt, 20pt, 20pt, 20pt, 20pt, 20pt),
+          align: center + horizon,
+          fill: (x, y) => if x < 3 { rgb("#a5d6a7") } else if x == 3 { rgb("#e8f5e9") } else { white },
+          stroke: (x, y) => if x < 4 { 1.2pt + rgb("#2e7d32") } else { 0.5pt + gray },
+          [*0*], [*1*], [*1*], [`0`], [`1`], [`0`], [`1`], [`...`],
+        ),
+        [
+          + *Peek (4 bit):* leggo `0110`.
+          + *Lookup[`0110`]:* valore = *2*, bit da scartare = *3*.
+          + *Shift:* butto via 3 bit (`011`) e scorro a sinistra.
+        ],
+      )
+      #v(8pt)
+      #line(length: 100%, stroke: 0.5pt + luma(200))
+      #v(8pt)
+      *Passo 3: Decodifica del terzo simbolo (dopo shift di 3 bit)*
+      #v(4pt)
+      #grid(
+        columns: (auto, 1fr),
+        column-gutter: 14pt,
+        align: (left + horizon, left + horizon),
+        table(
+          columns: (20pt, 20pt, 20pt, 20pt, 20pt, 20pt, 20pt, 20pt),
+          align: center + horizon,
+          fill: (x, y) => if x < 3 { rgb("#90caf9") } else if x == 3 { rgb("#e3f2fd") } else { white },
+          stroke: (x, y) => if x < 4 { 1.2pt + rgb("#1565c0") } else { 0.5pt + gray },
+          [*0*], [*1*], [*0*], [`1`], [`...`], [`...`], [`...`], [`...`],
+        ),
+        [
+          + *Peek (4 bit):* leggo `0101`.
+          + *Lookup[`0101`]:* valore = *1*, bit da scartare = *3*.
+          + *Shift:* butto via 3 bit (`010`) e scorro a sinistra.
+        ],
+      )
+    ],
+  ),
+  caption: [Simulazione passo-passo sul flusso di bit `10110101...` (che contiene i codici concatenati `1` $mapsto 0$, `011` $mapsto 2$, `010` $mapsto 1$):],
+)
+
+Questa tecnica funziona molto bene anche con i codici parametrici: poiché le parole di codice corte sono statisticamente le più frequenti (rappresentano i gap piccoli), una tabella di dimensione standard (es. $2^16$ righe) riesce a coprire quasi l'intera distribuzione empirica, ricorrendo all'*escape* solo in casi rarissimi.
 
 #note()[
-  *Vantaggio dell'ordinamento Big-Endian:* Mantenere il *bit stream* e il buffer in formato *big-endian* (leggendo i bit dal più significativo al meno significativo, ovvero da sinistra a destra) offre un importante vantaggio architetturale per la *cache* della CPU. Infatti, tutti i codici molto corti e frequenti (ad esempio il codice `1` di lunghezza 1, che ha come prefisso `1xxx...`) condividono i bit più significativi: nella tabella di lookup, tutte le combinazioni che iniziano per `1` (o per `01`, ecc.) occupano blocchi di indici numericamente contigui o strutturalmente raggruppati, migliorando la località spaziale e riducendo i *cache miss* rispetto a layout in cui i bit significativi del prefisso sono sparsi.
+  *Vantaggio dell'ordinamento Big-Endian:* Come si vede chiaramente nella Tabella 1, leggere il flusso in *big-endian* fa sì che i codici più frequenti siano raggruppati in blocchi contigui nella tabella (ad esempio, tutte le configurazioni che iniziano con `1` occupano le righe adiacenti da `1000` a `1111`). Questo raggruppamento spaziale permette di sfruttare al meglio le linee di *cache* della CPU, riducendo i *cache miss*.
 ]
