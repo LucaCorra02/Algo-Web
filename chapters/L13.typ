@@ -1,102 +1,335 @@
-#import "../template.typ": *
+#import "../template.typ": * //[cite: 3]
 
-Basta avanzare il candidato per lo skip to dell'and, le liste possono non essere toccate. In questo modo ci risparmiamo degli avanzamenti nelle liste successivo se non c'è un mathc precedente.
+== Classi randomizzate e derandomizzazione //[cite: 3]
 
-== Frasi e Prossimità
-Altri atomi del linguaguaggio booleane.
+Un algoritmo randomizzato può prendere decisioni diverse sulla stessa istanza d'input in base alla sequenza di bit casuali utilizzata durante l'esecuzione. //[cite: 3]
+Le classi di complessità seguenti raggruppano i problemi di decisione risolvibili da algoritmi randomizzati, imponendo vincoli sulle risorse di calcolo e sulla probabilità di errore. //[cite: 3]
+Nel seguito consideriamo algoritmi che operano in *tempo polinomiale* oppure in *spazio logaritmico*, dove lo spazio di lavoro è $O(log(n))$ rispetto alla dimensione $n$ dell'input. //[cite: 3]
 
-Frasi: sequenza di termini "$t_0, t_1, dots, t_n$" sono atomi, quindi stiamo cercando una specifica sequenza di termini.
+La distinzione principale riguarda il tipo di errore ammesso dall'algoritmo: //[cite: 3]
 
-Prossimità: i termini compaiono entro una distanza $l$ nel documento. $(t_0, dots, t_1) tilde l$. Per rispondere a questa query ci servono gli indici dei termini nel documento. Un esempio di utilizzo è ridurre i candidati di un insieme troppo grandi. Ad esempio romeo e gulietta entro tre parole.
+- *BPP* (*Bounded-error Probabilistic Polynomial time*): algoritmi in tempo polinomiale che, su ogni istanza, forniscono la risposta corretta con probabilità almeno $2/3$. L'errore è *bilaterale* (*two-sided error*): l'algoritmo può sbagliare sia sulle istanze positive (input "sì") sia su quelle negative (input "no"). //[cite: 3]
+- *RP* (*Randomized Polynomial time*): algoritmi in tempo polinomiale con errore *unilaterale* (*one-sided error*): //[cite: 3]
+  - sugli input "no", l'algoritmo rifiuta sempre (probabilità di accettazione $0$); //[cite: 3]
+  - sugli input "sì", l'algoritmo accetta con probabilità almeno $2/3$. //[cite: 3]
+  Gli unici errori possibili sono quindi i *falsi negativi*, mentre non possono verificarsi falsi positivi. //[cite: 3]
+- *BPL* (*Bounded-error Probabilistic Logspace*): analogo della classe BPP, ma con spazio di lavoro limitato a $O(log(n))$ (e tempo polinomiale). //[cite: 3]
+- *RL* (*Randomized Logspace*): analogo della classe RP, ma con spazio di lavoro limitato a $O(log(n))$ (e tempo polinomiale). //[cite: 3]
+- *L* (*Logspace*): classe dei problemi decidibili *deterministicamente* in spazio logaritmico $O(log(n))$, senza ricorrere a bit casuali. //[cite: 3]
 
-=== Frasi
-
-Possiamo fare un and di tutti i termini della frase, a quasto punto otteniamo per ogni termine la sua lista di posizioni.
-
-```
-    t_0: [1, 5, 10, 15]
-    t_1: [2, 6, 11, 16]
-    t_2: [3, 7, 12, 17]
-```
-
-Possiamo usare un qualsiasi argomento sulle intersezioni. Ad esempio possiamo vedere la lista di $t_k$ come una lista sposta di $k$ elementi rispetto alla lista di $t_0$. A questo punto possiamo fare un and tra le liste spostate. In questo modo otteniamo le posizioni in cui i termini compaiono in sequenza.
-
-=== Prossimità
-
-//Disegno (abc) tilde 3. Il documento è un array con posizioni numerate. L'idea è
-
-Una prima idea è prendere le 3 liste di posizioni e fare tutte le combinazione e prendere la più piccola. Questo problema non va bene in quanto è polinomiale nel numero di occorrenze dei termini.
-
-L'algoritmo che vedremo trova l'*intervallo minimale*. Ovvero non esiste un intervallo più piccolo di cosi che contiene tutti i termini. Tuvvavia ci possono essere più intervalli minimali.
-
-#warning()[
-  La nozione di minimo e minimale essendo un intervallo non totalmente ordinato, non è la stessa cosa. Un intervallo minimale non è detto che sia minimo. Ad esempio se abbiamo due intervalli minimali di lunghezza 3 e 4, il primo è anche minimo, ma il secondo no.
+#note[
+  La soglia di successo $2/3$ (ossia probabilità di errore al più $1/3$) è puramente convenzionale: eseguendo più ripetizioni indipendenti dell'algoritmo sullo stesso input e restituendo la risposta di maggioranza (per BPP/BPL) o l'OR logico delle risposte (per RP/RL), la probabilità di errore decresce esponenzialmente e può essere ridotta a piacere. //[cite: 3]
+  Tale amplificazione della probabilità mantiene lo spazio di lavoro logaritmico sia in BPL sia in RL, poiché basta un contatore di $O(log(n))$ bit per tenere traccia degli esiti delle ripetizioni. //[cite: 3]
 ]
 
-L'agoritmo enumera solamente gli intervalli minimali (altrimenti sarebbe polinomiale nel numero di occorrenze dei termini). Per definizione i minimali sono definiti dal loro *estremo sinistro*. Non tutti gli intervalli che generiamo in questo modo sono minimale (ci sono delle ripetizioni all'interno).
+Poiché un algoritmo deterministico è un caso particolare di algoritmo randomizzato (che non legge bit casuali) e un algoritmo con errore unilaterale è un caso particolare di algoritmo con errore bilaterale, valgono immediatamente le seguenti catene di inclusioni: //[cite: 3]
+$ L subset.eq "RL" subset.eq "BPL" quad "e" quad L subset.eq P subset.eq "RP" subset.eq "BPP" $ //[cite: 3]
 
-L'algorimto lavora in maniera priga, appena trova un intervallo minimale esce, non mi interessa che esso sia minimo.
+#align(center)[
+  #cetz.canvas({
+    import cetz.draw: *
 
-==== Algoritmo
+    // Diagramma delle inclusioni
+    content((2.5, 3.3), [*Gerarchia delle inclusioni*])
+    rect((0, 1.8), (1.1, 2.6), radius: 4pt, fill: luma(240))
+    content((0.55, 2.2), [$L$])
 
-L'idea è avere una coda indiretta, come se volessimo calcolare l'or delle liste. Il top di questa lista attraversera tutti gli elementi del documento (tutti gli estremi sinistri possibili). Ad ogni istante terremo conto della posizione più avanzata che stiamo fondendo (estremo destro), puntatore all'elemento della coda $k$ che è più avanzato.
+    line((1.1, 2.35), (1.9, 2.7), mark: (end: ">"))
+    rect((1.9, 2.4), (3.1, 3.1), radius: 4pt, fill: rgb("#e3f2fd"))
+    content((2.5, 2.75), [$"RL"$])
 
-La funzione è normale, quando avanziamo il top dobbiamo aggiornare il massimo.
+    line((3.1, 2.75), (3.9, 2.75), mark: (end: ">"))
+    rect((3.9, 2.4), (5.1, 3.1), radius: 4pt, fill: rgb("#bbdefb"))
+    content((4.5, 2.75), [$"BPL"$])
 
-#example()[
-  Sulla lista di prima:
-  - La coda parte con a in posizione 3, b in pos 5 e b in pos 7. Il massimo è 7. Tra il top e il max abbiamo sempre un intervallo che contiene k termni. Emettiamo l'intervallo [3, 7].
+    line((1.1, 2.05), (1.9, 1.65), mark: (end: ">"))
+    rect((1.9, 1.3), (3.1, 2.0), radius: 4pt, fill: rgb("#e8f5e9"))
+    content((2.5, 1.65), [$"RP"$])
 
-  - A questo punto avanziamo il top diventa 5, il massimo è 11. emettiamo l'intervallo [5, 11].
+    line((3.1, 1.65), (3.9, 1.65), mark: (end: ">"))
+    rect((3.9, 1.3), (5.1, 2.0), radius: 4pt, fill: rgb("#c8e6c9"))
+    content((4.5, 1.65), [$"BPP"$])
 
-  - Come prima avanziamo il top diventa 7, il massimo è 16. emettiamo l'intervallo [7, 16].
+    // Soglie di probabilità di accettazione
+    content((8.5, 3.3), [*Probabilità di accettazione $Pr["accetta"]$*])
+    // BPP / BPL
+    content((6.3, 2.6), [*BPP / BPL*])
+    line((7.2, 2.6), (11.2, 2.6), stroke: 1pt)
+    rect((7.2, 2.45), (8.4, 2.75), fill: rgb("#ffcdd2"))
+    rect((10.0, 2.45), (11.2, 2.75), fill: rgb("#c8e6c9"))
+    content((7.8, 2.6), text(size: 8pt)[Input NO])
+    content((10.6, 2.6), text(size: 8pt)[Input SÌ])
+    content((7.2, 2.2), text(size: 8pt)[$0$])
+    content((8.4, 2.2), text(size: 8pt)[$1/3$])
+    content((10.0, 2.2), text(size: 8pt)[$2/3$])
+    content((11.2, 2.2), text(size: 8pt)[$1$])
 
-    Se aggiorno la funzion cambia il top m non il max. Essendoci una ripetizione di b, il top diventa 11, il massimo è 16. emettiamo l'intervallo [11, 16].
+    // RP / RL
+    content((6.3, 1.5), [*RP / RL*])
+    line((7.2, 1.5), (11.2, 1.5), stroke: 1pt)
+    circle((7.2, 1.5), radius: 3pt, fill: rgb("#e53935"))
+    rect((10.0, 1.35), (11.2, 1.65), fill: rgb("#c8e6c9"))
+    content((7.5, 1.85), text(size: 8pt)[Input NO ($0$)])
+    content((10.6, 1.5), text(size: 8pt)[Input SÌ])
+  })
 ]
 
-L'algoritmo è linearitmico nel numero dei termini e lineare nel numero di occorrenze dei termini. $log (k n)$ k è il mumero di termini all'intero dell'operatore, mentre n è il numero di occorrenze dei termini.
+=== Il problema della derandomizzazione (BPL, RP e BPP) //[cite: 3]
 
-//riguardare
-Possiamo definire un articatena di intervalli: le zone del documento (sono minimali) che rispettano l'interrogazione. Possiamo dari ad ogni termine una simentica.
+*Derandomizzare* una classe di complessità significa sostituire un algoritmo randomizzato con uno completamente *deterministico*, preservando i medesimi limiti sulle risorse (tempo o spazio): //[cite: 3]
 
-Possiamo fare la funsione del primo intervallo con l'ultimo in modo tale da generare gli intervalli minimali
+- *Derandomizzare BPL e RL in spazio logaritmico*: consisterebbe nel dimostrare che la casualità può essere eliminata mantenendo spazio $O(log(n))$, ovvero che $"BPL" = "RL" = L$. //[cite: 3]
+  Questa uguaglianza rappresenta un obiettivo teorico e *non* un risultato dimostrato: sappiamo che $L subset.eq "RL" subset.eq "BPL"$, ma rimane un problema aperto stabilire se valgano le uguaglianze. //[cite: 3]
+- *Derandomizzare BPP e RP in tempo polinomiale*:
+  - Dimostrare $"BPP" = P$ significherebbe provare che ogni problema risolvibile in tempo polinomiale con errore limitato ammette un algoritmo deterministico polinomiale. In tal caso la correttezza sarebbe garantita su ogni esecuzione senza dipendere da una sequenza "fortunata" di bit casuali. //[cite: 3]
+  - Dimostrare $"RP" = P$ eliminerebbe la casualità dagli algoritmi con errore unilaterale, riconoscendo deterministicamente anche gli input "sì" oltre agli input "no". Tuttavia, provare $"RP" = P$ non basterebbe da solo a implicare $"BPP" = P$, poiché BPP ammette errori su entrambi i lati. //[cite: 3]
 
-=== dym min
+== Frasi e Prossimità nelle Query Booleane //[cite: 3]
 
-Per gli errori di battitura quello che accade è che la query essendo in linguaggio naruale e non booleano viene risolto prima. In caso di errori di battitirua potremmo usare dei dizionari (dym) di correzione. La parola viene corretta in base alla distanza di edit (il numero di operazioni per trasformare una parola in un'altra). La query in lnguaggio naturale ovviamente viene prima tradotta in query booleana.
-
-== Sorting
-
-A noi arriva una tupla `<d,t,p>`. Per creare questo ci serve una teballa di hash dei termini per vedere se un termine è presente nel documento.
-
-Vogliamo fare un gigantesto sorto, vogliamo creare un ordinamento stabile per $t$. Stabile perchè vogliamo d crescente e le posizioni crescenti. Questo è stato fatto da google tramite map reduce (paradigma che fa sorting e scale in maniera distribuita e molto efficiente).
-
-Il trucco è invertire direttamente in memoria (bucket sort custom). Dato che i termini sono pochi rispetto alle affissioni possiamo costruire direttamente in memoria le liste. Anizhchè avere uan tabelal di hash che associa ad ogni termine l'indice, quello che facciamo è avere una tabella di hash che associa ad ogni termine un vettore di byte (un bit stream) in cui scriviamo la lista compressa
-
-#note()[
-  Possiamo usare un codice senza parametri in quanto durante questa fase non sappiamo la distrivuzione dei termini, non so quanto diventano lunghe le liste
+#note[
+  *Richiamo sull'intersezione pigra (`skip to` nell'operatore AND)*: quando si calcola l'AND tra più liste di affissione ordinate $L_0, L_1, dots, L_(k-1)$, conviene procedere in modo *pigro* (*lazy*). Si avanza il candidato solo sulla lista successiva tramite `skip to`, evitando di toccare e far avanzare le liste ancora più a destra finché non si ottiene un match effettivo tra le prime liste. //[cite: 3]
 ]
 
-//aggiungere esempio
-Mano a mano che arrivano i dati (in ordine) io vado a costruire le liste di posizioni. Se una lista non è ancora pronta per un documento la tengo aperta. Man mano che arriva la terna di dati `<d,t,p>` vado a scrivere la posizione `p` nella lista di posizioni del termine `t` del documento `d`. Quando arrivo ad un nuovo documento chiudo le liste del documento precedente e le scrivo su disco. In questo modo non ho bisogno di tenere in memoria tutte le liste di posizioni dei termini per tutti i documenti, ma solo quelle del documento corrente. Le liste di affissioni sono dei bit stream.
-
-
-Come faccio a far diventare in tempo lineare tutti questi indici in un unico indice?
-#warning()[
-  L'assunzione è avere un ordine lessicografico dei termini. Gli accessi aleatori costerebbero troppi. L'assunzione è che in fase di costruzione dell'indice i termini siano stati salvati in ordine lessicografico. In questo modo possiamo fare un merge delle liste di posizioni dei termini in tempo lineare.
-]
-//riguardare
-nella lista ci saranno il range di indici che definiscono i vari segmenti. per ognuno di questi indici fonderemo la lista dei termini. in parallelo al termine corrente teniamo nell'indice un puntatore che indica dov'è la lista di affissione di quel termine (il quale dovrà anvanzare). All'internod della coda ogni indice punta ad un termine e ogni puntatore di indic epunta ai termini
-
-#example()[
-  Supponfo di avre il seguente indice:
-  - I_0 ha una lista di affissione per a, b, c
-  - I_1 ha una lista di affisione epr b,c,d
-  - I-2 ha una lista di affissione per a,b
-
-  Inizialmente il top della coda punta ad a, essa contiene [a,b,a] (in caso di parità vince la posizione dell'indice minore). Per farlo estraiamo i puntatotri degli indici andranno avanti, ma dobbiamo anche spostare i puntatori alle liste di affissioni che sto leggendo, in questo modo vado a leggere interamente la lista intera di a.
-
-  Ogni passo che estraggo un termine nella coda ho pronto il puntatore all'elemento che devo leggere. La procedura di funzione va streaming parallelo sui termini e sui indici. Consumiamo i termini dalle liste di ordine lessigografico e in parallelo consumiamo le liste di affisione degli indici.
+Un'interrogazione booleana classica con il solo operatore `AND` verifica unicamente che tutti i termini richiesti compaiano nello stesso documento, ma ignora la loro distanza reciproca. //[cite: 3]
+#example[
+  Se cerchiamo `"romeo" AND "giulietta"` tramite una semplice intersezione delle liste di documenti, potremmo recuperare un documento molto lungo in cui la parola *"romeo"* compare nella prima pagina e *"giulietta"* nell'ultima, senza che vi sia alcuna relazione semantica diretta. //[cite: 3]
+  Per ottenere risultati più pertinenti e ridurre l'insieme dei documenti candidati quando questo è troppo grande, estendiamo il linguaggio booleano con due nuovi atomi basati sulle *liste posizionali* (gli indici delle posizioni occupate dai termini all'interno di ciascun documento): //[cite: 3]
+  1. *Frasi* ($t_0, t_1, dots, t_(k-1)$): i termini devono comparire nel documento *consecutivamente* e nell'ordine specificato. //[cite: 3]
+  2. *Prossimità* ($(t_0, t_1, dots, t_(k-1)) tilde l$): tutti i $k$ termini devono comparire nel documento entro una finestra (intervallo) di ampiezza massima $l$, *in qualunque ordine*. //[cite: 3]
 ]
 
-Man mano che copiamo le liste di affissione nell'output possiamo andare a cambiare il formato di compressione in quanto otteniamo la frequenza totale dei termini. 
+=== Ricerca di Frasi //[cite: 3]
+
+Data la frase $t_0, t_1, dots, t_(k-1)$, l'algoritmo opera in tre passi: //[cite: 3]
+
+1. *Intersezione a livello di documento*: si esegue un `AND` booleano classico per individuare un documento $d$ in cui compaiono tutti i termini $t_0, dots, t_(k-1)$. //[cite: 3]
+2. *Recupero delle liste posizionali*: per il documento candidato $d$, si estraggono le liste ordinate delle posizioni $P_0, P_1, dots, P_(k-1)$ dei rispettivi termini. //[cite: 3]
+3. *Scorrimento virtuale (shift) e intersezione*: affinché i termini formino una frase a partire dalla posizione $p$, il termine $t_0$ deve trovarsi in $p$, $t_1$ in $p+1$, e in generale $t_i$ in $p+i$. //[cite: 3]
+  Di conseguenza, basta considerare per ogni termine $t_i$ una *lista virtuale scalata indietro* di $i$ posizioni (sottraendo $i$ a ciascun elemento di $P_i$ al volo durante la lettura) ed eseguire una normale intersezione (`AND`) tra le liste scalate: //[cite: 3]
+
+#example[
+  Supponiamo di avere tre termini con le seguenti liste di posizioni nel documento corrente: //[cite: 3]
+  - $t_0: [1, 5, 10, 15]$ (scalata di $0 -> [1, 5, 10, 15]$) //[cite: 3]
+  - $t_1: [2, 6, 11, 16]$ (scalata di $1 -> [1, 5, 10, 15]$) //[cite: 3]
+  - $t_2: [3, 7, 12, 17]$ (scalata di $2 -> [1, 5, 10, 15]$) //[cite: 3]
+
+  Intersecando le liste virtuali scalate troviamo le posizioni di inizio frase ($1, 5, 10, 15$). //[cite: 3]
+  Allo stesso modo, se un termine ha posizioni $[5]$, $[6]$ e $[7]$ rispettivamente in $t_0, t_1, t_2$, scalando la seconda lista di $1$ e la terza di $2$ tutte e tre presenteranno il valore $5$, che verrà individuato dall'intersezione. //[cite: 3]
+]
+
+In questa fase non si utilizzano solitamente *skip table* sulle liste di posizioni, ma una semplice intersezione sequenziale è già sufficientemente rapida. //[cite: 3]
+
+- *Frasi con buco (wildcard `*`)*: se la frase contiene un carattere jolly che rappresenta una parola qualsiasi (es. `Romeo * Giulietta`), basta scalare i termini successivi al buco di una posizione aggiuntiva (nell'esempio, la lista di `Giulietta` viene scalata indietro di $2$ anziché di $1$). //[cite: 3]
+
+=== Operatore di Prossimità //[cite: 3]
+
+Consideriamo la query $(t_0, t_1, dots, t_(k-1)) tilde l$, che richiede che tutti i $k$ termini compaiano entro un intervallo di lunghezza al più $l$ (ossia $[p_"min", p_"max"]$ con $p_"max" - p_"min" + 1 <= l$, o $p_"max" - p_"min" <= l$ a seconda della convenzione adottata). //[cite: 3]
+
+Un approccio ingenuo che enumerasse tutte le possibili $k$-uple di posizioni dal prodotto cartesiano delle $k$ liste per poi verificare la distanza avrebbe complessità polinomiale $O(n^k)$ nel numero di occorrenze $n$ (ad esempio cubica $O(n^3)$ per $k = 3$ termini), risultando impraticabile. //[cite: 3]
+
+Per ottenere un algoritmo *lineare* nel numero totale di occorrenze $n$, ci limitiamo a enumerare i soli *intervalli minimali*. //[cite: 3]
+
+#warning[
+  *Differenza tra intervallo minimale e intervallo minimo*: //[cite: 3]
+  - Un intervallo $[u, v]$ che contiene tutti i $k$ termini è *minimale* (rispetto alla relazione di inclusione $subset.eq$) se non esiste alcun sotto-intervallo stretto $[u', v'] subset [u, v]$ che contenga anch'esso tutti i $k$ termini. //[cite: 3]
+  - Un intervallo è *minimo* se ha la lunghezza assoluta $v - u$ più piccola possibile tra tutti gli intervalli validi del documento. //[cite: 3]
+
+  Poiché l'inclusione tra intervalli è un ordine parziale e non totale, *ogni intervallo minimo è anche minimale, ma non vale il viceversa*: ad esempio, un documento può contenere due intervalli minimali disgiunti o parzialmente sovrapposti di lunghezza $3$ e $4$; il primo è sia minimale sia minimo, mentre il secondo è minimale ma non minimo. //[cite: 3]
+]
+
+==== Proprietà degli intervalli minimali e Algoritmo //[cite: 3]
+
+Un intervallo minimale è univocamente determinato dal suo *estremo sinistro* (non possono esistere due intervalli minimali distinti che iniziano nella stessa posizione, altrimenti uno sarebbe contenuto nell'altro). //[cite: 3]
+Di conseguenza, in un documento con $n$ occorrenze complessive dei termini della query esistono al più $n$ intervalli minimali. //[cite: 3]
+
+L'algoritmo enumera gli intervalli candidati procedendo come una fusione (`OR`) delle $k$ liste di posizioni tramite una *coda con priorità indiretta* (min-heap) di dimensione $k$: //[cite: 3]
+
+1. *Inizializzazione*: si inserisce nella coda di priorità la prima occorrenza di ciascuna delle $k$ liste posizionali e si inizializza una variabile `max` al valore massimo tra queste $k$ posizioni iniziali. //[cite: 3]
+2. *Invariante*: ad ogni passo, la coda contiene esattamente una posizione per ciascuno dei $k$ termini; l'elemento in cima alla coda (`top`) rappresenta l'estremo sinistro corrente, mentre `max` rappresenta l'estremo destro. L'intervallo `[top, max]` contiene quindi sicuramente tutti i $k$ termini. //[cite: 3]
+3. *Avanzamento*: si estrae la lista corrispondente al `top`, la si fa avanzare alla sua occorrenza successiva $p_"next"$, la si reinserisce nella coda e si aggiorna $max = max(max, p_"next")$. //[cite: 3]
+4. *Valutazione pigra (lazy)*: se stiamo solo verificando che il documento soddisfi $(t_0, dots, t_(k-1)) tilde l$, l'algoritmo lavora in modo *pigro* e termina con successo non appena incontra il primo intervallo con ampiezza $<= l$, senza dover cercare necessariamente l'intervallo di lunghezza minima assoluta. //[cite: 3]
+
+#example[
+  Cerchiamo $(a, b, c) tilde 7$ sulla seguente sequenza di documento (indicizzata da $0$ a $28$): //[cite: 3]
+
+
+  #align(center)[
+    #cetz.canvas({
+      import cetz.draw: *
+
+      let seq = ("","","","a","","c","","b","","b","","a","","","b","","c","","c","","","","b","","","a","c","","")
+      let step = 0.42
+
+      for (i, ch) in seq.enumerate() {
+        let x = i * step
+        let col = if ch != "-" { rgb("#e3f2fd") } else { luma(250) }
+        rect((x, 0), (x + step, 0.45), fill: col, stroke: 0.4pt + luma(180))
+        content((x + step / 2, 0.22), text(size: 7.5pt, weight: if ch != "-" { "bold" } else { "regular" })[#ch])
+        if calc.rem(i, 2) == 1 or i == 14 or i == 16 or i == 22 or i == 26 {
+          content((x + step / 2, -0.2), text(size: 6pt, fill: luma(100))[#i])
+        }
+      }
+
+      // Intervalli evidenziati
+      // [3, 7]
+      rect((3 * step, 0.65), (8 * step, 0.95), fill: rgb("#c8e6c9"), stroke: 0.8pt + rgb("#2e7d32"), radius: 2pt)
+      content((5.5 * step, 0.8), text(size: 7pt)[$[3, 7]$ (minimo)])
+
+      // [5, 11]
+      rect((5 * step, 1.1), (12 * step, 1.4), fill: rgb("#fff9c4"), stroke: 0.8pt + rgb("#f9a825"), radius: 2pt)
+      content((8.5 * step, 1.25), text(size: 7pt)[$[5, 11]$ (minimale)])
+
+      // [7, 16] non minimale
+      rect(
+        (7 * step, 1.55),
+        (17 * step, 1.85),
+        fill: rgb("#ffcdd2"),
+        stroke: (paint: rgb("#c62828"), thickness: 0.8pt, dash: "dashed"),
+        radius: 2pt,
+      )
+      content((12 * step, 1.7), text(size: 7pt)[$[7, 16]$ (non minimale)])
+
+      // [11, 16] minimale
+      rect((11 * step, 1.1), (17 * step, 1.4), fill: rgb("#fff9c4"), stroke: 0.8pt + rgb("#f9a825"), radius: 2pt)
+      content((14 * step, 1.25), text(size: 7pt)[$[11, 16]$ (minimale)])
+
+      // [22, 26] minimo
+      rect((22 * step, 0.65), (27 * step, 0.95), fill: rgb("#c8e6c9"), stroke: 0.8pt + rgb("#2e7d32"), radius: 2pt)
+      content((24.5 * step, 0.8), text(size: 7pt)[$[22, 26]$ (minimo)])
+    })
+  ]
+
+  Le liste di posizioni dei tre termini sono:
+  - $a: [3, 11, 25]$ //[cite: 3]
+  - $b: [7, 9, 14, 22]$ //[cite: 3]
+  - $c: [5, 16, 18, 26]$ //[cite: 3]
+
+  Simuliamo l'evoluzione della coda e della variabile `max`: //[cite: 3]
+  1. *Stato iniziale*: carichiamo i primi elementi `[a: 3, c: 5, b: 7]`. Abbiamo `top = 3` e `max = 7`. L'intervallo generato è *$[3, 7]$* (minimale, ampiezza $5 <= 7$). //[cite: 3]
+  2. *Avanzamento di $a$ ($3 -> 11$)*: la coda contiene `[c: 5, b: 7, a: 11]`. Ora `top = 5` e `max = 11`. L'intervallo generato è *$[5, 11]$* (minimale). //[cite: 3]
+  3. *Avanzamento di $c$ ($5 -> 16$)*: la coda contiene `[b: 7, a: 11, c: 16]`. Ora `top = 7` e `max = 16`. L'intervallo emesso è *$[7, 16]$*. //[cite: 3]
+  4. *Avanzamento di $b$ ($7 -> 9 -> 14$)*: avanzando $b$ troviamo prima la ripetizione `b: 9` (che produce `[9, 16]` senza variare `max = 16`) e al passo successivo `b: 14`, portando la coda a `[a: 11, b: 14, c: 16]` con `top = 11` e `max = 16`, che genera l'intervallo *$[11, 16]$*. //[cite: 3]
+    Si noti che non tutti gli intervalli generati dalla coda sono minimali: a causa delle ripetizioni interne di $b$, gli intervalli $[7, 16]$ e $[9, 16]$ contengono propriamente $[11, 16]$ e quindi *non* sono minimali. //[cite: 3]
+  5. Proseguendo fino in fondo alla sequenza, si individua anche il secondo intervallo minimale ottimo *$[22, 26]$* (formato da `b: 22, a: 25, c: 26`). //[cite: 3]
+]
+
+*Complessità*: l'algoritmo ha la stessa struttura e lo stesso costo di una fusione `OR` a $k$ vie. //[cite: 3]
+Detto $n$ il numero totale di occorrenze nelle liste posizionali e $k$ il numero di termini nell'operatore, ogni occorrenza viene inserita ed estratta una sola volta da un heap di dimensione $k$, per un costo complessivo di *$O(n log k)$* (lineare in $n$ e linearitmico in $k$). //[cite: 3]
+
+#note[
+  *Composizione di operatori su regioni (anticatene di intervalli)*: se vogliamo comporre liberamente operatori di prossimità, frasi e operatori booleani — come in `((a, b, c)~3 d)` oppure `(a | b) c` — non possiamo più far restituire agli operatori semplici liste di singole posizioni, ma dobbiamo ragionare su *intervalli (regioni)* del documento. //[cite: 3]
+  In particolare, la semantica di ogni espressione viene definita come un'*anticatena di intervalli minimali* (un insieme di intervalli nessuno dei quali è contenuto in un altro, il che garantisce che siano ordinati contemporaneamente sia per estremo sinistro crescente sia per estremo destro crescente). //[cite: 3]
+  In questo modo gli operatori possono essere combinati tra loro fondendo l'estremo sinistro del primo intervallo con l'estremo destro dell'ultimo per generare i nuovi intervalli minimali. //[cite: 3]
+]
+
+=== Gestione degli errori di battitura (DYM - Did You Mean) //[cite: 3]
+
+#note[
+  Finora abbiamo assunto che i termini della query siano privi di errori di battitura. //[cite: 3]
+  Nei motori di ricerca reali, la query inserita dall'utente in linguaggio naturale viene analizzata e corretta *prima* di essere tradotta ed eseguita come query booleana. //[cite: 3]
+  Quando un termine non produce risultati o appare errato, si ricorre a indici e dizionari di correzione (*DYM index - Did You Mean*): si considera una "bolla" di *distanza di Levenshtein* (o *distanza di edit*, ovvero il numero minimo di inserimenti, cancellazioni o sostituzioni di caratteri per trasformare una parola in un'altra) di raggio $1$ o $2$ attorno alla parola digitata, si estraggono i termini validi presenti nel vocabolario che cadono nella bolla e si riformula la query con tali termini. //[cite: 3]
+]
+
+== Costruzione dell'Indice Invertito e Sorting //[cite: 3]
+
+Vediamo ora come costruire l'indice invertito a partire dalla collezione di documenti. //[cite: 3]
+Durante la scansione dei documenti (parsing), identifichiamo i termini tramite una tabella di hash del vocabolario e produciamo uno stream di terne (tuple): //[cite: 3]
+$ chevron.l d, t, p chevron.r = ("ID documento", "ID termine", "posizione") $ //[cite: 3]
+Queste terne vengono generate naturalmente ordinate per documento $d$ crescente e, all'interno dello stesso documento, per posizione $p$ crescente. //[cite: 3]
+
+Per costruire le liste di affissione (*posting list*), il passo computazionalmente dominante consiste nell'effettuare un gigantesco *ordinamento stabile* delle terne rispetto al termine $t$: //[cite: 3]
+- ordinando per $t$, raggruppiamo tutte le occorrenze dello stesso termine; //[cite: 3]
+- poiché l'ordinamento è *stabile*, a parità di termine $t$ le terne conservano l'ordine originario per documento $d$ crescente e posizione $p$ crescente, che è esattamente l'ordine richiesto dalle liste di affissione. //[cite: 3]
+
+#note[
+  *MapReduce e il costo della distribuzione (COST)*: //[cite: 3]
+  - Proprio per eseguire questo ordinamento stabile su scala web in modo distribuito e tollerante ai guasti, Google ha introdotto il paradigma *MapReduce*, che gestisce automaticamente partizionamento, ordinamento distribuito e tripla replica dei dati (scartando i nodi che falliscono). //[cite: 3]
+  - *Curiosità storica*: negli anni di massimo entusiasmo per MapReduce è stata proposta la metrica *COST* (*Configuration that Outperforms a Single Thread*), che misura quante macchine distribuite servano a un framework per battere un singolo laptop con un programma ben ottimizzato su singolo thread. Per diversi problemi su grafi e dati di medie dimensioni, l'overhead di rete e replica fa sì che anche con un numero enorme di macchine il sistema distribuito risulti più lento di un singolo thread su laptop. //[cite: 3]
+]
+
+=== Inversione in memoria (sort su Bit Stream) //[cite: 3]
+
+Anziché generare esplicitamente tutte le tuple $chevron.l d, t, p chevron.r$ su disco e ordinarle, si effettua l'inversione direttamente in memoria centrale tramite un algoritmo di *sort* (paragonabile per certi versi a bucket sort) che costruisce le liste già compresse: //[cite: 3]
+
+1. Poiché il numero di termini distinti (il vocabolario) è molto più piccolo del numero totale di occorrenze, manteniamo in RAM una *tabella di hash dei termini*. //[cite: 3]
+2. Ogni termine $t$nella tabella di hash punta direttamente a un *bit stream* (un buffer dinamico di byte in memoria) in cui appendiamo man mano la sua lista di affissione compressa nella forma$[chevron.l d, chevron.l p_0, p_1, dots chevron.r chevron.r]$. //[cite: 3] 3. Man mano che arrivano le terne$chevron.l d, t, p chevron.r$del documento corrente (es.$chevron.l 0, a, 0 chevron.r, chevron.l 0, b, 1 chevron.r, dots$), aggiungiamo la posizione$p$in coda al bit stream del termine$t$: //[cite: 3]$
+  a &-> [chevron.l 0, chevron.l 0, dots chevron.r chevron.r] \
+  b &-> [chevron.l 0, chevron.l 1, dots chevron.r chevron.r]
+  //[cite: 3]
+  Quando inizia un nuovo documento $d + 1$, le liste posizionali del documento $d$ vengono chiuse e si aprono quelle per $d + 1$. //[cite: 3]
+4. Quando la memoria RAM disponibile si esaurisce, ordiniamo *lessicograficamente* i termini presenti nella tabella di hash e scarichiamo su disco un segmento d'indice parziale $(T_i, I_i)$, svuotando poi la RAM per ricominciare con il blocco successivo di documenti. //[cite: 3]
+
+#note[
+  *Scelta del codice di compressione in memoria*: durante la costruzione del bit stream in RAM dobbiamo necessariamente usare *codici universali privi di parametri* (come i codici $gamma$ o $delta$ di Elias) e *non* codici parametrici come Golomb/Rice. //[cite: 3]
+  Infatti, mentre i dati arrivano in streaming non conosciamo ancora la frequenza globale del termine nella collezione né la lunghezza finale della lista, parametri indispensabili per dimensionare il codice di Golomb. //[cite: 3]
+]
+
+=== Fusione lineare dei segmenti d'indice (Multi-way Merge) //[cite: 3]
+
+Al termine della fase di inversione a blocchi, ci ritroviamo su disco con una sequenza di segmenti d'indice parziali: //[cite: 3]
+$T_0 -> I_0, quad T_1 -> I_1, quad dots, quad T_(m-1) -> I_(m-1)$ //[cite: 3]
+dove ciascun segmento $(T_i, I_i)$ indicizza un sottoinsieme disgiunto di documenti (con ID crescenti da $I_0$ a $I (m-1)$) e uno stesso termine può comparire in più dizionari $T_i$. //[cite: 3]
+
+#warning[
+  *Assunzione fondamentale per la complessità lineare*: affinché i segmenti possano essere fusi in un unico indice globale in *tempo lineare* senza effettuare costosi accessi aleatori (*random I/O*) su disco, è essenziale che ogni dizionario $T_i$ sia stato salvato su disco in *ordine lessicografico* (operazione molto economica al momento dello scaricamento della RAM) e che le relative liste di affissione in $I_i$ siano memorizzate nello stesso ordine. //[cite: 3]
+]
+
+La fusione avviene in *streaming parallelo* utilizzando una *coda con priorità indiretta* (min-heap) contenente un cursore per ciascun segmento $i in {0, dots, m-1}$: //[cite: 3]
+- Per ogni segmento $i$ manteniamo due puntatori sincronizzati che avanzano sequenzialmente su disco: uno sul termine corrente nel file dizionario $T_i$ e uno sulla corrispondente lista di affissione nel file $I_i$. //[cite: 3]
+- La coda con priorità confronta i termini correnti dei vari segmenti secondo l'ordine lessicografico; *in caso di parità* (stesso termine presente in più segmenti), ha priorità il segmento con *indice $i$ minore*, poiché contiene documenti con ID inferiori. //[cite: 3]
+- Ad ogni estrazione del minimo dalla coda, si copia la relativa lista di affissione nel file d'indice finale (concatenandola a quella dello stesso termine se appena estratto da un segmento precedente) e si fanno avanzare in parallelo il puntatore al dizionario $T_i$ e quello al fileI_i. //[cite: 3]
+
+#example[
+  Supponiamo di dover fondere tre segmenti d'indice i cui dizionari ordinati sono:
+  - $T_0$: termini `[a, b, c]`
+  - $T_1$: termini `[b, c, d]`
+  - $T_2$: termini `[a, d]`
+
+  1. *Inizializzazione*: inseriamo nella coda i primi termini di ciascun segmento: `a` (di $T_0$), `b` (di $T_1$) e `a` (di $T_2$).
+  2. *Estrazione di `a`*: per la regola di spareggio tra termini uguali vince `a` (di $T_0$) rispetto ad `a` (di $T_2$). Scriviamo nell'output la lista di affissione di `a` letta da $I_0$ e facciamo avanzare il cursore di $T_0$ al termine `b`.
+  3. *Concatenazione di `a`*: il nuovo minimo nella coda è `a` (di $T_2$). Appendiamo la lista di affissione di `a` letta da $I_2$ direttamente in coda a quella appena scritta per $I_0$, ottenendo la lista completa e ordinata per `a`, e facciamo avanzare il cursore di $T_2$ al termine `d`.
+  4. *Passaggio a `b`*: la coda contiene ora `b` (di $T_0$), `b` (di $T_1$) e `d` (di $T_2$); il processo prosegue analogamente per `b`, poi `c` e infine `d`.
+]
+
+#align(center)[
+  #cetz.canvas({
+    import cetz.draw: *
+
+    // Segmenti a sinistra
+    rect((0, 2.2), (2.6, 2.8), fill: rgb("#e3f2fd"), radius: 3pt)
+    content((1.3, 2.5), text(size: 8pt)[$T_0, I_0$: `[a, b, c]`])
+
+    rect((0, 1.2), (2.6, 1.8), fill: rgb("#e3f2fd"), radius: 3pt)
+    content((1.3, 1.5), text(size: 8pt)[$T_1, I_1$: `[b, c, d]`])
+
+    rect((0, 0.2), (2.6, 0.8), fill: rgb("#e3f2fd"), radius: 3pt)
+    content((1.3, 0.5), text(size: 8pt)[$T_2, I_2$: `[a, d]`])
+
+    // Frecce verso la coda
+    line((2.6, 2.5), (4.2, 1.8), mark: (end: ">"))
+    line((2.6, 1.5), (4.2, 1.5), mark: (end: ">"))
+    line((2.6, 0.5), (4.2, 1.2), mark: (end: ">"))
+
+    // Coda di priorità indiretta
+    rect((4.2, 0.7), (7.6, 2.3), fill: rgb("#fff9c4"), stroke: 1pt + rgb("#f9a825"), radius: 5pt)
+    content((5.9, 1.9), text(size: 8.5pt, weight: "bold")[Coda (Min-Heap)])
+    content((5.9, 1.45), text(size: 8pt)[`1°: (a, I_0)`])
+    content((5.9, 1.05), text(size: 8pt)[`2°: (a, I_2), 3°: (b, I_1)`])
+
+    // Freccia verso l'indice unificato
+    line((7.6, 1.5), (9.0, 1.5), mark: (end: ">"))
+
+    // Output
+    rect((9.0, 0.7), (12.2, 2.3), fill: rgb("#c8e6c9"), stroke: 1pt + rgb("#2e7d32"), radius: 5pt)
+    content((10.6, 1.9), text(size: 8.5pt, weight: "bold")[Indice Finale $I$])
+    content((10.6, 1.45), text(size: 8pt)[`a -> I_0(a) + I_2(a)`])
+    content((10.6, 1.05), text(size: 8pt)[`b -> I_0(b) + I_1(b)`])
+  })
+]
+
+Durante questa fase di fusione, poiché conosciamo finalmente la frequenza globale di ciascun termine, possiamo anche
+*ricodificare* le liste di affissione sostituendo i codici universali (gamma, delta, ...) con codici parametrici più compatti (come il codice di Golomb). //[cite: 3]
+
+#note[
+  Non è sempre obbligatorio fondere immediatamente tutti i segmenti in un unico indice monolitico: nei sistemi dinamici è possibile mantenere più segmenti separati, interrogarli in parallelo a tempo di query e concatenare/fondere i risultati restituiti. //[cite: 3]
+]
