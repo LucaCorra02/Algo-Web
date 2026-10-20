@@ -197,7 +197,7 @@ Nell'approccio lazy l'insieme dei risultati non viene precalcolato. Si utilizzan
 
 L'integrazione dell'operazione di `skip` sulle strutture composte gestisce i salti in base alla gerarchia degli operatori logici:
 
-- *Skip su congiunzioni (AND / link-sections):* Si applica l'operatore di salto in parallelo a tutte le liste della catena per allineare i puntatori al target.
+- *Skip su congiunzioni (AND / link-sections):* Per effettuare uno *skip-to* non è necessario saltare in parallelo su tutte le liste. Si avanza in modo lazy il candidato (o l'iteratore) per cui il salto è più efficiente; raggiunto il nuovo valore, si riavvia l'algoritmo di allineamento (Min-Mag), che riallinea gli iteratori delle altre liste.
 
 - *Skip su disgiunzioni (OR):* Si applica il salto sulla lista in cima all'heap (*top*) fino a quando il suo valore soddisfa la soglia richiesta.
 
@@ -214,5 +214,3 @@ L'integrazione dell'operazione di `skip` sulle strutture composte gestisce i sal
 #align(center)[
   #image("../assets/albero_query_skip.png")
 ]
-
-Per fare lo skip to delle liste basta avanzare il candidato che è più efficiente (in modo lazy) e poi far partire l'algoritmo di allineamento.
