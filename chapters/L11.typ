@@ -1,99 +1,79 @@
 #import "../template.typ": *
 
-#import "../template.typ": *
-
 = Information retrieval
 
-== Indice inverso
+Per permettere l'information retrieval, ossia la ricerca di documenti o pagine web per parole chiave, è necessario costruire un indice inverso. *A ogni voce* dell'indice (che rappresenta un termine o token del vocabolario) *viene associata la lista dei documenti* in cui tale termine compare.
 
-Per permettere l'information retrieval, ossia la ricerca di documenti o pagine web per parole chiave, è necessario costruire
-un indice inverso. A ogni indice (che rappresenta un termine o token) viene associata la lista dei documenti in cui compare.
+Per costruirlo si parte da una collezione di documenti e si procede per passi:
 
-Per costruirlo si parte da una collezione di documenti e si procede per passi.
-
-+ Si estrae il testo da ogni documento. In questa prima descrizione si considera il testo senza struttura, cioè senza distinguere
-titoli, paragrafi o altri campi.
-+ Si tokenizza il testo: lo si divide in unità, generalmente parole o altri token. La codifica dei caratteri, per esempio
-UTF-8, permette di rappresentare il testo; non risolve però da sola la segmentazione, che dipende dalla lingua e dalle convenzioni
-adottate. Per esempio, in alcune lingue non si può assumere che gli spazi separino sempre le parole.
-+ Si decide quali trasformazioni applicare ai token e si assegna un identificativo a ciascun termine distinto del vocabolario.
-+ Per ogni token si registrano il documento in cui compare e, se necessario, la sua posizione nel documento. Le registrazioni
-costituiscono le posting list dell'indice.
++ *Estrazione del testo:* si estrae il testo da ogni documento. In questa prima descrizione si considera il testo senza struttura (testo plain), cioè senza distinguere titoli, paragrafi o altri campi.
++ *Tokenizzazione:* si divide il testo in unità elementari, generalmente parole o altri token. La codifica dei caratteri (per esempio UTF-8) permette di rappresentare correttamente il testo in memoria, ma non risolve da sola il problema della segmentazione, che dipende fortemente dalla lingua e dalle convenzioni adottate. Per esempio, in alcune lingue asiatiche non si può assumere che gli spazi separino sempre le parole.
++ *Elaborazione del vocabolario:* si decide quali trasformazioni lessicali applicare ai token e si assegna un identificativo univoco a ciascun termine distinto del vocabolario.
++ *Costruzione delle liste:* per ogni token si registrano l'identificativo del documento in cui compare e, se necessario, il numero di occorrenze e le relative posizioni nel documento. Queste registrazioni costituiscono le *liste di affissione* (*posting list*) dell'indice.
 
 == Preparazione dei token
 
-Le scelte di preparazione influenzano sia lo spazio occupato dall'indice sia la qualità dei risultati. Conviene definirle
-prima di costruire l'indice e applicare le stesse regole sia ai documenti sia alle query.
+Le scelte effettuate durante la preparazione dei token influenzano sia lo *spazio occupato* dall'indice sia la *qualità dei risultati* restituiti. È fondamentale definirle prima di costruire l'indice e applicare esattamente le stesse regole sia ai documenti in fase di indicizzazione sia alle query in fase di ricerca.
 
 === Normalizzazione
 
-La normalizzazione rende uniformi forme che si vogliono trattare come equivalenti. Alcuni esempi sono convertire le lettere
-in minuscolo, uniformare gli apostrofi o rimuovere determinati segni diacritici. La punteggiatura può essere separata, rimossa
-o mantenuta, a seconda delle query che si vogliono supportare; spazi e tabulazioni normalmente delimitano i token, ma possono
-avere significato in dati strutturati. Anche emoji e simboli possono essere token se sono rilevanti per la collezione.
+La normalizzazione *rende uniformi* forme superficiali diverse che si vogliono trattare come equivalenti. Alcuni esempi classici sono convertire tutte le lettere in minuscolo (*case folding*), uniformare i diversi tipi di apostrofi o rimuovere determinati segni diacritici (come gli accenti).
 
-La normalizzazione è potenzialmente distruttiva: se due forme vengono ricondotte allo stesso token, una ricerca successiva
-potrebbe non distinguerle. Per esempio, ignorare gli accenti può favorire il richiamo ma ridurre la precisione.
+La punteggiatura può essere separata, rimossa o mantenuta a seconda delle query che si vogliono supportare; spazi e tabulazioni normalmente delimitano i token, ma possono avere un significato specifico in presenza di dati strutturati. Anche emoji e simboli speciali possono costituire token validi se risultano rilevanti per la collezione.
 
-=== Stemming
+#warning()[
+  
+]
 
-Lo stemming riduce una parola a una forma ottenuta con regole di troncamento. Per esempio, nell'vocabolario inglese si può
-ricondurre forme plurali o forme in `-ing` a una radice comune. La radice ottenuta non è necessariamente una parola corretta.
+La normalizzazione è un'operazione potenzialmente distruttiva: se due forme distinte vengono ricondotte allo stesso token, una ricerca successiva non sarà più in grado di distinguerle (per esempio, in italiano, rimuovere gli accenti unifica "è" ed "e", oppure "meta" e "metà"). In generale, una normalizzazione aggressiva tende a favorire il *richiamo* (*recall*, trovare più documenti potenzialmente rilevanti) ma può ridurre la *precisione* (*precision*, evitare documenti non pertinenti).
 
-Si può anche cercare di ricondurre le forme flesse alla loro forma lessicale, o lemma (lemmatizzazione).
+=== Stemming e lemmatizzazione
 
-In italiano, per esempio, diverse forme coniugate di un verbo possono essere ricondotte all'infinito.
-Oppure le parole 'albero' e 'alberi' possono diventare 'alber'.
+Lo *stemming* riduce una parola a una forma base (detta *radice* o *stem*) ottenuta mediante regole euristiche di troncamento dei suffissi. Per esempio, nel vocabolario inglese si possono ricondurre le forme plurali o le forme verbali in `-ing` a una radice comune. La radice ottenuta non è necessariamente una parola valida della lingua: in italiano, per esempio, le parole "albero" e "alberi" vengono troncate nella radice comune `"alber"`.
 
-Queste trasformazioni aiutano a trovare varianti della stessa parola, ma possono anche unire termini che sarebbe utile distinguere.
-La scelta dipende dalla lingua, dalla collezione e dal compromesso desiderato tra precisione e spazio occupato;
+In alternativa, si può ricondurre ciascuna forma flessa alla sua forma lessicale canonica, o *lemma* (processo di *lemmatizzazione*): in italiano, per esempio, le diverse forme coniugate di un verbo vengono ricondotte all'infinito, e i sostantivi al singolare. A differenza dello stemming, la lemmatizzazione richiede solitamente un dizionario e un'analisi morfologica/contestuale.
+
+Queste trasformazioni aiutano a trovare varianti morfologiche della stessa parola, ma possono anche fondere termini che sarebbe utile mantenere distinti. La scelta dipende dalla lingua, dalla natura della collezione e dal compromesso desiderato tra precisione, richiamo e spazio occupato.
 
 === Stopword
 
-Le stopword sono parole molto frequenti, spesso grammaticali, come articoli e preposizioni. In alcuni sistemi vengono rimosse
-per ridurre la dimensione dell'indice; in altri vengono mantenute. Conservarle è utile, per esempio, per le ricerche di frasi
-e di prossimità. La decisione dipende dalle funzionalità richieste e dalle tecniche di compressione disponibili.
+Le *stopword* sono parole estremamente frequenti nella lingua, spesso con funzione puramente grammaticale, come articoli, congiunzioni e preposizioni. In alcuni sistemi vengono rimosse per ridurre drasticamente la dimensione dell'indice; in altri vengono invece mantenute. Conservarle è indispensabile, per esempio, per supportare con precisione le ricerche di frasi esatte (*phrase query*, es. `"essere o non essere"`) e le query di prossimità. La decisione dipende dalle funzionalità richieste dal motore di ricerca e dall'efficacia delle tecniche di compressione disponibili.
 
 #note()[
-  Un hapax legomenon è un termine che compare una sola volta in una collezione di documenti. Un termine raro può essere
-  un nome proprio o una parola significativa, ma può anche derivare da un errore di battitura o da rumore nell'estrazione
-  del testo. Non va quindi eliminato automaticamente: la sua utilità dipende dal caso d'uso.
+  Un *hapax legomenon* (al plurale *hapax legomena*) è un termine che compare una sola volta all'interno di un'intera collezione di documenti. Un termine così raro può essere un nome proprio specifico o una parola altamente informativa, ma può anche derivare da un errore di battitura o da rumore introdotto durante l'estrazione del testo. Non va quindi eliminato automaticamente: la sua utilità dipende dallo specifico caso d'uso.
 ]
 
-== Liste di Affissione (Posting list)
-A questo punto si ritrova un'insieme di terne del tipo `<token(id) , documento, posizione>`, che vengono raggruppate per
-token/termine.
+== Liste di affissione (Posting list)
 
-Per ogni termine $t$ si memorizza una lista di affissione ordinata per identificativo del documento. A seconda delle query
-da supportare, ogni affissione può contenere informazioni diverse:
+Al termine della scansione dei documenti si ottiene un insieme di terne del tipo `<token(id), documento, posizione>`, che vengono successivamente ordinate e raggruppate per termine.
 
-+ *Solo documento:* l'identificativo del documento. È la rappresentazione più semplice e consente di sapere dove compare
-il termine.
-+ *Documento e conteggio:* oltre al documento, il numero di occorrenze del termine in quel documento.
-+ *Documento, conteggio e posizioni:* anche le posizioni delle occorrenze nel documento. Queste permettono query di frase
-e di prossimità, ma aumentano lo spazio occupato.
+Per ogni termine $t$ del vocabolario si memorizza una *lista di affissione* (*posting list*) ordinata per identificativo crescente del documento. A seconda della complessità delle interrogazioni da supportare, ogni elemento della lista (affissione o *posting*) può contenere informazioni diverse:
 
-Le posizioni di un singolo termine non bastano a ricostruire tutto il documento: servono invece a verificare dove compare
-quel termine e come è disposto rispetto agli altri termini indicizzati.
++ *Solo documento:* contiene unicamente l'identificativo del documento (*puntatore documentale*). È la rappresentazione più compatta e consente di sapere in quali documenti compare il termine (sufficiente per query booleane semplici).
++ *Documento e conteggio:* oltre all'identificativo del documento, memorizza il numero di occorrenze del termine in quel documento (necessario per calcolare punteggi di rilevanza basati sulla frequenza, come TF/IDF o BM25).
++ *Documento, conteggio e posizioni:* aggiunge anche la lista delle posizioni (espresse come indice di parola) in cui il termine compare all'interno del documento. Queste informazioni permettono di risolvere query di frase e di prossimità, ma aumentano sensibilmente lo spazio occupato dall'indice.
 
-Si distinguono alcuni valori utili:
+Le posizioni associate a un singolo termine non bastano, da sole, a ricostruire l'intero documento originale, ma servono a verificare dove compare quel termine e come è disposto rispetto agli altri termini dell'interrogazione.
 
-+ La *frequenza* è il numero totale di occorrenze di $t$ in tutti i documenti.
-+ L' *occorrenza* è il numero di volte in cui appare $t$ nel documento $d$.
+Nel contesto delle liste di affissione si distinguono due grandezze fondamentali:
++ La *frequenza* (o *document frequency*, $f$): è il numero di documenti distinti della collezione in cui il termine $t$ compare (ovvero la lunghezza della sua posting list). Talvolta con frequenza totale (*collection frequency*) ci si riferisce invece alla somma totale delle occorrenze di $t$ in tutta la collezione.
++ Il *conteggio* (o *numero di occorrenze* / *term frequency* locale): è il numero di volte in cui il termine $t$ appare all'interno di uno specifico documento $d$.
 
-== Codifica e Compressione delle liste di affissione
+== Codifica e compressione delle liste di affissione
 
-Le posting list sono in genere ordinate e contengono numeri crescenti. Invece di memorizzare ogni identificativo per intero,
-si possono codificare le differenze tra valori consecutivi, ossia i *gap*. Numeri più piccoli richiedono spesso meno bit.
+Le posting list sono ordinate e contengono sequenze di numeri interi strettamente crescenti (sia per gli identificativi dei documenti, sia per le posizioni all'interno di uno stesso documento). Invece di memorizzare ogni valore per intero, conviene codificare le differenze tra valori consecutivi, dette *scarti* o *gap*. Poiché gli scarti sono numeri molto più piccoli dei valori assoluti (specialmente per i termini frequenti), richiedono molti meno bit se rappresentati tramite *codici privi di prefissi* per gli interi (come il codice unario, $gamma$ e $delta$ di Elias, o i codici di Golomb).
 
+#note()[
+  *Nota sulle convenzioni di codifica negli esempi:* Nelle dispense i codici istantanei ($gamma$, $delta$, unario) sono definiti sui numeri naturali a partire da $0$ (usando la *rappresentazione binaria ridotta* di $x$, ovvero la scrittura binaria di $x+1$ privata del bit più significativo). Tuttavia, quando si codificano quantità che per natura sono strettamente positive (interi $v >= 1$, come i conteggi o i gap tra elementi distinti), il valore $0$ non può mai verificarsi: si associa quindi al valore $v >= 1$ la parola di codice corrispondente all'indice $v - 1$ (così $1 mapsto "1"$, $2 mapsto "010"$, $3 mapsto "011"$, $4 mapsto "00100"$ in $gamma$, ecc.). Per questo motivo, il primo documento o la prima posizione (che potrebbero valere $0$) vengono incrementati di $1$ prima della codifica, portando il dominio in $[1, infinity)$, mentre i gap successivi (essendo differenze tra valori strettamente crescenti) sono già $>= 1$ e non richiedono alcun incremento.
+]
 
 #example(title: "Codifica di liste di affissione con i soli documenti tramite Elias gamma")[
-  Consideriamo il termine `ciao`, presente nei documenti con identificativi 0, 3, 7 e 11.
+  Consideriamo il termine `ciao`, presente nei documenti con identificativi $0, 3, 7$ e $11$.
 
   + La lista di affissione è ordinata: `<0, 3, 7, 11>`.
-  + Calcoliamo i gap: il primo valore è 0 e poi facciamo le differenze tra valori consecutivi. Otteniamo `<0, 3, 4, 4>`.
-  + Elias gamma codifica interi positivi, non zero. Per trattare il primo gap, pari a zero, aggiungiamo 1 solo a quello: `<1, 3, 4, 4>`.
-  + Codifichiamo ciascun valore con Elias gamma e concateniamo i codici.
+  + Calcoliamo i gap: il primo valore resta $0$ e per i successivi calcoliamo le differenze tra valori consecutivi, ottenendo `<0, 3, 4, 4>`.
+  + Poiché usiamo la codifica $gamma$ sugli interi positivi ($>= 1$), trasliamo solo il primo valore (che può essere $0$) aggiungendo $1$: otteniamo `<1, 3, 4, 4>`.
+  + Codifichiamo ciascun valore con Elias $gamma$ e concateniamo i codici.
 
   *Codifica concatenata dei bit:*
 
@@ -104,23 +84,21 @@ si possono codificare le differenze tra valori consecutivi, ossia i *gap*. Numer
     overbrace("00100", "doc 11")
   $
 
-  La decodifica ricostruisce i valori `<1, 3, 4, 4>`; sottraendo 1 solo al primo valore si ottengono i gap originali `<0, 3, 4, 4>`, dai quali
-  si ricostruiscono gli identificativi cumulando le differenze: `<0, 3, 7, 11>`.
+  La decodifica legge sequenzialmente il flusso di bit e ricostruisce i valori `<1, 3, 4, 4>`; sottraendo $1$ solo al primo valore si riottengono i gap originali `<0, 3, 4, 4>`, dai quali si ricostruiscono gli identificativi dei documenti cumulando le differenze (somme prefisse): `<0, 3, 7, 11>`.
 ]
 
 #example(title: "Codifica di liste di affissione con documenti in gamma e numeri di occorrenze in unario")[
+  Consideriamo ora la stessa lista di affissione arricchita con il numero di occorrenze (conteggi) per ciascun documento:
 
-  Consideriamo ora la lista di affissione con il numero di occorrenze per documento:
+  #raw(
+    "Documento 0: occorrenze = 1\nDocumento 3: occorrenze = 4\nDocumento 7: occorrenze = 1\nDocumento 11: occorrenze = 1",
+    block: true,
+    lang: "text",
+  )
 
-  ```text
-  Documento 0: occorrenze = 1
-  Documento 3: occorrenze = 4
-  Documento 7: occorrenze = 1
-  Documento 11: occorrenze = 1
-  ```
-
-  + I gap dei documenti in gamma sono gli stessi dell'esempio precedente.
-  + Codifichiamo i conteggi con il codice unario $0^*1$, ottenendo: `<1, 0001, 1, 1>`.
+  + I gap dei documenti codificati in $gamma$ sono gli stessi dell'esempio precedente (`1`, `011`, `00100`, `00100`).
+  + Codifichiamo i conteggi $c >= 1$ con il codice unario (costituito da $c-1$ zeri seguiti da un $1$, cioè della forma $0^*1$), ottenendo: `<1, 0001, 1, 1>`.
+  + Inframmezziamo (interleaving) il codice di ciascun documento con il relativo conteggio:
 
   $
     overbrace("1" quad "1", "doc 0") quad
@@ -130,25 +108,25 @@ si possono codificare le differenze tra valori consecutivi, ossia i *gap*. Numer
   $
 ]
 
-
 #example(
   title: "Codifica di liste di affissione con documenti in gamma, conteggi in unario e posizioni in delta",
 )[
+  Aggiungiamo infine le posizioni in cui il termine compare all'interno di ciascun documento:
 
-  ```text
-  Documento 0: occorrenze = 1, posizioni = <0>
-  Documento 3: occorrenze = 4, posizioni = <3, 4, 20, 22>
-  Documento 7: occorrenze = 1, posizioni = <10>
-  Documento 11: occorrenze = 1, posizioni = <20>
-  ```
+  #raw(
+    "Documento 0: occorrenze = 1, posizioni = <0>\nDocumento 3: occorrenze = 4, posizioni = <3, 4, 20, 22>\nDocumento 7: occorrenze = 1, posizioni = <10>\nDocumento 11: occorrenze = 1, posizioni = <20>",
+    block: true,
+    lang: "text",
+  )
 
-  Le posizioni sono crescenti all'interno di ciascun documento e si possono codificare con gap, azzerando il calcolo per
-  ogni nuovo documento. Per rappresentare anche una prima posizione pari a 0 usando codici per interi positivi, aggiungiamo
-  1 solo alla prima posizione di ciascuna lista; le differenze successive sono già positive.
+  Le posizioni sono strettamente crescenti all'interno di ciascun documento e si codificano anch'esse tramite gap, azzerando il calcolo a ogni nuovo documento. Analogamente ai documenti, poiché la prima posizione può essere $0$, aggiungiamo $1$ solo alla prima posizione di ciascuna lista, mentre le differenze successive sono già strettamente positive ($>= 1$):
 
-  + Per il documento 0, `0` diventa `1`.
-  + Per il documento 3, `<3, 4, 20, 22>` diventa `<4, 1, 16, 2>`.
-  + Per il documento 7, `<10>` diventa `<11>`; per il documento 11, `<20>` diventa `<21>`.
+  + Per il documento 0: la posizione `<0>` diventa `<1>` (in $delta$: `1`).
+  + Per il documento 3: le posizioni `<3, 4, 20, 22>` hanno gap `<3, 1, 16, 2>`, che incrementando il primo elemento diventano `<4, 1, 16, 2>` (in $delta$: `01100`, `1`, `001010000`, `0100`).
+  + Per il documento 7: `<10>` diventa `<11>` (in $delta$: `00100011`).
+  + Per il documento 11: `<20>` diventa `<21>` (in $delta$: `001010101`).
+
+  *Codifica complessiva (documento in $gamma$, conteggio in unario, posizioni in $delta$):*
 
   $
     overbrace("1" quad "1" quad "1", "doc 0")
@@ -161,46 +139,66 @@ si possono codificare le differenze tra valori consecutivi, ossia i *gap*. Numer
   $
 ]
 
-Le scelte di codifica possono essere diverse per identificativi, conteggi e posizioni. È essenziale che la costruzione e la lettura dell'indice usino le stesse convenzioni: ordine dei campi, codici impiegati, offset, confini delle liste e modo di rappresentare il primo valore.
+Le scelte di codifica possono variare per identificativi, conteggi e posizioni (ad esempio, per conteggi e frequenze si usa spesso $gamma$ per via dell'alta presenza di *hapax legomena*, mentre per le posizioni si preferisce $delta$). È essenziale che la fase di scrittura e quella di lettura dell'indice adottino esattamente le stesse convenzioni: ordine dei campi, codici impiegati e gestione degli offset sul primo valore.
 
 
-== Modello bernoulliano delle liste di affissioni
+== Modello bernoulliano delle liste di affissione
 
-Dato un insieme di documenti $n$, se prendo una moneta di peso $f/n$ e la tiro $n$ volte mi esce testa $f$ volte più volte. Se esce testa il termine compare , altrimenti no. Il valore atteso è $f$.
+Per scegliere il codice più adatto a comprimere i gap tra i documenti è utile adottare un modello statistico che ne descriva la distribuzione.
 
-La moneta va testa con $p$ e croce con $1-p$. Se vogliamo rappresentate la distribuzione dei gap dobbiamo usare golom, in quanto tale distribuzione è una geometrica $(1-p)^k p$
+Consideriamo una collezione di $N$ documenti e un termine che compare in $f$ documenti. Il *modello bernoulliano* assume che il termine compaia in ciascun documento in modo indipendente con probabilità costante $p = f / N$. Possiamo immaginare il processo come il lancio ripetuto di una moneta sbilanciata $N$ volte:
+- Con probabilità $p = f / N$ esce *testa*: il termine è presente nel documento.
+- Con probabilità $1 - p$ esce *croce*: il termine non è presente nel documento.
+
+Il valore atteso del numero di teste su $N$ lanci è esattamente $N dot p = f$.
 
 //riguardare
-Dove (1-p)^k p rappresenta la probabilità di trovarte un gap di lunghezza $k$. Se la lista è molto densa, la probabilità p sarà molto alta, mentre (1-p) sarà molto bassa.
+Sotto questa ipotesi di indipendenza, la distanza (gap) tra un documento che contiene il termine e il successivo corrisponde al numero di lanci necessari per ottenere una nuova testa: dobbiamo cioè osservare $k$ croci consecutive (documenti che non contengono il termine) seguite da una testa (documento che lo contiene).
+
+La probabilità di osservare una sequenza di $k$ croci ($k >= 0$) seguite da una testa segue una *distribuzione geometrica*:
+$
+  Pr["gap" = k] = (1 - p)^k p
+$
+(Se si misura lo scarto come differenza strettamente positiva $x = k + 1 >= 1$ tra gli indici dei documenti, la formula si scrive equivalentemente come $(1-p)^(x-1) p$).
+
+Se la posting list è molto densa (termine molto frequente), la probabilità $p$ sarà alta e $(1 - p)$ sarà bassa, rendendo molto probabili gap piccoli. Viceversa, per termini rari ($p$ piccola), i gap saranno mediamente molto grandi.
+
+Poiché sappiamo che la distribuzione associata al *codice di Golomb* è proprio una distribuzione geometrica, il codice di Golomb risulta la scelta teoricamente ottima per comprimere i gap dei documenti nel modello bernoulliano (scegliendo il modulo ottimo $b = ceil(- log(2-p) / log(1-p))$ in funzione di $p$).
 
 #note()[
-  Ad esempio con p = 1/2 otteniamo il codice unario.
+  Nel caso particolare in cui $p = 1/2$, la distribuzione geometrica diventa $1 / 2^(k+1)$ (con modulo $b = 1$) e il codice di Golomb coincide esattamente con il *codice unario*.
 ]
 
-La frequenza $f$ è la probabilità che un termine compare in un documeto è $p$. Devo fare $k$ crosci e una testa.
-
 #note()[
-  La precisione dipende dall'ordine dei documenti. Solo sulla base della frequenza assumere che ogni parola compare in un documento in maniera indipendente è un assunzione molto forte. L'indice è preciso se i documenti sono in ordine di crwal, una parola sul calcio compare ad altre parole vicine sul calcio in questo modo.
+  *Limiti del modello e ordinamento dei documenti:* Assumere che una parola compaia in ciascun documento in maniera totalmente indipendente (basandosi solo sulla frequenza globale $f$) è un'assunzione molto forte e spesso irrealistica. La validità del modello bernoulliano dipende fortemente dall'ordine assegnato agli identificativi dei documenti. Se i documenti sono numerati in *ordine di visita del crawler* (ordine di *crawl*), pagine web dello stesso sito o tematicamente correlate avranno identificativi vicini: una parola legata al "calcio", ad esempio, tenderà a comparire a grappoli (*cluster*) in documenti adiacenti, generando molti gap piccolissimi seguiti da lunghi vuoti. Questa forte correlazione locale allontana la distribuzione reale da quella geometrica teorica (che si osserverebbe invece se i documenti fossero permutati casualmente).
 ]
 
 == Leggere il bit stream
 
-Tutte le operazioni realative ai codici sono sequenziali, andiamo a leggere un bit stram bit a bit. Inoltre tutte le operazioni vengono eseguite su una parola di memoria (buffer stream).
+In fase di interrogazione dell'indice, la decodifica dei codici privi di prefissi è un'operazione puramente sequenziale: i codici sono concatenati senza separatori in un flusso continuo di bit (*bit stream*). Leggere il file dal disco bit a bit sarebbe estremamente inefficiente; per questo motivo si mantiene in memoria centrale una finestra sul file, detta *bit buffer* (tipicamente una parola di memoria a 32 o 64 bit), e si eseguono le operazioni di decodifica direttamente sui registri della CPU.
 
-In questo caso va bene ma solamente per l'unario, gli altri richidono più operazione. La soluzione è usare delle tabelle di lookup che contengono i simboli più frequenti.
+Procedere bit a bit può andar bene solo per codici semplicissimi come l'unario (tramite istruzioni hardware che contano gli zeri iniziali), ma per codici più articolati ($gamma$, $delta$, Golomb) la decodifica manuale passo-passo richiede troppe istruzioni e diramazioni (*branch*). La soluzione consiste nell'utilizzare delle *tabelle di lookup* (*lookup table*) precalcolate che permettono di decodificare in un solo colpo i simboli più frequenti.
 
 //riguardare
+=== Decodifica tramite tabelle di lookup
 
-Creiamo una tablla di 16 righe con tutti i bit pattern che possiamo trovare li dentro con $4$ bit. per ognuni riga leggiamo il bit letto e quanto è grande. Tipo (0 e il codic eè lungo 3 bit, 1 il codice è lungo 3,) e un carattere di escape quando non riusciamo a leggere un bit. La seconda colonna rappresenta i bit da buttare.
+Per capire il funzionamento, immaginiamo di costruire una tabella indicizzata da prefissi di lunghezza fissa pari a $k$ bit (ad esempio, con $k = 4$ bit avremo una tabella di $2^4 = 16$ righe, una per ogni possibile configurazione di 4 bit da `0000` a `1111`; nella pratica si usano solitamente tabelle da $k = 16$ bit, cioè di $2^16 = 65536$ righe).
 
-Per leggere un codice:
-- prendiamo i 4 bit per capire quando è grande
-- leggiamo dalla tabella e faccio uno shit
+Ogni riga della tabella corrisponde a ciò che "vediamo" ispezionando i primi $k$ bit del nostro buffer e memorizza due informazioni:
++ *Il valore decodificato* (oppure un valore speciale di *escape* / flag se il codice è più lungo di $k$ bit e non è contenuto interamente nel prefisso).
++ *Il numero di bit consumati* (cioè la lunghezza effettiva della parola di codice appena riconosciuta, ossia i bit da scartare).
 
-La tablla indica le operazioni da fare in base alla parola di memoria che stiamo considerando nel bit stram. Ci indica come ottenere la parola originale.
+Ad esempio, supponendo di voler decodificare il codice $gamma$ con una tabella a $4$ bit:
+- Se i primi 4 bit sono `1011`, il primo simbolo è `1` (che codifica il valore $0$ ed è lungo $1$ bit): la riga `1011` della tabella conterrà quindi `(valore = 0, bit da scartare = 1)`.
+- Se i primi 4 bit sono `0110`, il prefisso inizia con `011` (che codifica il valore $2$ ed è lungo $3$ bit): la riga `0110` conterrà `(valore = 2, bit da scartare = 3)`.
+- Se i primi 4 bit sono `0010`, la parola di codice $gamma$ è lunga $5$ bit e non entra nella finestra da $4$ bit: la riga conterrà un codice di *escape* che indica di procedere con la decodifica manuale (oppure di leggere i bit successivi).
 
-Funziona molto bene con i codici parametrici. Solitamente la tabella è sufficiente per coprire l'intera distribuzione.
+Per decodificare un intero dal *bit stream* si procede quindi così:
++ *Ispezione (Peek):* si leggono i primi $k$ bit presenti in cima alla parola di memoria (*bit buffer*) senza ancora rimuoverli, usandoli come indice per accedere alla tabella.
++ *Lookup e Shift:* si recupera dalla tabella il valore decodificato e si effettua uno scorrimento (*shift*) del buffer di un numero di posizioni pari ai bit da scartare (ad esempio 1 o 3 bit), preparando il buffer per la lettura del codice successivo. Se il buffer si svuota sotto una certa soglia, viene ricaricato dal flusso in memoria.
+
+Questa tecnica funziona estremamente bene anche con i codici parametrici e universali: poiché le parole di codice corte sono statisticamente le più frequenti (rappresentano i gap piccoli), una tabella di dimensione ragionevole (es. $2^16$ voci) riesce a coprire la stragrande maggioranza della distribuzione, relegando la decodifica manuale a pochissimi casi rari.
 
 #note()[
-  Il vantaggio di leggere big endian è che le tabelle di lookup vengono utilizzate meglio dalla cache, ci sono meno cache miss in quanto quelli più frequenti (1 inziale) sono tutti vicini
+  *Vantaggio dell'ordinamento Big-Endian:* Mantenere il *bit stream* e il buffer in formato *big-endian* (leggendo i bit dal più significativo al meno significativo, ovvero da sinistra a destra) offre un importante vantaggio architetturale per la *cache* della CPU. Infatti, tutti i codici molto corti e frequenti (ad esempio il codice `1` di lunghezza 1, che ha come prefisso `1xxx...`) condividono i bit più significativi: nella tabella di lookup, tutte le combinazioni che iniziano per `1` (o per `01`, ecc.) occupano blocchi di indici numericamente contigui o strutturalmente raggruppati, migliorando la località spaziale e riducendo i *cache miss* rispetto a layout in cui i bit significativi del prefisso sono sparsi.
 ]
