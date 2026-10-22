@@ -11,9 +11,16 @@ Per costruirlo si parte da una collezione di documenti e si procede per passi:
 + *Elaborazione del vocabolario:* si decide quali trasformazioni lessicali applicare ai token e si assegna un identificativo univoco a ciascun termine distinto del vocabolario.
 + *Costruzione delle liste:* per ogni token si registrano l'identificativo del documento in cui compare e, se necessario, il numero di occorrenze e le relative posizioni nel documento. Queste registrazioni costituiscono le *liste di affissione* (*posting list*) dell'indice.
 
+L'unità informativa fondamentale memorizzata nell'istanza dell'indice è una *terna*: `(documento, posizione, token)`. Tutte queste informazioni devono essere memorizzate in forma compressa e in modo da garantire operazioni di ricerca ad altissima velocità.
+
 == Preparazione dei token
 
 Le scelte effettuate durante la preparazione dei token influenzano sia lo *spazio occupato* dall'indice sia la *qualità dei risultati* restituiti. È fondamentale definirle prima di costruire l'indice e applicare esattamente le stesse regole sia ai documenti in fase di indicizzazione sia alle query in fase di ricerca.
+
+=== Tokenizzazione e Politiche di Numerazione
+- *Complessità linguistica:* Con i linguaggi europei la divisione in token è relativamente semplice, mentre con le lingue orientali la segmentazione risulta estremamente complessa.
+- *Gestione della punteggiatura e spazi:* La punteggiatura viene tipicamente indicizzata, mentre gli spazi vengono scartati.
+- *Politica di numerazione:* A ogni token viene assegnato un identificativo numerico distinto. È possibile decidere di non indicizzare un segno di interpunzione (come la virgola) ma di mantenerne la numerazione, oppure viceversa. *Non lasciare "buchi" nella numerazione* consente una compressione migliore della struttura, a scapito però di una perdita di informazioni o di flessibilità.
 
 === Normalizzazione
 
@@ -37,12 +44,18 @@ In alternativa, si può ricondurre ciascuna forma flessa alla sua forma lessical
 
 Queste trasformazioni aiutano a trovare varianti morfologiche della stessa parola, ma possono anche fondere termini che sarebbe utile mantenere distinti. La scelta dipende dalla lingua, dalla natura della collezione e dal compromesso desiderato tra precisione, richiamo e spazio occupato.
 
-=== Stopword
+#warning(title: "Evoluzione dello Stemming")[
+  Con i motori di ricerca globali, mantenere traccia dello stemming per tutte le lingue del mondo è diventato estremamente complesso e oneroso. *Ad oggi, nei motori di ricerca moderni, nessuno fa più stemming pesante*.
+]
 
-Le *stopword* sono parole estremamente frequenti nella lingua, spesso con funzione puramente grammaticale, come articoli, congiunzioni e preposizioni. In alcuni sistemi vengono rimosse per ridurre drasticamente la dimensione dell'indice; in altri vengono invece mantenute. *Conservarle è indispensabile*, per esempio, per supportare con precisione le *ricerche di frasi esatte* (*phrase query*, es. `"essere o non essere"`) e le query di prossimità. La decisione dipende dalle funzionalità richieste dal motore di ricerca e dall'efficacia delle tecniche di compressione disponibili.
+=== Stopword e Hapax Legomena
+
+Le *stopword* sono parole estremamente frequenti nella lingua, spesso con funzione puramente grammaticale, come articoli, congiunzioni e preposizioni. 
+- In passato, a causa di risorse limitate, venivano scartate per ridurre drasticamente la dimensione dell'indice.
+- *Oggi si indicizza tutto:* le risorse di calcolo attuali permettono di gestirle senza problemi, e *conservarle è indispensabile*, per esempio, per supportare con precisione le *ricerche di frasi esatte* (*phrase query*, es. `"essere o non essere"`) e le query di prossimità. La decisione dipende dalle funzionalità richieste dal motore di ricerca e dall'efficacia delle tecniche di compressione disponibili.
 
 #note()[
-  Un *hapax legomenon* (al plurale *hapax legomena*) è un termine che compare una sola volta all'interno di un'intera collezione di documenti. Un termine così raro può essere un nome proprio specifico o una parola altamente informativa, ma può anche derivare da un errore di battitura o da rumore introdotto durante l'estrazione del testo. *Non va quindi eliminato automaticamente*: la sua utilità dipende dallo specifico caso d'uso.
+  Un *hapax legomenon* (al plurale *hapax legomena*) è un termine che compare una sola volta all'interno di un'intera collezione di documenti. Un termine così raro può essere un nome proprio specifico o una parola altamente informativa, ma può anche derivare da un errore di battitura o da rumore introdotto durante l'estrazione del testo. *Non va quindi eliminato automaticamente:* la sua utilità dipende dallo specifico caso d'uso e dal contesto (es. biblioteca strutturata vs web aperto, dove gli errori di battitura possono far esplodere le voci del vocabolario).
 ]
 
 == Liste di affissione (Posting list)
@@ -53,12 +66,20 @@ essi vengono successivamente ordinate e raggruppate per termine. Per ogni termin
 
 + *Solo documento:* contiene unicamente l'identificativo del documento (*puntatore documentale*). È la rappresentazione più compatta e consente di sapere in quali documenti compare il termine (sufficiente per query booleane semplici).
 + *Documento e conteggio:* oltre all'identificativo del documento, memorizza il numero di occorrenze del termine in quel documento (necessario per calcolare punteggi di rilevanza basati sulla frequenza, come TF/IDF o BM25).
-+ *Documento, conteggio e posizioni:* aggiunge anche la lista delle posizioni (espresse indice) in cui il termine compare all'interno del documento. Queste informazioni permettono di risolvere query di frase e di prossimità, ma aumentano sensibilmente lo spazio occupato dall'indice.
++ *Documento, conteggio e posizioni:* aggiunge anche la lista delle posizioni (espresse a indice) in cui il termine compare all'interno del documento. Queste informazioni permettono di risolvere query di frase e di prossimità, ma aumentano sensibilmente lo spazio occupato dall'indice.
 
 Nel contesto delle liste di affissione si distinguono due grandezze fondamentali:
 + La *frequenza* (o *document frequency*, $f$): è il numero di documenti distinti della collezione in cui il termine $t$ compare (ovvero la lunghezza della sua posting list). Talvolta con frequenza totale (*collection frequency*) ci si riferisce invece alla somma totale delle occorrenze di $t$ in tutta la collezione.
 
 + Il *conteggio* (o *numero di occorrenze* / *term frequency* locale): è il numero di volte in cui il termine $t$ appare all'interno di uno specifico documento $d$.
+
+Rispetto alla frequenza globale, si distinguono:
+- *Frequenza piccola -> Liste sparse:* I termini compaiono in pochissimi documenti (es. gli *hapax*).
+- *Frequenza grande -> Liste dense:* I termini compaiono in una moltitudine di documenti (es. le *stopword*).
+
+#note(title: "Proprietà di compressione")[
+  Le liste *dense* si comprimono molto meglio rispetto a quelle sparse, poiché la regolarità e la ridondanza dei dati consentono algoritmi di compressione dei bit più efficienti.
+]
 
 == Codifica e compressione delle liste di affissione
 
@@ -141,10 +162,12 @@ Le posting list *sono ordinate* e contengono sequenze di numeri interi strettame
 ]
 
 #note()[
-  La scelta della codifica può essere differente per identificativi, conteggi e posizioni (ad esempio, per conteggi e frequenze si usa spesso $gamma$ per via dell'alta presenza di *hapax legomena*, mentre per le posizioni si preferisce $delta$). È essenziale che la fase di scrittura e quella di lettura dell'indice adottino esattamente le stesse convenzioni: ordine dei campi, codici impiegati e gestione degli offset sul primo valore.
+  La scelta della codifica può essere differente per identificativi, conteggi e posizioni (ad esempio, per conteggi e frequenze si usa spesso $gamma$ per via dell'alta presenza di *hapax legomena*, mentre per le posizioni si preferisce $delta$). È essenziale che la fase di scrittura e quella di lettura dell'indice adottino esattamente le stesse convenzioni: ordine dei campi, codici impiegati, delimitatori strutturali e gestione degli offset sul primo valore.
 ]
 
-
+#warning(title: "Regola di coerenza dei codici")[
+  È possibile mischiare e combinare qualsiasi tipo di codice (Unario, Gamma, Delta, ecc.) per il conteggio, l'ID o le posizioni, purché in fase di lettura e scrittura vengano impiegati *esattamente gli stessi codici e le stesse convenzioni strutturali*.
+]
 
 == Modello bernoulliano delle liste di affissione
 
@@ -180,18 +203,18 @@ $
 
   La validità del modello bernoulliano dipende fortemente dall'ordine assegnato agli identificativi dei documenti. Se i documenti sono numerati in *ordine di visita del crawler* (ordine di *crawl*), pagine web dello stesso sito o tematicamente correlate avranno identificativi vicini: una parola legata al "calcio", ad esempio, tenderà a comparire a grappoli (*cluster*) in documenti adiacenti, generando molti gap piccolissimi seguiti da lunghi vuoti.
 
-  Questa forte correlazione locale allontana la distribuzione reale da quella geometrica teorica (che si osserverebbe invece se i documenti fossero permutati casualmente).
+  Questa forte correlazione locale allontana la distorsione reale da quella geometrica teorica (che si osserverebbe invece se i documenti fossero permutati casualmente).
 ]
 
 == Leggere il bit stream
 
 In fase di interrogazione dell'indice, la decodifica dei codici privi di prefissi è un'operazione puramente *sequenziale*: i codici sono concatenati senza separatori in un flusso continuo di bit (*bit stream*). Leggere il file dal disco bit a bit sarebbe estremamente inefficiente; per questo motivo si mantiene in memoria centrale una finestra sul file, detta *bit buffer* (tipicamente una parola di memoria a 32 o 64 bit), e si eseguono le operazioni di decodifica direttamente sui registri della CPU.
 
-Procedere bit a bit può andar bene solo per codici semplicissimi come l'unario (tramite istruzioni hardware che contano gli zeri iniziali), ma per codici più articolati ($gamma$, $delta$, Golomb) la decodifica manuale passo-passo richiede troppe istruzioni e diramazioni (*branch*). La soluzione consiste nell'utilizzare delle *tabelle di lookup* (*lookup table*) precalcolate che permettono di decodificare in un solo colpo i simboli più frequenti.
+Procedere bit a bit può andar bene solo per codici semplicissimi come l'unario (tramite istruzioni hardware che contano gli zeri iniziali), ma per codici più articolati ($gamma$, $delta$, Golomb) la decodifica manuale passo-passo richiede troppe istruzioni e diramazioni (*branch*). La soluzione consiste nell'utilizzare delle *tabelle di lookup* (*lookup table*) precalcolate (spesso costruite su blocchi di bit fissi da 8, 12 o 16 bit) che permettono di decodificare in un solo colpo i simboli più frequenti.
 
 === Decodifica tramite tabelle di lookup
 
-Per capire il funzionamento, immaginiamo di costruire una tabella indicizzata da prefissi di lunghezza fissa pari a $k = 4$ bit: avremo una tabella di $2^4 = 16$ righe, una per ogni possibile configurazione di 4 bit da `0000` a `1111` (nella pratica si usano solitamente tabelle da $k = 16$ bit, cioè di $2^16 = 65536$ righe).
+Per capire il funzionamento, immaginiamo di costruire una tabella indicizzata da prefissi di lunghezza fissa pari a $k = 4$ bit: avremo una tabella di $2^4 = 16$ righe, una per ogni possibile configurazione di 4 bit da `0000` a `1111` (nella pratica si usano solitamente tabelle da $k = 8, 12$ o $16$ bit).
 
 Ogni riga della tabella corrisponde a ciò che "vediamo" ispezionando i primi $4$ bit del nostro buffer e memorizza due informazioni:
 + *Il valore decodificato* (oppure un valore speciale di *escape*, es. `-1`, se il codice inizia con troppi zeri ed è più lungo di $4$ bit).
@@ -227,8 +250,6 @@ Ricordando le prime parole del codice $gamma$ di Elias (convenzione su $\NN$: $0
 Per decodificare una sequenza dal *bit stream* si procede quindi in due passi ciclici:
 + *Ispezione (Peek):* si leggono i primi $4$ bit in cima al *bit buffer* (senza rimuoverli) usandoli come indice della tabella.
 + *Lookup e Shift:* si legge il valore corrispondente e si fa scorrere (*shift* a sinistra) il buffer del numero di bit indicato nella seconda colonna.
-
-
 
 #figure(
   block(
@@ -294,7 +315,7 @@ Per decodificare una sequenza dal *bit stream* si procede quindi in due passi ci
           align: center + horizon,
           fill: (x, y) => if x < 3 { rgb("#90caf9") } else if x == 3 { rgb("#e3f2fd") } else { white },
           stroke: (x, y) => if x < 4 { 1.2pt + rgb("#1565c0") } else { 0.5pt + gray },
-          [*0*], [*1*], [*0*], [`1`], [`...`], [`...`], [`...`], [`...`],
+          [*0*], [*1*], [`0`], [`1`], [`...`], [`...`], [`...`], [`...`],
         ),
         [
           + *Peek (4 bit):* leggo `0101`.
@@ -307,7 +328,7 @@ Per decodificare una sequenza dal *bit stream* si procede quindi in due passi ci
   caption: [Simulazione passo-passo sul flusso di bit `10110101...` (che contiene i codici concatenati `1` $mapsto 0$, `011` $mapsto 2$, `010` $mapsto 1$):],
 )
 
-Questa tecnica funziona molto bene anche con i codici parametrici: poiché le parole di codice corte sono statisticamente le più frequenti (rappresentano i gap piccoli), una tabella di dimensione standard (es. $2^16$ righe) riesce a coprire quasi l'intera distribuzione empirica, ricorrendo all'*escape* solo in casi rarissimi.
+Questa tecnica funziona molto bene anche con i codici parametrici: poiché le parole di codice corte sono statisticamente le più frequenti (rappresentano i gap piccoli), una tabella di dimensione standard riesce a coprire quasi l'intera distribuzione empirica, ricorrendo all'*escape* solo in casi rarissimi.
 
 #note()[
   *Vantaggio dell'ordinamento Big-Endian:* Come si vede chiaramente nella Tabella 1, leggere il flusso in *big-endian* fa sì che i codici più frequenti siano raggruppati in blocchi contigui nella tabella (ad esempio, tutte le configurazioni che iniziano con `1` occupano le righe adiacenti da `1000` a `1111`). Questo raggruppamento spaziale permette di sfruttare al meglio le linee di *cache* della CPU, riducendo i *cache miss*.
