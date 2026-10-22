@@ -49,4 +49,8 @@
 #include "chapters/L4.typ"
 #include "chapters/L5.typ"
 #include "chapters/L6.typ"
+#include "chapters/L7.typ"
+#include "chapters/L8.typ"
+#include "chapters/L9.typ"
+#include "chapters/L10.typ"
 #include "chapters/L12.typ"
