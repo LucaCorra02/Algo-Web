@@ -6,7 +6,7 @@
   subtitle: "Unimi - Master's Degree in Computer Science",
   authors: (
     ("Luca Corradini", "LucaCorra02"),
-    ("Giacomo comitatno", "ComitaniGiacomo"),
+    ("Giacomo comitani", "ComitaniGiacomo"),
   ),
   lang: "en", // or "it", IMPORTANT!
 
@@ -54,3 +54,4 @@
 #include "chapters/L9.typ"
 #include "chapters/L10.typ"
 #include "chapters/L11.typ"
+#include "chapters/L12.typ"
