@@ -114,7 +114,7 @@ Se interroghiamo la struttura su un elemento $x$, il risultato deve essere $f(x)
   caption: [La funzione $f$ è definita solo sulle $n$ chiavi di $X$; sul resto di $U$ non ci interessa cosa risponde.],
 )
 
-- Spazio teorico minimo: $log((|U|)/(|X|))$
+- Spazio teorico minimo: $log((|U|)/(|X|))$ per chiave -> $|X| log((|U|)/(|X|))$ 
 - Spazio per l'output: $|X| b$
 
 L'obiettivo è eliminare il termine dipendente da $|U|$ (che è molto grande) evitando di memorizzare esplicitamente l'insieme $X$.
@@ -138,7 +138,7 @@ Prendiamo la variabile $v$ indicizzata da $g(x)$ e quella indicizzata da $h(x)$,
 
 La struttura finale consisterà in:
 1. Le due funzioni hash $g$ e $h$.
-2. Un vettore di $m$ bit (la soluzione del sistema).
+2. Un vettore di $m$ parole di $b$ bit (la soluzione del sistema).
 
 Per calcolare $f(x)$, prendiamo $g(x)$ e $h(x)$, guardiamo le posizioni corrispondenti nel vettore di bit e facciamo lo XOR tra di loro. Lo XOR può teoricamente fallire, ma esistono tecniche specifiche per risolverlo. Il vettore occupa $m b$ bit; l'obiettivo è ridurre $m$ affinché sia il più vicino possibile a $n$.
 
@@ -363,7 +363,7 @@ In questo modo non servono liste di adiacenza: bastano due vettori di interi e s
 ]
 
 == La Soglia di Erdős-Rényi
-Se il numero di vertici è sufficientemente più grande del numero di lati (grafo sparso), il grafo è aciclico. Per i grafi, se $n >= (2 + epsilon) m$, la probabilità che il grafo sia aciclico è data da:
+Se il numero di vertici è sufficientemente più grande del numero di lati (grafo sparso), il grafo è aciclico. Per i grafi, se $m >= (2 + epsilon) n$, la probabilità che il grafo sia aciclico è data da:
 
 $ ( sqrt(epsilon (2 + epsilon)) ) / ( 1 + epsilon ) $
 
@@ -447,7 +447,7 @@ Useremo questo approccio per mappare le parole nel loro rango. Tuttavia, se l'ut
 == Aggiunta di Firme (Fingerprints)
 Per trasformare la funzione statica in un dizionario, aggiungiamo delle *firme*:
 1. Prendiamo una buona funzione di hash e memorizziamo in un vettore le firme per ciascun termine.
-2. Quando arriva una chiave $x$, calcoliamo $f(x)$ (la funzione statica) e controlliamo se $F(f(x)) = S(x)$.
+2. Quando arriva una chiave $x$, calcoliamo $f(x)$ (la funzione statica) e controlliamo se $F[f(x)] = S(x)$.
 
 #example()[
   *Esempio di query con firme (Fingerprints):*
@@ -487,16 +487,18 @@ Può comunque capitare che una chiave estranea dia per caso la stessa firma: con
 
 Questo costa uno spazio proporzionale alla lunghezza dei termini, ma molto meno di una tabella di hash tradizionale. 
 
-La funzione statica deve restituire una permutazione di $n$ (nel range $0 ... n$), diventando così una *Funzione di Hash Minimale Perfetta* (MPH), in particolare monotona.
+La funzione statica deve restituire una permutazione di $n$ (nel range $0 ... n-1$), diventando così una *Funzione di Hash Minimale Perfetta* (MPH), in particolare monotona.
 
 == Filtri di Bloom Statici e Dizionari Compatti
 
 Se vogliamo solo l'identità insiemistica senza recuperare l'output della funzione statica:
 - Possiamo costruire un filtro di Bloom statico o un dizionario statico associando a ogni chiave un hash crittografico $S(x)$.
-- La funzione statica mappa ogni chiave nella sua firma. Se interroghiamo con una chiave non presente, $g(x)$ restituirà un vettore casuale di $b$ bit.
-- Confrontando $g(x)$ con la firma crittografica $S(x)$, possiamo determinare con altissima probabilità se la chiave appartiene all'insieme originario.
+- La funzione statica mappa ogni chiave nella sua firma. Se interroghiamo con una chiave non presente, $f(x)$ restituirà un vettore casuale di $b$ bit.
+- Confrontando $f(x)$ con la firma crittografica $S(x)$, possiamo determinare con altissima probabilità se la chiave appartiene all'insieme originario.
 
-Questo approccio permette di scendere a circa $1.44 n b$ o addirittura $1.01 n b$ bit (valori utilizzati attualmente in sistemi come RocksDB), ottenendo un dizionario statico valutabile in tempo costante e molto più compatto di un filtro di Bloom tradizionale.
+Un filtro di Bloom tradizionale richiede circa $1.44 n b$ bit. Utilizzando invece una funzione statica che memorizza le firme, 
+questo costo scende a circa $1.23 n b$ (con 3 funzioni di hash) o addirittura a $1.01 n b$ bit con strutture più moderne (come i Ribbon 
+filter attualmente utilizzati in RocksDB), risultando nettamente più compatto del filtro di Bloom tradizionale e ottenendo un dizionario statico valutabile in tempo costante.
 
 #note()[
   *Nota concettuale:* $S(x)$ (la funzione hash/firma) è un algoritmo, mentre $G(X)$ è la struttura dati che memorizza effettivamente le informazioni.
