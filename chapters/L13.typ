@@ -20,7 +20,7 @@ La distinzione principale riguarda il tipo di errore ammesso dall'algoritmo:
 #note[
   La soglia di successo $2/3$ (ossia probabilità di errore al più $1/3$) è puramente convenzionale: eseguendo più ripetizioni indipendenti dell'algoritmo sullo stesso input e restituendo la risposta di maggioranza (per BPP/BPL) o l'OR logico delle risposte (per RP/RL), la probabilità di errore decresce esponenzialmente e può essere ridotta a piacere.
   Tale amplificazione della probabilità mantiene lo spazio di lavoro logaritmico sia in BPL sia in RL, poiché basta un contatore di $O(log(n))$ bit per tenere traccia degli esiti delle ripetizioni.
-]
+  ]
 
 Poiché un algoritmo deterministico è un caso particolare di algoritmo randomizzato (che non legge bit casuali) e un algoritmo con errore unilaterale è un caso particolare di algoritmo con errore bilaterale, valgono immediatamente le seguenti catene di inclusioni:
 $ L subset.eq "RL" subset.eq "BPL" quad "e" quad L subset.eq P subset.eq "RP" subset.eq "BPP" $
@@ -63,6 +63,17 @@ $ L subset.eq "RL" subset.eq "BPL" quad "e" quad L subset.eq P subset.eq "RP" su
 
 == Frasi e Prossimità nelle Query Booleane
 
+Vogliamo estendere il linguaggio delle query booleane introducendo nuovi tipi di atomi (ovvero elementi indivisibili non ulteriormente destrutturabili):
+
+1. *Frasi* ($t_0, t_1, dots, t_(k-1)$): i termini devono comparire nel documento *consecutivamente* e nell'ordine specificato.
+2. *Prossimità* ($(t_0, t_1, dots, t_(k-1)) tilde l$): tutti i $k$ termini devono comparire nel documento entro una finestra (intervallo) di ampiezza massima $l$, *in qualunque ordine*.
+
+=== Risoluzione a due stadi
+
+In generale, la risoluzione di queste query si articola in due stadi:
+1. *Fase Booleana:* Individuare i documenti che contengono tutti i termini della query (eseguendo l'intersezione/`AND` tra le pos-list dei termini: $t_0 and t_1 and ... and t_(k-1)$).
+2. *Fase Posizionale:* Verificare se le posizioni all'interno del documento rispettano i vincoli relativi all'ordine (query frasali) o alla distanza (query di prossimità).
+
 #note[
   *Richiamo sull'intersezione pigra (`skip to` nell'operatore AND)*: quando si calcola l'AND tra più liste di affissione ordinate $L_0, L_1, dots, L_(k-1)$, conviene procedere in modo *pigro* (*lazy*). Si avanza il candidato solo sulla lista successiva tramite `skip to`, evitando di toccare e far avanzare le liste ancora più a destra finché non si ottiene un match effettivo tra le prime liste.
 ]
@@ -71,10 +82,6 @@ Un'interrogazione booleana classica con il solo operatore `AND` verifica unicame
 #example[
   Se cerchiamo `"romeo" AND "giulietta"` tramite una semplice intersezione delle liste di documenti, potremmo recuperare un documento molto lungo in cui la parola *"romeo"* compare nella prima pagina e *"giulietta"* nell'ultima, senza che vi sia alcuna relazione semantica diretta.
 ]
-
-Per ottenere risultati più pertinenti e ridurre l'insieme dei documenti candidati quando questo è troppo grande, estendiamo il linguaggio booleano con due nuovi atomi basati sulle *liste posizionali* (gli indici delle posizioni occupate dai termini all'interno di ciascun documento):
-1. *Frasi* ($t_0, t_1, dots, t_(k-1)$): i termini devono comparire nel documento *consecutivamente* e nell'ordine specificato.
-2. *Prossimità* ($(t_0, t_1, dots, t_(k-1)) tilde l$): tutti i $k$ termini devono comparire nel documento entro una finestra (intervallo) di ampiezza massima $l$, *in qualunque ordine*.
 
 === Ricerca di Frasi
 
@@ -92,7 +99,6 @@ Data la frase $t_0, t_1, dots, t_(k-1)$, l'algoritmo opera in tre passi:
   #cetz.canvas({
     import cetz.draw: *
 
-    // Stili
     let post-box(x, y, label-t, docs, w: 5) = {
       content((x, y), align(right)[*#label-t:*], anchor: "east")
       rect((x + 0.3, y - 0.35), (x + 0.3 + w, y + 0.35), fill: box-bg, stroke: 0.5pt + luma(120), radius: 3pt)
@@ -103,10 +109,8 @@ Data la frase $t_0, t_1, dots, t_(k-1)$, l'algoritmo opera in tre passi:
     post-box(0, 0.8, [$t_1$], [*doc $12$*, doc $24$, doc $45$, doc $99$])
     post-box(0, 0.0, [$t_2$], [doc $7$, *doc $12$*, doc $45$, doc $110$])
 
-    // Freccia verso intersezione
     line((5.5, 0.8), (6.9, 0.8), mark: (end: ">"), stroke: 1.2pt + primary-color)
 
-    // Risultato AND
     rect((7.0, 0.3), (10.2, 1.3), fill: rgb("dbeafe"), stroke: 1pt + secondary-color, radius: 4pt)
     content((8.6, 0.8), align(center)[
       #text(weight: "bold", size: 9pt, fill: primary-color)[Documento comune:]\
@@ -168,9 +172,7 @@ Data la frase $t_0, t_1, dots, t_(k-1)$, l'algoritmo opera in tre passi:
     let h = 0.55
     let gap = 0.25
 
-    // Disegna la lista originale, l'operazione di shift e la lista virtuale
     let draw-shift-row(y, label-orig, label-shift, orig-items, shift-val, highlight-idx) = {
-      // Lista originale
       content((-0.3, y), align(right)[*#label-orig:*], anchor: "east")
       let x = 0.0
       for (i, val) in orig-items.enumerate() {
@@ -180,7 +182,6 @@ Data la frase $t_0, t_1, dots, t_(k-1)$, l'algoritmo opera in tre passi:
         x += w + gap
       }
 
-      // Etichetta operazione
       content(
         (5, y + 0.2),
         align(center)[#text(size: 8.5pt, weight: "bold", fill: primary-color)[$- #shift-val$]],
@@ -188,7 +189,6 @@ Data la frase $t_0, t_1, dots, t_(k-1)$, l'algoritmo opera in tre passi:
       )
       line((4.7, y), (5.5, y), mark: (end: ">"), stroke: 0.8pt + primary-color)
 
-      // Lista virtuale
       content((5.8, y), align(left)[*#label-shift:*], anchor: "west")
       let xv = 7.1
       for (i, val) in orig-items.enumerate() {
@@ -206,12 +206,10 @@ Data la frase $t_0, t_1, dots, t_(k-1)$, l'algoritmo opera in tre passi:
       }
     }
 
-    // Tre termini e relative operazioni
     draw-shift-row(2.2, [$P_0$], [$P'_0$], (3, 15, 42, 88), 0, 1)
     draw-shift-row(1.1, [$P_1$], [$P'_1$], (8, 16, 31, 55), 1, 1)
     draw-shift-row(0.0, [$P_2$], [$P'_2$], (17, 40, 71, 95), 2, 0)
 
-    // Risultato dell'intersezione
     line((9.2, -0.4), (9.2, -1.1), mark: (end: ">"), stroke: 1.2pt + primary-color)
 
     rect((6.8, -2.3), (12, -1.2), fill: rgb("dcfce7"), stroke: 1.2pt + rgb("16a34a"), radius: 4pt)
@@ -226,23 +224,24 @@ Data la frase $t_0, t_1, dots, t_(k-1)$, l'algoritmo opera in tre passi:
 
 In questa fase non si utilizzano solitamente *skip table* sulle liste di posizioni, ma una semplice intersezione sequenziale è già sufficientemente rapida.
 
-#note()[
+#note[
   *Frasi con buco (wildcard `*`)*: se la frase contiene un carattere jolly che rappresenta una parola qualsiasi (es. `Romeo * Giulietta`), basta scalare i termini successivi al buco di una posizione aggiuntiva (nell'esempio, la lista di `Giulietta` viene scalata indietro di $2$ anziché di $1$).
 ]
 
 === Operatore di Prossimità
 
-Consideriamo la query $(t_0, t_1, dots, t_(k-1)) tilde l$, che richiede che tutti i $k$ termini compaiano entro un intervallo di lunghezza al più $l$, ossia nell'intervallo $[p_"min", p_"max"]$, con $p_"max" - p_"min" + 1 <= l$
-(oppure $p_"max" - p_"min" <= l$ a seconda della convenzione adottata).
+- Consideriamo la query $(t_0, t_1, dots, t_(k-1)) tilde l$, che richiede che tutti i $k$ termini compaiano entro un intervallo di lunghezza al più $l$, ossia nell'intervallo $[p_"min", p_"max"]$, con $p_"max" - p_"min" + 1 <= l$
+- (oppure $p_"max" - p_"min" <= l$ a seconda della convenzione adottata).
 
-Un approccio ingenuo che enumerasse tutte le possibili $k$-uple di posizioni dal prodotto cartesiano delle $k$ liste per poi verificare la distanza avrebbe complessità polinomiale $O(n^k)$ nel numero di occorrenze $n$ (ad esempio cubica $O(n^3)$ per $k = 3$ termini), risultando impraticabile.
+Un approccio ingenuo che enumerasse tutte le possibili $k$-uple di posizioni dal prodotto cartesiano delle $k$ liste per poi verificare la distanza avrebbe complessità polinomiale $O(n^k)$ nel numero di occorrenze $n$, risultando impraticabile.
 
 Per ottenere un algoritmo *lineare* nel numero totale di occorrenze $n$, ci limitiamo a enumerare i soli *intervalli minimali*.
 
 #note[
   *Differenza tra intervallo minimale e intervallo minimo*:
-  - Un intervallo $[u, v]$ che contiene tutti i $k$ termini è *minimale* (rispetto alla relazione di inclusione $subset.eq$) se non esiste alcun sotto-intervallo stretto $[u', v'] subset [u, v]$ che contenga anch'esso tutti i $k$ termini.
-  - Un intervallo è *minimo* se ha la lunghezza assoluta $v - u$ più piccola possibile tra tutti gli intervalli validi del documento.
+- Gli intervalli ordinati per inclusione formano un *ordine parziale*.
+- Un intervallo $[u, v]$ che contiene tutti i $k$ termini è *minimale* (rispetto alla relazione di inclusione $subset.eq$) se non esiste alcun sotto-intervallo stretto $[u', v'] subset [u, v]$ che contenga anch'esso tutti i $k$ termini.
+- Un intervallo è *minimo* se ha la lunghezza assoluta $v - u$ più piccola possibile tra tutti gli intervalli validi del documento.
 
   Poiché l'inclusione tra intervalli è un ordine parziale e non totale, *ogni intervallo minimo è anche minimale, ma non vale il viceversa*: ad esempio, un documento può contenere due intervalli minimali disgiunti o parzialmente sovrapposti di lunghezza $3$ e $4$; il primo è sia minimale sia minimo, mentre il secondo è minimale ma non minimo.
 ]
@@ -272,7 +271,6 @@ L'algoritmo enumera gli intervalli candidati procedendo come una fusione (`OR`) 
     let h = 0.5
     let gap = 0.2
 
-    // Helper per disegnare liste con puntatore sulla prima cella
     let draw-list(y, name, items) = {
       content((-0.4, y), align(right)[*#name:*], anchor: "east")
       for (i, val) in items.enumerate() {
@@ -287,7 +285,6 @@ L'algoritmo enumera gli intervalli candidati procedendo come una fusione (`OR`) 
         )
         content((x + w / 2, y), text(size: 8.5pt, weight: if is-first { "bold" } else { "regular" })[#val])
       }
-      // Freccia puntatore sulla prima occorrenza
       line((w / 2, y + 0.55), (w / 2, y + 0.3), mark: (end: ">"), stroke: 1.2pt + col-ptr)
     }
 
@@ -295,19 +292,15 @@ L'algoritmo enumera gli intervalli candidati procedendo come una fusione (`OR`) 
     draw-list(1.2, [$P_1$], (10, 25, 60))
     draw-list(0.2, [$P_2$], (5, 14, 33, 80))
 
-    // Freccia verso min-heap
     line((4.2, 1.2), (5.1, 1.2), mark: (end: ">"), stroke: 1.2pt + col-primary)
 
-    // Visualizzazione Min-Heap
     rect((5.3, -0.25), (9.8, 2.6), fill: col-heap-bg, stroke: 1pt + rgb("0284c7"), radius: 4pt)
     content((7.55, 2.3), text(weight: "bold", size: 9pt, fill: col-primary)[Min-Heap (dim $k=3$)])
 
-    // Cella Top (minimo)
     rect((6.8, 1.3), (8.3, 1.9), fill: rgb("fee2e2"), stroke: 1.3pt + col-accent, radius: 3pt)
     content((7.55, 1.6), text(weight: "bold", size: 9pt, fill: col-accent)[2 #text(size: 7pt)[(da $P_0$)]])
     content((8.4, 1.6), text(size: 8pt, weight: "bold", fill: col-accent)[#sym.arrow.l top], anchor: "west")
 
-    // Altri due nodi del heap
     rect((6.8, 1.2), (8.3, 0.6), fill: rgb("ffedd5"), stroke: 1.2pt + col-ptr, radius: 3pt)
     content((7.55, 0.9), text(weight: "bold", size: 8pt, fill: col-ptr)[10 #text(size: 6.5pt)[(da $P_1$)]])
     content((8.4, 0.9), text(size: 8pt, weight: "bold", fill: col-accent)[#sym.arrow.l max], anchor: "west")
@@ -329,7 +322,6 @@ L'algoritmo enumera gli intervalli candidati procedendo come una fusione (`OR`) 
     let h = 0.5
     let gap = 0.2
 
-    // 1. Scorrimento sulla lista sorgente (P_0)
     content((-0.4, 1.3), align(right)[*Puntatore $P_0$:*], anchor: "east")
     let p0-items = (2, 18, 45, 90)
     for (i, val) in p0-items.enumerate() {
@@ -344,23 +336,18 @@ L'algoritmo enumera gli intervalli candidati procedendo come una fusione (`OR`) 
       content((x + w / 2, 1.3), text(size: 8.5pt, weight: if i <= 1 { "bold" } else { "regular" })[#val])
     }
 
-    // Arco di avanzamento puntatore da 2 a 18
     bezier((w / 2, 1.6), (w + gap + w / 2, 1.6), (0.9, 2.8), stroke: 1.2pt + col-ptr, mark: (end: ">"))
     content((0.9, 2.5), text(size: 7.5pt, weight: "bold", fill: col-ptr)[avanza: $p_"next" = 18$])
 
-    // Freccia
     line((4.2, 1.3), (5.1, 1.3), mark: (end: ">"), stroke: 1.2pt + col-primary)
 
-    // Visualizzazione Min-Heap
     rect((5.3, -0.25), (9.8, 2.6), fill: col-heap-bg, stroke: 1pt + rgb("0284c7"), radius: 4pt)
     content((7.55, 2.3), text(weight: "bold", size: 9pt, fill: col-primary)[Min-Heap (dim $k=3$)])
 
-    // Cella Top (minimo)
     rect((6.8, 1.3), (8.3, 1.9), fill: rgb("fee2e2"), stroke: 1.3pt + col-accent, radius: 3pt)
     content((7.55, 1.6), text(weight: "bold", size: 9pt, fill: col-accent)[10 #text(size: 7pt)[(da $P_1$)]])
     content((8.4, 1.6), text(size: 8pt, weight: "bold", fill: col-accent)[#sym.arrow.l top], anchor: "west")
 
-    // Altri due nodi del heap
     rect((6.8, 1.2), (8.3, 0.6), fill: white, stroke: 0.8pt + luma(120), radius: 3pt)
     content((7.55, 0.9), text(size: 8pt)[5 #text(size: 6.5pt)[(da $P_2$)]])
 
@@ -425,9 +412,9 @@ L'algoritmo enumera gli intervalli candidati procedendo come una fusione (`OR`) 
   ]
 
   Le liste di posizioni dei tre termini sono:
-  - $a: [3, 11, 25]$
-  - $b: [7, 9, 14, 22]$
-  - $c: [5, 16, 18, 26]$
+- $a: [3, 11, 25]$
+- $b: [7, 9, 14, 22]$
+- $c: [5, 16, 18, 26]$
 
   Simuliamo l'evoluzione della coda e della variabile `max`:
 
@@ -523,8 +510,8 @@ Per costruire le liste di affissione, il passo computazionalmente dominante cons
 
 #note[
   *MapReduce e il costo della distribuzione (COST)*:
-  - Proprio per eseguire questo ordinamento stabile su scala web in modo distribuito e tollerante ai guasti, Google ha introdotto il paradigma *MapReduce*, che gestisce automaticamente partizionamento, ordinamento distribuito e tripla replica dei dati (scartando i nodi che falliscono).
-  - *Curiosità storica*: negli anni di massimo entusiasmo per MapReduce è stata proposta la metrica *COST* (*Configuration that Outperforms a Single Thread*), che misura quante macchine distribuite servano a un framework per battere un singolo laptop con un programma ben ottimizzato su singolo thread. Per diversi problemi su grafi e dati di medie dimensioni, l'overhead di rete e replica fa sì che anche con un numero enorme di macchine il sistema distribuito risulti più lento di un singolo thread su laptop.
+- Proprio per eseguire questo ordinamento stabile su scala web in modo distribuito e tollerante ai guasti, Google ha introdotto il paradigma *MapReduce*, che gestisce automaticamente partizionamento, ordinamento distribuito e tripla replica dei dati (scartando i nodi che falliscono).
+- *Curiosità storica*: negli anni di massimo entusiasmo per MapReduce è stata proposta la metrica *COST* (*Configuration that Outperforms a Single Thread*), che misura quante macchine distribuite servano a un framework per battere un singolo laptop con un programma ben ottimizzato su singolo thread. Per diversi problemi su grafi e dati di medie dimensioni, l'overhead di rete e replica fa sì che anche con un numero enorme di macchine il sistema distribuito risulti più lento di un singolo thread su laptop.
 ]
 
 === Inversione in memoria (sort su Bit Stream)
@@ -532,9 +519,9 @@ Per costruire le liste di affissione, il passo computazionalmente dominante cons
 Anziché generare esplicitamente tutte le tuple $chevron.l d, t, p chevron.r$ su disco e ordinarle, si effettua l'inversione direttamente in memoria centrale tramite un algoritmo di *sort* (paragonabile per certi versi a bucket sort) che costruisce le liste già compresse:
 
 1. Poiché il numero di termini distinti (il vocabolario) è molto più piccolo del numero totale di occorrenze, manteniamo in RAM una *tabella di hash dei termini*.
-2. Ogni termine $t$ nella tabella di hash punta direttamente a un *bit stream* (un buffer dinamico di byte in memoria) in cui appendiamo man mano la sua lista di affissione compressa nella forma$[chevron.l d, chevron.l p_0, p_1, dots chevron.r chevron.r]$.
+2. Ogni termine $t$ nella tabella di hash punta direttamente a un *bit stream* (un buffer dinamico di byte in memoria) in cui appendiamo man mano la sua lista di affissione compressa nella forma $[chevron.l d, chevron.l p_0, p_1, dots chevron.r chevron.r]$.
 
-3. Man mano che arrivano le terne$chevron.l d, t, p chevron.r$del documento corrente (es.$chevron.l 0, a, 0 chevron.r, chevron.l 0, b, 1 chevron.r, dots$), aggiungiamo la posizione $p$ in coda al bit stream del termine$t$:
+3. Man mano che arrivano le terne $chevron.l d, t, p chevron.r$ del documento corrente (es. $chevron.l 0, a, 0 chevron.r, chevron.l 0, b, 1 chevron.r, dots$), aggiungiamo la posizione $p$ in coda al bit stream del termine $t$:
 $
   a & -> [chevron.l 0, chevron.l 0, dots chevron.r chevron.r] \
   b & -> [chevron.l 0, chevron.l 1, dots chevron.r chevron.r]
@@ -552,7 +539,7 @@ Quando inizia un nuovo documento $d + 1$, le liste posizionali del documento $d$
 
 Al termine della fase di inversione a blocchi, ci ritroviamo su disco con una sequenza di segmenti d'indice parziali:
 $T_0 -> I_0, quad T_1 -> I_1, quad dots, quad T_(m-1) -> I_(m-1)$
-dove ciascun segmento $(T_i, I_i)$ indicizza un sottoinsieme disgiunto di documenti (con ID crescenti da $I_0$ a $I (m-1)$) e uno stesso termine può comparire in più dizionari $T_i$.
+dove ciascun segmento $(T_i, I_i)$ indicizza un sottoinsieme disgiunto di documenti (con ID crescenti da $I_0$ a $I_(m-1)$) e uno stesso termine può comparire in più dizionari $T_i$.
 
 #warning[
   *Assunzione fondamentale per la complessità lineare*: affinché i segmenti possano essere fusi in un unico indice globale in *tempo lineare* senza effettuare costosi accessi aleatori (*random I/O*) su disco, è essenziale che ogni dizionario $T_i$ sia stato salvato su disco in *ordine lessicografico* (operazione molto economica al momento dello scaricamento della RAM) e che le relative liste di affissione in $I_i$ siano memorizzate nello stesso ordine.
@@ -561,15 +548,15 @@ dove ciascun segmento $(T_i, I_i)$ indicizza un sottoinsieme disgiunto di docume
 La fusione avviene in *streaming parallelo* utilizzando una *coda con priorità indiretta* (min-heap) contenente un cursore per ciascun segmento $i in {0, dots, m-1}$:
 - Per ogni segmento $i$ manteniamo due puntatori sincronizzati che avanzano sequenzialmente su disco: uno sul termine corrente nel file dizionario $T_i$ e uno sulla corrispondente lista di affissione nel file $I_i$.
 - La coda con priorità confronta i termini correnti dei vari segmenti secondo l'ordine lessicografico; *in caso di parità* (stesso termine presente in più segmenti), ha priorità il segmento con *indice $i$ minore*, poiché contiene documenti con ID inferiori.
-- Ad ogni estrazione del minimo dalla coda, si copia la relativa lista di affissione nel file d'indice finale (concatenandola a quella dello stesso termine se appena estratto da un segmento precedente) e si fanno avanzare in parallelo il puntatore al dizionario $T_i$ e quello al fileI_i.
+- Ad ogni estrazione del minimo dalla coda, si copia la relativa lista di affissione nel file d'indice finale (concatenandola a quella dello stesso termine se appena estratto da un segmento precedente) e si fanno avanzare in parallelo il puntatore al dizionario $T_i$ e quello al file $I_i$.
 
 #example[
   Supponiamo di dover fondere tre segmenti d'indice i cui dizionari ordinati sono:
-  - $T_0$: termini `[a, b, c]`
-  - $T_1$: termini `[b, c, d]`
-  - $T_2$: termini `[a, d]`
+- $T_0$: termini `[a, b, c]`
+- $T_1$: termini `[b, c, d]`
+- $T_2$: termini `[a, d]`
 
-  1. *Inizializzazione*: inseriamo nella coda i primi termini di ciascun segmento: `a` (di $T_0$), `b` (di $T_1$) e `a` (di $T_2$).
+1. *Inizializzazione*: inseriamo nella coda i primi termini di ciascun segmento: `a` (di $T_0$), `b` (di $T_1$) e `a` (di $T_2$).
   2. *Estrazione di `a`*: per la regola di spareggio tra termini uguali vince `a` (di $T_0$) rispetto ad `a` (di $T_2$). Scriviamo nell'output la lista di affissione di `a` letta da $I_0$ e facciamo avanzare il cursore di $T_0$ al termine `b`.
   3. *Concatenazione di `a`*: il nuovo minimo nella coda è `a` (di $T_2$). Appendiamo la lista di affissione di `a` letta da $I_2$ direttamente in coda a quella appena scritta per $I_0$, ottenendo la lista completa e ordinata per `a`, e facciamo avanzare il cursore di $T_2$ al termine `d`.
   4. *Passaggio a `b`*: la coda contiene ora `b` (di $T_0$), `b` (di $T_1$) e `d` (di $T_2$); il processo prosegue analogamente per `b`, poi `c` e infine `d`.
@@ -579,7 +566,6 @@ La fusione avviene in *streaming parallelo* utilizzando una *coda con priorità 
   #cetz.canvas({
     import cetz.draw: *
 
-    // Segmenti a sinistra
     rect((0, 2.2), (2.6, 2.8), fill: rgb("#e3f2fd"), radius: 3pt)
     content((1.3, 2.5), text(size: 8pt)[$T_0, I_0$: `[a, b, c]`])
 
@@ -589,21 +575,17 @@ La fusione avviene in *streaming parallelo* utilizzando una *coda con priorità 
     rect((0, 0.2), (2.6, 0.8), fill: rgb("#e3f2fd"), radius: 3pt)
     content((1.3, 0.5), text(size: 8pt)[$T_2, I_2$: `[a, d]`])
 
-    // Frecce verso la coda
     line((2.6, 2.5), (4.2, 1.8), mark: (end: ">"))
     line((2.6, 1.5), (4.2, 1.5), mark: (end: ">"))
     line((2.6, 0.5), (4.2, 1.2), mark: (end: ">"))
 
-    // Coda di priorità indiretta
     rect((4.2, 0.7), (7.6, 2.3), fill: rgb("#fff9c4"), stroke: 1pt + rgb("#f9a825"), radius: 5pt)
     content((5.9, 1.9), text(size: 8.5pt, weight: "bold")[Coda (Min-Heap)])
     content((5.9, 1.45), text(size: 8pt)[`1°: (a, I_0)`])
     content((5.9, 1.05), text(size: 8pt)[`2°: (a, I_2), 3°: (b, I_1)`])
 
-    // Freccia verso l'indice unificato
     line((7.6, 1.5), (9.0, 1.5), mark: (end: ">"))
 
-    // Output
     rect((9.0, 0.7), (12.2, 2.3), fill: rgb("#c8e6c9"), stroke: 1pt + rgb("#2e7d32"), radius: 5pt)
     content((10.6, 1.9), text(size: 8.5pt, weight: "bold")[Indice Finale $I$])
     content((10.6, 1.45), text(size: 8pt)[`a -> I_0(a) + I_2(a)`])
