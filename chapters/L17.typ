@@ -352,20 +352,20 @@ La matrice $P = overline(A)$ costruita nell'indice di Seeley è esattamente la m
 
 === Evoluzione della distribuzione di probabilità e stato stazionario
 
-Supponiamo che al tempo $t$ il sistema si trovi nei vari stati secondo una distribuzione di probabilità descritta dal vettore riga $pi^(t) = (pi_1^(t), dots, pi_n^(t))$, con $sum_i pi_i^{(t)} = 1$.
-Qual è la probabilità $pi_j^{(t+1)}$ di trovarsi nello stato $j$ al passo successivo? Per la legge delle probabilità totali, sommiamo su tutti i possibili stati di provenienza $i$ la probabilità di trovarsi in $i$ moltiplicata per la probabilità di transitare da $i$ a $j$:
+Supponiamo che al tempo $t$ il sistema si trovi nei vari stati secondo una distribuzione di probabilità descritta dal vettore riga $pi^(t) = (pi_1^(t), dots, pi_n^(t))$, con $sum_i pi_i^(t) = 1$.
+Qual è la probabilità $pi_j^(t+1)$ di trovarsi nello stato $j$ al passo successivo? Per la legge delle probabilità totali, sommiamo su tutti i possibili stati di provenienza $i$ la probabilità di trovarsi in $i$ moltiplicata per la probabilità di transitare da $i$ a $j$:
 $
-  pi_j^{(t+1)} = sum_(i=1)^n pi_i^{(t)} P_(i j) quad <==> quad pi^{(t+1)} = pi^{(t)} P
+  pi_j^(t+1) = sum_(i=1)^n pi_i^(t) P_(i j) quad <==> quad pi^(t+1) = pi^(t) P
 $
 
 #example(title: "Passo di transizione")[
-  Se al tempo $t$ mi trovo nel nodo $a$ con probabilità $pi_a^{(t)} = 1/4$ e dal nodo $a$ escono $2$ archi (quindi l'arco $a -> b$ ha probabilità $P_(a b) = 1/2$), il contributo di questo singolo cammino alla probabilità di trovarmi in $b$ al passo successivo è:
+  Se al tempo $t$ mi trovo nel nodo $a$ con probabilità $pi_a^(t) = 1/4$ e dal nodo $a$ escono $2$ archi (quindi l'arco $a -> b$ ha probabilità $P_(a b) = 1/2$), il contributo di questo singolo cammino alla probabilità di trovarmi in $b$ al passo successivo è:
   $
-    pi_a^{(t)} dot P_(a b) = frac(1, 4) dot frac(1, 2) = frac(1, 8)
+    pi_a^(t) dot P_(a b) = frac(1, 4) dot frac(1, 2) = frac(1, 8)
   $
 ]
 
-Se facendo evolvere la catena ($pi^{(t)} = pi^{(0)} P^t$) si raggiunge una configurazione di equilibrio che rimane invariata ai passi successivi, tale distribuzione $pi$ è detta *distribuzione stazionaria* (o di equilibrio) e soddisfa:
+Se facendo evolvere la catena ($pi^(t) = pi^(0) P^t$) si raggiunge una configurazione di equilibrio che rimane invariata ai passi successivi, tale distribuzione $pi$ è detta *distribuzione stazionaria* (o di equilibrio) e soddisfa:
 $
   pi P = pi, quad "con " sum_(i=1)^n pi_i = 1, space pi_i >= 0
 $
