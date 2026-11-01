@@ -1,12 +1,14 @@
 #import "../template.typ": *
 
-#let c-g = rgb("#bfdbfe")      
-#let c-h = rgb("#fed7aa")      
-#let c-c = rgb("#e9d5ff")      
-#let c-new = rgb("#fde68a")    
-#let c-free = rgb("#bbf7d0")  
+#let c-g = rgb("#bfdbfe")
+#let c-h = rgb("#fed7aa")
+#let c-c = rgb("#e9d5ff")
+#let c-new = rgb("#fde68a")
+#let c-free = rgb("#bbf7d0")
 
-#let col-nodo(s) = if s == "foglia" { c-new } else if s == "rimosso" { luma(225) } else if s == "libero" { c-free } else if s == "chiave" { c-g } else { white }
+#let col-nodo(s) = if s == "foglia" { c-new } else if s == "rimosso" { luma(225) } else if s == "libero" {
+  c-free
+} else if s == "chiave" { c-g } else { white }
 
 #let grafo(nodi, lati, w: 10.2cm, h: 1.9cm) = {
   let r = 0.4cm
@@ -16,19 +18,25 @@
       let b = nodi.at(l.at(1))
       let et = l.at(2, default: "")
       let st = l.at(3, default: "att")
-      let tr = if st == "rem" { (paint: luma(170), thickness: 1.1pt, dash: "dashed") } else { (paint: black, thickness: 1.4pt) }
+      let tr = if st == "rem" { (paint: luma(170), thickness: 1.1pt, dash: "dashed") } else {
+        (paint: black, thickness: 1.4pt)
+      }
       place(top + left, line(start: (a.at(1), a.at(2)), end: (b.at(1), b.at(2)), stroke: tr))
       if et != "" {
-        place(top + left,
-          dx: (a.at(1) + b.at(1)) / 2 - 0.7cm,
-          dy: (a.at(2) + b.at(2)) / 2 - 0.5cm,
-          box(width: 1.4cm, align(center, text(size: 7pt, fill: if st == "rem" { luma(150) } else { black })[#et])))
+        place(top + left, dx: (a.at(1) + b.at(1)) / 2 - 0.7cm, dy: (a.at(2) + b.at(2)) / 2 - 0.5cm, box(
+          width: 1.4cm,
+          align(center, text(size: 7pt, fill: if st == "rem" { luma(150) } else { black })[#et]),
+        ))
       }
     }
     for n in nodi {
-      place(top + left, dx: n.at(1) - r, dy: n.at(2) - r,
-        circle(radius: r, inset: 0pt, fill: col-nodo(n.at(3, default: "norm")), stroke: 1pt,
-          align(center + horizon, text(size: 8pt)[#n.at(0)])))
+      place(top + left, dx: n.at(1) - r, dy: n.at(2) - r, circle(
+        radius: r,
+        inset: 0pt,
+        fill: col-nodo(n.at(3, default: "norm")),
+        stroke: 1pt,
+        align(center + horizon, text(size: 8pt)[#n.at(0)]),
+      ))
     }
   })
 }
@@ -41,23 +49,37 @@
     ..range(n).map(i => align(center + horizon, text(size: 7.5pt, fill: luma(110))[#i])),
     ..range(n).map(i => {
       let e = evid.find(e => e.at(0) == i)
-      rect(width: 100%, height: 100%, inset: 0pt, stroke: 0.8pt,
+      rect(
+        width: 100%,
+        height: 100%,
+        inset: 0pt,
+        stroke: 0.8pt,
         fill: if e == none { white } else { e.at(1) },
-        align(center + horizon, text(size: 9pt, font: ("DejaVu Sans Mono", "Liberation Mono"), vals.at(i))))
+        align(center + horizon, text(size: 9pt, font: ("DejaVu Sans Mono", "Liberation Mono"), vals.at(i))),
+      )
     }),
   )
 }
 
-#let pila(items) = box(height: 2.3cm, width: 3.3cm,
-  align(bottom + center, stack(dir: btt, spacing: 1pt,
-    ..items.map(it => rect(width: 3.1cm, height: 0.45cm, inset: 2pt, stroke: 0.7pt, fill: luma(245),
-      align(center + horizon, text(size: 8pt, it)))),
-    text(size: 7pt, fill: luma(110))[pila (cima in alto)])))
+#let pila(items) = box(height: 2.3cm, width: 3.3cm, align(bottom + center, stack(
+  dir: btt,
+  spacing: 1pt,
+  ..items.map(it => rect(width: 3.1cm, height: 0.45cm, inset: 2pt, stroke: 0.7pt, fill: luma(245), align(
+    center + horizon,
+    text(size: 8pt, it),
+  ))),
+  text(size: 7pt, fill: luma(110))[pila (cima in alto)],
+)))
 
 #let passo(titolo, desc, g, p) = block(breakable: false, above: 1.2em, {
   [*#titolo* #desc]
   v(2pt)
-  grid(columns: (auto, auto), column-gutter: 0.8cm, align: bottom, g, pila(p))
+  grid(
+    columns: (auto, auto),
+    column-gutter: 0.8cm,
+    align: bottom,
+    g, pila(p),
+  )
 })
 
 
@@ -76,7 +98,7 @@
 
 = Introduzione e Obiettivo: Funzioni Statiche vs Dizionari
 
-Il nostro obiettivo è mappare i termini nel loro rango per poter risolvere le interrogazioni in modo efficiente. Utilizzare una tabella di hash tradizionale occuperebbe troppo spazio. 
+Il nostro obiettivo è mappare i termini nel loro rango per poter risolvere le interrogazioni in modo efficiente. Utilizzare una tabella di hash tradizionale occuperebbe troppo spazio.
 
 Lo scopo principale è costruire strutture dati che memorizzino questa mappa *senza memorizzare le chiavi*. Esiste una differenza fondamentale:
 - *Memorizzare una funzione* è diverso da *memorizzare un dizionario*.
@@ -98,14 +120,21 @@ Lo scopo principale è costruire strutture dati che memorizzino questa mappa *se
 == Rappresentazione di una funzione statica
 Supponiamo di avere $x in U$ e una funzione $f : X -> 2^b$. Vogliamo costruire una struttura dati statica (chiamata così perché dipende interamente da $f$). Questa funzione possiede un metodo `get` che, dato un elemento dell'universo $U$, restituisce un vettore di bit.
 
-Se interroghiamo la struttura su un elemento $x$, il risultato deve essere $f(x)$, mentre non ci interessa il comportamento sul resto di $U$. Questo ci svincola dal dover memorizzare l'intero insieme $X$. 
+Se interroghiamo la struttura su un elemento $x$, il risultato deve essere $f(x)$, mentre non ci interessa il comportamento sul resto di $U$. Questo ci svincola dal dover memorizzare l'intero insieme $X$.
 
 #figure(
-  grid(columns: (auto, auto, auto), column-gutter: 0.5cm, align: horizon + center,
+  grid(
+    columns: (auto, auto, auto),
+    column-gutter: 0.5cm,
+    align: horizon + center,
     rect(width: 5.8cm, height: 3.3cm, radius: 4pt, stroke: 1pt, inset: 0pt, {
       place(top + left, dx: 0.2cm, dy: 0.12cm, text(size: 9pt)[$U$ (universo, enorme)])
-      place(top + left, dx: 0.5cm, dy: 0.8cm,
-        ellipse(width: 3cm, height: 2cm, fill: c-g, stroke: 1pt)[$X$ \ ($n$ chiavi)])
+      place(top + left, dx: 0.5cm, dy: 0.8cm, ellipse(
+        width: 3cm,
+        height: 2cm,
+        fill: c-g,
+        stroke: 1pt,
+      )[$X$ \ ($n$ chiavi)])
       place(top + left, dx: 4.0cm, dy: 1.9cm, text(size: 9pt)[$z in.not X$])
     }),
     stack(spacing: 3pt, text(size: 9pt)[$f$], $-->$),
@@ -114,7 +143,7 @@ Se interroghiamo la struttura su un elemento $x$, il risultato deve essere $f(x)
   caption: [La funzione $f$ è definita solo sulle $n$ chiavi di $X$; sul resto di $U$ non ci interessa cosa risponde.],
 )
 
-- Spazio teorico minimo: $log((|U|)/(|X|))$ per chiave -> $|X| log((|U|)/(|X|))$ 
+- Spazio teorico minimo: $log((|U|)/(|X|))$ per chiave -> $|X| log((|U|)/(|X|))$
 - Spazio per l'output: $|X| b$
 
 L'obiettivo è eliminare il termine dipendente da $|U|$ (che è molto grande) evitando di memorizzare esplicitamente l'insieme $X$.
@@ -178,17 +207,21 @@ La struttura *non* memorizza questa tabella: memorizza solo le due funzioni hash
 
 Per rispondere a `get`$(x)$ si procede in tre passi: *(1)* si calcolano $g(x)$ e $h(x)$; *(2)* si leggono le due celle corrispondenti di $v$; *(3)* si fa lo XOR bit a bit dei due valori.
 
-*Query "gatto"*: $g = 1$, $h = 2$. Si leggono $v_1 = $ `11` e $v_2 = $ `11`:
+*Query "gatto"*: $g = 1$, $h = 2$. Si leggono $v_1 =$ `11` e $v_2 =$ `11`:
 $ v_1 xor v_2 = 11 xor 11 = 00 = 0 quad checkmark $
 
-*Query "cane"*: $g = 0$, $h = 1$. Si leggono $v_0 = $ `10` e $v_1 = $ `11`:
+*Query "cane"*: $g = 0$, $h = 1$. Si leggono $v_0 =$ `10` e $v_1 =$ `11`:
 $ v_0 xor v_1 = 10 xor 11 = 01 = 1 quad checkmark $
 (XOR bit a bit: bit alto $1 xor 1 = 0$, bit basso $0 xor 1 = 1$.)
 
 *Query "topo"*: $v_2 xor v_3 = 11 xor 00 = 11 = 3$ #sym.checkmark. *Query "ape"*: $v_3 xor v_5 = 00 xor 10 = 10 = 2$ #sym.checkmark.
 
 #figure(
-  grid(columns: (2.3cm, auto), column-gutter: 0.4cm, row-gutter: 0.3cm, align: left + horizon,
+  grid(
+    columns: (2.3cm, auto),
+    column-gutter: 0.4cm,
+    row-gutter: 0.3cm,
+    align: left + horizon,
     [cane #text(size: 8pt)[(0, 1)]], vettore(("10", "11", "11", "00", "00", "10"), evid: ((0, c-g), (1, c-h))),
     [gatto #text(size: 8pt)[(1, 2)]], vettore(("10", "11", "11", "00", "00", "10"), evid: ((1, c-g), (2, c-h))),
     [topo #text(size: 8pt)[(2, 3)]], vettore(("10", "11", "11", "00", "00", "10"), evid: ((2, c-g), (3, c-h))),
@@ -199,12 +232,12 @@ $ v_0 xor v_1 = 10 xor 11 = 01 = 1 quad checkmark $
 )
 
 #warning()[
-  *Chiave estranea:* con $x = $ "pippo" supponiamo $g = 0$ e $h = 4$. Si ottiene $v_0 xor v_4 = 10 xor 00 = 10 = 2$: la struttura risponde "rango $2$" (che è il rango di "ape") *senza segnalare alcun errore*. Una funzione statica non ha modo di accorgersi che la chiave non appartiene a $X$.
+  *Chiave estranea:* con $x =$ "pippo" supponiamo $g = 0$ e $h = 4$. Si ottiene $v_0 xor v_4 = 10 xor 00 = 10 = 2$: la struttura risponde "rango $2$" (che è il rango di "ape") *senza segnalare alcun errore*. Una funzione statica non ha modo di accorgersi che la chiave non appartiene a $X$.
 ]
 
 = Risolubilità del Sistema e Teoria dei Grafi
 
-Perché il sistema è risolvibile? Se $m$ è abbastanza grande, il sistema ammette soluzione. 
+Perché il sistema è risolvibile? Se $m$ è abbastanza grande, il sistema ammette soluzione.
 
 Possiamo visualizzare il sistema come un grafo con $m$ nodi (variabili) in cui ogni chiave rappresenta un collegamento (lato) tra due nodi. Costruiamo il grafo inserendo tutte le chiavi.
 
@@ -214,15 +247,22 @@ Possiamo visualizzare il sistema come un grafo con $m$ nodi (variabili) in cui o
   - $k_1 -> g(k_1)=1, quad h(k_1)=2 -> v_1 xor v_2 = f(k_1)$
   - $k_2 -> g(k_2)=2, quad h(k_2)=3 -> v_2 xor v_3 = f(k_2)$
   - $k_3 -> g(k_3)=1, quad h(k_3)=3 -> v_1 xor v_3 = f(k_3)$
-  
+
   Nel grafo corrispondente, i nodi sono $\{1, 2, 3, 4\}$ e i lati sono i collegamenti $\{1,2\}$, $\{2,3\}$ e $\{1,3\}$. Il nodo $4$ risulta isolato (variabile libera).
 ]
 
 #figure(
   grafo(
-    (($v_1$, 0.9cm, 0.7cm, "norm"), ($v_2$, 3.5cm, 0.7cm, "norm"), ($v_3$, 2.2cm, 2.5cm, "norm"), ($v_4$, 5.5cm, 1.6cm, "libero")),
+    (
+      ($v_1$, 0.9cm, 0.7cm, "norm"),
+      ($v_2$, 3.5cm, 0.7cm, "norm"),
+      ($v_3$, 2.2cm, 2.5cm, "norm"),
+      ($v_4$, 5.5cm, 1.6cm, "libero"),
+    ),
     ((0, 1, $k_1$), (1, 2, $k_2$), (0, 2, $k_3$)),
-    w: 6.4cm, h: 3.1cm),
+    w: 6.4cm,
+    h: 3.1cm,
+  ),
   caption: [Il grafo dell'esempio: ogni chiave è un lato. I tre lati formano un *ciclo* ($v_1, v_2, v_3$); $v_4$ (verde) è isolato.],
 )
 
@@ -258,40 +298,65 @@ cane $= {v_0, v_1}$, gatto $= {v_1, v_2}$, topo $= {v_2, v_3}$, ape $= {v_3, v_5
 
 Legenda dei colori: *giallo* = foglia (grado $<= 1$ tra i lati rimasti), *grigio* = vertice già rimosso, *verde* = variabile libera, lato tratteggiato = lato già rimosso.
 
-#passo([Passo 0 — grafo iniziale.],
+#passo(
+  [Passo 0 — grafo iniziale.],
   [Gradi: $v_0 = 1$, $v_1 = 2$, $v_2 = 2$, $v_3 = 2$, $v_4 = 0$, $v_5 = 1$. Le foglie sono $v_0$ e $v_5$. Il vertice $v_4$ ha grado $0$: nessuna equazione lo usa, è una variabile libera. La pila è vuota.],
   grafo(es-nodi(("foglia", "norm", "norm", "norm", "libero", "foglia")), es-lati(("att", "att", "att", "att"))),
-  ())
+  (),
+)
 
-#passo([Passo 1 — rimuovo $v_0$.],
+#passo(
+  [Passo 1 — rimuovo $v_0$.],
   [L'unica equazione che contiene $v_0$ è quella di "cane": la rimuovo e la metto in pila, annotando che la variabile "foglia" di quell'equazione è $v_0$. Il grado di $v_1$ scende a $1$: ora anche $v_1$ è una foglia.],
   grafo(es-nodi(("rimosso", "foglia", "norm", "norm", "libero", "foglia")), es-lati(("rem", "att", "att", "att"))),
-  ([cane → $v_0$],))
+  ([cane → $v_0$],),
+)
 
-#passo([Passo 2 — rimuovo $v_5$.],
+#passo(
+  [Passo 2 — rimuovo $v_5$.],
   [$v_5$ compare solo in "ape". Pila: aggiungo "ape → $v_5$". Il grado di $v_3$ scende da $2$ a $1$. Foglie disponibili: $v_1$ (gatto) e $v_3$ (topo).],
   grafo(es-nodi(("rimosso", "foglia", "norm", "foglia", "libero", "rimosso")), es-lati(("rem", "att", "att", "rem"))),
-  ([cane → $v_0$], [ape → $v_5$]))
+  ([cane → $v_0$], [ape → $v_5$]),
+)
 
-#passo([Passo 3 — rimuovo $v_1$.],
+#passo(
+  [Passo 3 — rimuovo $v_1$.],
   [Scelgo la foglia $v_1$ (potevo scegliere anche $v_3$: l'ordine tra foglie è libero). Si rimuove "gatto" e si mette in pila. Il grado di $v_2$ scende a $1$.],
-  grafo(es-nodi(("rimosso", "rimosso", "foglia", "foglia", "libero", "rimosso")), es-lati(("rem", "rem", "att", "rem"))),
-  ([cane → $v_0$], [ape → $v_5$], [gatto → $v_1$]))
+  grafo(es-nodi(("rimosso", "rimosso", "foglia", "foglia", "libero", "rimosso")), es-lati((
+    "rem",
+    "rem",
+    "att",
+    "rem",
+  ))),
+  ([cane → $v_0$], [ape → $v_5$], [gatto → $v_1$]),
+)
 
-#passo([Passo 4 — rimuovo $v_2$ e il grafo è vuoto.],
+#passo(
+  [Passo 4 — rimuovo $v_2$ e il grafo è vuoto.],
   [Resta il solo lato "topo" = ${v_2, v_3}$: entrambi gli estremi sono foglie. Scelgo $v_2$ come variabile foglia. Ora $v_3$ ha grado $0$ e diventa libera, come $v_4$. Non è rimasto nessun lato: *il grafo era aciclico e il peeling è riuscito*.],
-  grafo(es-nodi(("rimosso", "rimosso", "rimosso", "libero", "libero", "rimosso")), es-lati(("rem", "rem", "rem", "rem"))),
-  ([cane → $v_0$], [ape → $v_5$], [gatto → $v_1$], [topo → $v_2$]))
+  grafo(es-nodi(("rimosso", "rimosso", "rimosso", "libero", "libero", "rimosso")), es-lati((
+    "rem",
+    "rem",
+    "rem",
+    "rem",
+  ))),
+  ([cane → $v_0$], [ape → $v_5$], [gatto → $v_1$], [topo → $v_2$]),
+)
 
 #v(0.6em)
 *Cosa succede se c'è un ciclo?* Nel triangolo $v_1, v_2, v_3$ visto prima ogni vertice ha grado $2$: *non esiste nessuna foglia* da cui partire, il peeling si blocca con dei lati rimasti. In quel caso si scartano le funzioni hash, se ne scelgono di nuove (nuovo seme) e si ricostruisce il grafo.
 
 #figure(
-  grid(columns: (auto, auto), column-gutter: 1.2cm, align: horizon + center,
+  grid(
+    columns: (auto, auto),
+    column-gutter: 1.2cm,
+    align: horizon + center,
     grafo(
       (($v_1$, 0.9cm, 0.7cm, "norm"), ($v_2$, 3.0cm, 0.7cm, "norm"), ($v_3$, 1.95cm, 2.4cm, "norm")),
       ((0, 1, $k_1$), (1, 2, $k_2$), (0, 2, $k_3$)),
-      w: 3.9cm, h: 2.9cm),
+      w: 3.9cm,
+      h: 2.9cm,
+    ),
     [Tutti i vertici hanno grado $2$: \ nessuna foglia, \ *il peeling si blocca*.],
   ),
   caption: [Un ciclo impedisce l'esfoliazione.],
@@ -309,15 +374,23 @@ Partiamo dalla pila ottenuta dal peeling (dal fondo alla cima): cane → $v_0$, 
 Si estrae dalla cima (ordine inverso rispetto al peeling). Ogni equazione estratta contiene *una sola* incognita: la sua variabile foglia. Tutte le altre sono già note (libere o calcolate prima).
 
 #figure(
-  grid(columns: (1fr, auto), column-gutter: 0.5cm, row-gutter: 0.45cm, align: left + horizon,
+  grid(
+    columns: (1fr, auto),
+    column-gutter: 0.5cm,
+    row-gutter: 0.45cm,
+    align: left + horizon,
     [*Inizio.* Libere: $v_3 = v_4 = 00$.],
     vettore(("?", "?", "?", "00", "00", "?"), evid: ((3, c-free), (4, c-free)), w: 1.1cm),
+
     [*Estraggo "topo → $v_2$":* $v_2 xor v_3 = 11$, quindi $v_2 = 11 xor 00 = 11$.],
     vettore(("?", "?", "11", "00", "00", "?"), evid: ((2, c-new),), w: 1.1cm),
+
     [*Estraggo "gatto → $v_1$":* $v_1 xor v_2 = 00$, quindi $v_1 = 00 xor 11 = 11$.],
     vettore(("?", "11", "11", "00", "00", "?"), evid: ((1, c-new),), w: 1.1cm),
+
     [*Estraggo "ape → $v_5$":* $v_3 xor v_5 = 10$, quindi $v_5 = 10 xor 00 = 10$.],
     vettore(("?", "11", "11", "00", "00", "10"), evid: ((5, c-new),), w: 1.1cm),
+
     [*Estraggo "cane → $v_0$":* $v_0 xor v_1 = 01$, quindi $v_0 = 01 xor 11 = 10$.],
     vettore(("10", "11", "11", "00", "00", "10"), evid: ((0, c-new),), w: 1.1cm),
   ),
@@ -345,7 +418,13 @@ Numeriamo i lati: cane $= 1$, gatto $= 2$, topo $= 3$, ape $= 4$. Per ogni verti
     [], [$v_0$], [$v_1$], [$v_2$], [$v_3$], [$v_4$], [$v_5$],
     [lati incidenti], [1], [1, 2], [2, 3], [3, 4], [—], [4],
     [grado], [1], [2], [2], [2], [0], [1],
-    [XOR dei lati], [`001`], [`001`$xor$`010` $=$ `011`], [`010`$xor$`011` $=$ `001`], [`011`$xor$`100` $=$ `111`], [`000`], [`100`],
+    [XOR dei lati],
+    [`001`],
+    [`001`$xor$`010` $=$ `011`],
+    [`010`$xor$`011` $=$ `001`],
+    [`011`$xor$`100` $=$ `111`],
+    [`000`],
+    [`100`],
   ),
   caption: [Stato iniziale del grafo: due soli interi per vertice, nessuna lista di vicini.],
 )
@@ -369,7 +448,9 @@ $ ( sqrt(epsilon (2 + epsilon)) ) / ( 1 + epsilon ) $
 
 Ad esempio, si usa spesso un fattore come $2.09$ per avere circa il $30%$ di probabilità. Facendo $3$ o $4$ tentativi in media troviamo un grafo aciclico valido.
 
-Il costo della struttura è quindi il numero di variabili moltiplicato per $b$: $(2 + epsilon) n b$. Avere un grafo esfoliabile significa trovarsi di fronte a una foresta. Strutture di questo tipo hanno una costruzione probabilistica ma una risposta deterministica.
+Il costo della struttura è quindi il numero di variabili moltiplicato per $b$:
+$ underbrace((2 + epsilon), "numero" \ "nodi") underbrace(n, "numero" \ "di chiavi") space underbrace(b, "bit chiave") $
+Avere un grafo esfoliabile significa trovarsi di fronte a una foresta. Strutture di questo tipo hanno una costruzione probabilistica ma una risposta deterministica.
 
 #note()[
   La probabilità di successo è positiva, indipendente da $m$ e $n$, e limitata inferiormente da una costante positiva.
@@ -381,7 +462,7 @@ Come possiamo ridurre il fattore $(2 + epsilon) n b$? Estendendo il modello a tr
 
 $ v_(g(x)) xor v_(h(x)) xor v_(c(x)) = f(x) quad forall x in X $
 
-In questo caso utilizziamo *ipergrafi*. Le foglie diventano i vertici coinvolti in un solo iperlato. 
+In questo caso utilizziamo *ipergrafi*. Le foglie diventano i vertici coinvolti in un solo iperlato.
 
 #example()[
   *Rappresentazione con gli ipergrafi (3 hash):*
@@ -390,12 +471,15 @@ In questo caso utilizziamo *ipergrafi*. Le foglie diventano i vertici coinvolti 
   Questo riduce drasticamente il numero di nodi $m$ necessari per mantenere la proprietà di esfoliabilità.
 ]
 
-Con gli ipergrafi a 3 funzioni, la soglia per l'esfoliabilità scende a $1.22$, portando il costo a circa $1.23 |X| b$. 
+#note()[
+  Con gli ipergrafi a 3 funzioni, la soglia per l'esfoliabilità scende a $1.22$, portando il costo a circa $1.23 |X| b$.
+]
+
 
 L'utilizzo di $3$ funzioni è la soluzione ideale, poiché con $4$ funzioni la situazione peggiora. Superata la soglia di esfoliazione non abbiamo più una garanzia di probabilità strettamente positiva, ma la certezza asintotica ("quasi sempre"). Con mille chiavi, solitamente funziona al primo colpo.
 
 #note()[
-  *Soglie:* Le soglie di risolubilità sono più basse di quelle di esfoliabilità. Al crescere di $k$ (numero di funzioni hash), la risolubilità diventa sempre più facile, l'esfoliazione diventa più difficile. Aumentare il numero di funzioni aumenta però gli accessi in memoria e la complessità di risoluzione del sistema lineare.
+  Le soglie di risolubilità sono più basse di quelle di esfoliabilità. Al crescere di $k$ (numero di funzioni hash), la *risolubilità* diventa sempre *più facile*, l'*esfoliazione* diventa *più difficile*. Aumentare il numero di funzioni aumenta però gli accessi in memoria e la complessità di risoluzione del sistema lineare.
 ]
 
 === Esempio guidato: un ipergrafo con 3 funzioni hash
@@ -406,13 +490,21 @@ $A = {v_0, v_1, v_2}$, $B = {v_2, v_3, v_4}$, $C = {v_4, v_5, v_6}$ e valori $f(
 #figure(
   grafo(
     (
-      ($v_0$, 0.7cm, 2.1cm, "foglia"), ($v_1$, 2.3cm, 2.1cm, "foglia"), ($v_2$, 3.9cm, 2.1cm, "norm"),
-      ($v_3$, 5.5cm, 2.1cm, "foglia"), ($v_4$, 7.1cm, 2.1cm, "norm"), ($v_5$, 8.7cm, 2.1cm, "foglia"),
+      ($v_0$, 0.7cm, 2.1cm, "foglia"),
+      ($v_1$, 2.3cm, 2.1cm, "foglia"),
+      ($v_2$, 3.9cm, 2.1cm, "norm"),
+      ($v_3$, 5.5cm, 2.1cm, "foglia"),
+      ($v_4$, 7.1cm, 2.1cm, "norm"),
+      ($v_5$, 8.7cm, 2.1cm, "foglia"),
       ($v_6$, 10.3cm, 2.1cm, "foglia"),
-      ($A$, 2.3cm, 0.5cm, "chiave"), ($B$, 5.5cm, 0.5cm, "chiave"), ($C$, 8.7cm, 0.5cm, "chiave"),
+      ($A$, 2.3cm, 0.5cm, "chiave"),
+      ($B$, 5.5cm, 0.5cm, "chiave"),
+      ($C$, 8.7cm, 0.5cm, "chiave"),
     ),
     ((7, 0), (7, 1), (7, 2), (8, 2), (8, 3), (8, 4), (9, 4), (9, 5), (9, 6)),
-    w: 11cm, h: 2.7cm),
+    w: 11cm,
+    h: 2.7cm,
+  ),
   caption: [Ipergrafo: ogni chiave (azzurro) è un iperlato che collega *tre* variabili. In giallo i vertici di grado $1$ (foglie).],
 )
 
@@ -446,7 +538,7 @@ Useremo questo approccio per mappare le parole nel loro rango. Tuttavia, se l'ut
 
 == Aggiunta di Firme (Fingerprints)
 Per trasformare la funzione statica in un dizionario, aggiungiamo delle *firme*:
-1. Prendiamo una buona funzione di hash e memorizziamo in un vettore le firme per ciascun termine.
+1. Prendiamo una buona funzione di hash $S(x)$ e memorizziamo in un vettore F le firme per ciascun termine. Il vettore $F$ ha lunghezza $n$ (numero di chiavi) e in posizione $f(x)$ memorizziamo la firma $S(x)$ della chiave $x$.
 2. Quando arriva una chiave $x$, calcoliamo $f(x)$ (la funzione statica) e controlliamo se $F[f(x)] = S(x)$.
 
 #example()[
@@ -468,36 +560,37 @@ Riprendiamo la funzione statica dell'esempio a due hash (ranghi: gatto $= 0$, ca
 
 *Query "cane"* (chiave presente):
 + funzione statica: $f("cane") = v_0 xor v_1 = 10 xor 11 = 01 = 1$;
-+ leggo $F[1] = $ `a7`;
-+ calcolo $S("cane") = $ `a7`. Coincidono: *presente* #sym.checkmark.
++ leggo $F[1] =$ `a7`;
++ calcolo $S("cane") =$ `a7`. Coincidono: *presente* #sym.checkmark.
 
 *Query "pippo"* (chiave estranea):
 + funzione statica: $f("pippo") = v_0 xor v_4 = 10 xor 00 = 10 = 2$ (rango spurio);
-+ leggo $F[2] = $ `51` (la firma di "ape");
-+ calcolo $S("pippo") = $ `9d`. Sono diverse: *assente*, come volevamo.
++ leggo $F[2] =$ `51` (la firma di "ape");
++ calcolo $S("pippo") =$ `9d`. Sono diverse: *assente*, come volevamo.
 
 #figure(
-  grid(columns: (auto, auto, auto, auto, auto, auto, auto), column-gutter: 0.35cm, align: horizon + center,
+  grid(
+    columns: (auto, auto, auto, auto, auto, auto, auto),
+    column-gutter: 0.35cm,
+    align: horizon + center,
     riquadro[$x$], $-->$, riquadro[$f(x)$ \ rango], $-->$, riquadro[$F[f(x)]$], $=?=$, riquadro[$S(x)$],
   ),
   caption: [Schema della verifica: si confronta la firma memorizzata nella posizione $f(x)$ con la firma calcolata di $x$.],
 )
 
-Può comunque capitare che una chiave estranea dia per caso la stessa firma: con firme di $r$ bit la probabilità è circa $2^(-r)$ (con $r = 8$, circa $1/256$). Più bit di firma significano meno falsi positivi, ma anche più spazio.
-
-Questo costa uno spazio proporzionale alla lunghezza dei termini, ma molto meno di una tabella di hash tradizionale. 
+Può comunque capitare che una chiave estranea dia per caso la stessa firma: con firme di $r$ bit la probabilità è circa *$2^(-r)$* (con $r = 8$, circa $1/256$). Più bit di firma significano meno falsi positivi, ma anche più spazio. Questo costa uno *spazio proporzionale alla lunghezza dei termini*, ma molto meno di una tabella di hash tradizionale.
 
 La funzione statica deve restituire una permutazione di $n$ (nel range $0 ... n-1$), diventando così una *Funzione di Hash Minimale Perfetta* (MPH), in particolare monotona.
 
 == Filtri di Bloom Statici e Dizionari Compatti
 
-Se vogliamo solo l'identità insiemistica senza recuperare l'output della funzione statica:
+Se vogliamo solo l'identità insiemistica senza recuperare l'output della funzione statica (vogliamo sapere se una chiave appartiene o meno all'insieme, senza rango), possiamo usare un *filtro di Bloom statico*. In questo caso non memorizziamo le firme, ma solo un vettore di bit che indica la presenza o meno della chiave.:
 - Possiamo costruire un filtro di Bloom statico o un dizionario statico associando a ogni chiave un hash crittografico $S(x)$.
 - La funzione statica mappa ogni chiave nella sua firma. Se interroghiamo con una chiave non presente, $f(x)$ restituirà un vettore casuale di $b$ bit.
 - Confrontando $f(x)$ con la firma crittografica $S(x)$, possiamo determinare con altissima probabilità se la chiave appartiene all'insieme originario.
 
-Un filtro di Bloom tradizionale richiede circa $1.44 n b$ bit. Utilizzando invece una funzione statica che memorizza le firme, 
-questo costo scende a circa $1.23 n b$ (con 3 funzioni di hash) o addirittura a $1.01 n b$ bit con strutture più moderne (come i Ribbon 
+Un filtro di Bloom tradizionale richiede circa $1.44 n b$ bit. Utilizzando invece una funzione statica che memorizza le firme,
+questo costo scende a circa $1.23 n b$ (con 3 funzioni di hash) o addirittura a $1.01 n b$ bit con strutture più moderne (come i Ribbon
 filter attualmente utilizzati in RocksDB), risultando nettamente più compatto del filtro di Bloom tradizionale e ottenendo un dizionario statico valutabile in tempo costante.
 
 #note()[
