@@ -33,7 +33,7 @@ Nei moderni sistemi di Information Retrieval, la risoluzione di un'interrogazion
 
 Nella valutazione della qualità di un sistema di recupero delle informazioni si considerano due metriche fondamentali:
 - *Precisione (Precision):* misura la frazione di documenti effettivamente rilevanti tra quelli restituiti dal sistema (ovvero l'aderenza dei risultati mostrati rispetto alla query).
-- *Richiamo (Recall):* misura la frazione di documenti etichettati come rilevanti dal sistema (quelli restituiti) rispetto al totale dei documenti rilevanti presenti nell'intera collezione.
+- *Richiamo (Recall):* misura la frazione tra i documenti rilevanti restituiti dal sistema e il totale dei documenti rilevanti presenti nell'intera collezione.
 
 Ottenere contemporaneamente alta precisione e alto richiamo è molto difficile, poiché le due metriche sono in contrapposizione tra di loro:
 - È banale ottenere una *precisione massima* ($100 %$): basta essere estremamente conservativi e restituire un unico documento di cui si è certi (o al limite non restituire quasi nulla), perdendo però quasi tutti gli altri documenti utili e azzerando il richiamo.
@@ -145,8 +145,10 @@ dove:
   $
   Se facciamo tendere il numero di occorrenze all'infinito ($c_(t, d) -> infinity$), il rapporto $c_(t, d) / (k_1 + c_(t, d))$ tende a $1$, e il peso raggiunge il limite asintotico superiore:
   $
-    lim_(c_(t, d) -> infinity) frac((1 + k_1) c_(t, d), k_1 + c_(t, d)) = (c_(t,d)(1+k_1)) / (c_(t,d)(k_1/c_(t,d) + 1))
-    = (1 + k_1) / (k_1/(c_(t,d))+1)= (1 + k_1)/(0+1)
+    lim_(c_(t, d) -> infinity) frac((1 + k_1) c_(t, d), k_1 + c_(t, d)) = 
+    lim_(c_(t, d) -> infinity) (c_(t,d)(1+k_1)) / (c_(t,d)(k_1/c_(t,d) + 1)) = 
+    lim_(c_(t, d) -> infinity) (1 + k_1) / (k_1/(c_(t,d))+1) = 
+    (1 + k_1)/(0+1)
   $
   Questo significa che ripetere un termine continua ad aumentare lo score (non smette mai del tutto di avere importanza), ma con rendimenti marginali decrescenti: oltre una certa soglia di saturazione, aggiungere ulteriori occorrenze non sposta quasi più il punteggio.
 
@@ -173,7 +175,9 @@ Su questo insieme ridotto di candidati è possibile applicare una seconda fase d
 
 Il funzionamento (nella configurazione *cross-encoder*) è il seguente:
 - Si fornisce in input a BERT la concatenazione della query e del documento candidato, preceduta dal token speciale di inizio sequenza `[CLS]` e separata dal token `[SEP]`:
+
   `[CLS] query [SEP] documento [SEP]`
+
 - Grazie al meccanismo di *self-attention* bidirezionale, il modello analizza le interazioni semantiche e contestuali tra tutte le parole della query e tutte le parole del documento (superando i limiti del modello *bag of words* e riconoscendo sinonimi, parafrasi e contesto).
 - Il vettore di output (*embedding*) associato al token speciale `[CLS]` riassume la relazione globale tra query e documento: facendolo passare attraverso uno strato lineare finale, il modello viene addestrato (*fine-tuned* su grandi dataset di coppie query-documento etichettate) per produrre direttamente uno *score di rilevanza*.
 - I documenti candidati vengono infine riordinati in base a questo nuovo punteggio neurale prima di essere presentati all'utente.
