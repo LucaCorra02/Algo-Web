@@ -1,11 +1,11 @@
 #import "../template.typ": *
-#import "@preview/fletcher:0.5.8" as fletcher: diagram, node, edge
+#import "@preview/fletcher:0.5.8" as fletcher: diagram, edge, node
 
 == Indice di Katz (Centralità) <katz>
 
 *Idea di partenza:* Generalizzare il concetto di elezione per maggioranza su un grafo/rete.
 
-Partiamo da una matrice d'adiacenza $bold(A)$, dove l'arco orientato $x arrow.r y$ indica che $x$ vota per $y$. Il punteggio base di maggioranza equivale al numero di voti entranti per ciascun vertice, che si ottiene moltiplicando il vettore riga di tutti uni per $bold(A)$: $bold(1) bold(A)$.
+Partiamo da una matrice d'adiacenza $bold(A)$, dove l'arco orientato $x arrow.r y$ indica che $x$ vota per $y$. Il punteggio base di maggioranza equivale al numero di voti entranti per ciascun vertice, che si ottiene moltiplicando il vettore riga di tutti uni per $bold(A)$ ($bold(1) bold(A)$).
 
 *Problema:* La sola maggioranza diretta non considera l'importanza di *chi* esprime il voto. Vorremmo contare anche i voti ottenuti dalle persone che ci votano: $bold(1) bold(A)^2$ (che rappresenta il numero di cammini di lunghezza 2 entranti in ogni vertice).
 
@@ -59,7 +59,9 @@ $ sum_(k >= 0) (alpha bold(A))^k $
 
 #proof[
   Poniamo $bold(X) = alpha bold(A)$ e moltiplichiamo la somma parziale per $(bold(I) - bold(X))$. I termini intermedi si cancellano a coppie (somma telescopica):
-  $ (sum_(k = 0)^N bold(X)^k) (bold(I) - bold(X)) = (bold(I) + bold(X) + dots.c + bold(X)^N) - (bold(X) + bold(X)^2 + dots.c + bold(X)^(N+1)) = bold(I) - bold(X)^(N+1) $
+  $
+    (sum_(k = 0)^N bold(X)^k) (bold(I) - bold(X)) = (bold(I) + bold(X) + dots.c + bold(X)^N) - (bold(X) + bold(X)^2 + dots.c + bold(X)^(N+1)) = bold(I) - bold(X)^(N+1)
+  $
   Poiché $rho(bold(X)) < 1$, si ha $bold(X)^(N+1) -> bold(0)$ per $N -> infinity$. Passando al limite il prodotto restituisce l'identità $bold(I)$, quindi la serie coincide con la matrice inversa.
 ]
 
@@ -76,7 +78,6 @@ L'indice di PageRank è concettualmente più recente.
 
 La matrice di transizione risultante è:
 $ bold(P) = mb(alpha overline(bold(A))) + mo((1 - alpha) bold(1)^T bold(v)) $
-
 dove il termine #text(fill: blue)[blu] è il *seguire un link* (probabilità $alpha$) e il termine #text(fill: orange)[arancione] è il *teletrasporto* (probabilità $1 - alpha$).
 
 #figure(
@@ -118,14 +119,17 @@ Il PageRank corrisponde alla distribuzione limite/stazionaria $bold(p)$ della ca
 $ bold(p) = bold(p) bold(P) $
 
 Sostituendo la definizione di $bold(P)$:
-$ bold(p) = bold(p) (alpha overline(bold(A)) + (1 - alpha) bold(1)^T bold(v)) = alpha bold(p) overline(bold(A)) + (1 - alpha) (bold(p) bold(1)^T) bold(v) $
-
+$
+  bold(p) = bold(p) (alpha overline(bold(A)) + (1 - alpha) bold(1)^T bold(v)) = alpha bold(p) overline(bold(A)) + (1 - alpha) (bold(p) bold(1)^T) bold(v)
+$
 Poiché $bold(p)$ è un vettore di probabilità, la somma dei suoi elementi è pari a $1$, ovvero $bold(p) bold(1)^T = 1$. L'equazione si semplifica in un'equazione lineare:
 
 $ bold(p) - alpha bold(p) overline(bold(A)) = (1 - alpha) bold(v) $
 
 Raccogliendo $bold(p)$:
-$ bold(p) (bold(I) - alpha overline(bold(A))) = (1 - alpha) bold(v) quad -> quad bold(p) = (1 - alpha) bold(v) (bold(I) - alpha overline(bold(A)))^(-1) $
+$
+  bold(p) (bold(I) - alpha overline(bold(A))) = (1 - alpha) bold(v) quad -> quad bold(p) = (1 - alpha) bold(v) (bold(I) - alpha overline(bold(A)))^(-1)
+$
 
 Sviluppando nuovamente come serie geometrica (si applica il teorema di Neumann a $alpha overline(bold(A))$, con $rho(overline(bold(A))) = 1$ e $alpha < 1$):
 $ bold(p) = (1 - alpha) bold(v) sum_(k >= 0) (alpha overline(bold(A)))^k $
@@ -163,6 +167,7 @@ I quattro metodi principali di centralità basati su matrici si possono schemati
 
 #note[
   I quattro metodi sono strettamente interconnessi da relazioni di limite e di perturbazione:
-  - *Dalla somma al limite (verticale):* facendo tendere $alpha$ al valore critico (legato al raggio spettrale), la somma attenuata converge verso i metodi al limite: da PageRank si passa a Seeley, e da Katz si passa a Landau.
-  - *Dalla versione pura a quella perturbata (orizzontale):* aggiungere il fattore di smorzamento o il teletrasporto ($alpha$) equivale a perturbare le matrici di partenza, trasformando Seeley in PageRank e Landau in Katz, garantendo così sempre esistenza e unicità della soluzione anche su grafi non fortemente connessi.
+  - *Dalla somma al limite (orizzontale):* facendo tendere $alpha$ al valore critico (legato al raggio spettrale), la somma attenuata converge verso i metodi al limite: da PageRank si passa a Seeley, e da Katz si passa a Landau.
+  - *Dalla versione pura a quella perturbata (orizzontale inverso / colonne):* aggiungere il fattore di smorzamento o il teletrasporto ($alpha$) equivale a perturbare le matrici di partenza, trasformando Seeley in PageRank e Landau in Katz, garantendo così sempre esistenza e unicità della soluzione anche su grafi non fortemente connessi.
+  - *Dalla versione non normalizzata a quella normalizzata (verticale):* corrisponde al passaggio tra le righe della tabella, passando rispettivamente da Landau a Seeley e da Katz a PageRank.
 ]
