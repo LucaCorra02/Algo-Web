@@ -36,7 +36,7 @@ $
   )
 ]
 
-Possiamo iterare il processo sommando i cammini di lunghezza $k$ per $k -> infinity$. Tuttavia, i cammini crescono esponenzialmente con $k$. Per ovviare a ciò, introduciamo un fattore numerico di attenuazione $alpha$ in modo tale che la serie converga:
+Possiamo iterare il processo sommando i cammini di lunghezza $k$ per $k -> infinity$. Tuttavia, i cammini crescono esponenzialmente con $k$. Per ovviare a ciò, introduciamo un fattore numerico di *attenuazione* $alpha$ in modo tale che la serie converga:
 
 $ x = alpha 1 A + alpha^2 1 A^2 + dots.c = sum_(k >= 1) 1 (alpha A)^k $
 
