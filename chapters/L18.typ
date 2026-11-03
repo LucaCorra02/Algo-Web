@@ -5,7 +5,7 @@
 
 *Idea di partenza:* Generalizzare il concetto di elezione per maggioranza su un grafo/rete.
 
-Partiamo da una matrice d'adiacenza $A$, dove l'arco orientato $x arrow.r y$ indica che $x$ vota per $y$. Il punteggio base di maggioranza equivale al numero di voti entranti per ciascun vertice, che si ottiene moltiplicando il vettore riga di tutti uni per $A$:
+Partiamo da una matrice d'adiacenza $A$, dove l'arco orientato $x -> y$ indica che $x$ vota per $y$. Il punteggio base di maggioranza equivale al numero di voti entranti per ciascun vertice, che si ottiene moltiplicando il vettore riga di tutti uni per $A$:
 $
   1 dot A
 $
@@ -13,7 +13,7 @@ $
 *Problema:* La sola maggioranza diretta non considera l'importanza di *chi* esprime il voto. Vorremmo contare anche i voti ottenuti dalle persone che ci votano: $1 dot A^2$ (che rappresenta il numero di cammini di lunghezza 2 entranti in ogni vertice).
 
 #informally[
-  Un voto vale di più se arriva da qualcuno che è a sua volta molto votato. Per catturarlo si contano non solo i voti diretti, ma tutti i cammini che arrivano al vertice, dando meno peso a quelli più lunghi.
+  Un voto vale di più se arriva da qualcuno che è a sua volta molto votato. Per catturarlo si contano *non solo i voti diretti*, ma tutti i cammini che arrivano al vertice, dando meno peso a quelli più lunghi.
 ]
 
 #example[
@@ -40,20 +40,36 @@ Possiamo iterare il processo sommando i cammini di lunghezza $k$ per $k -> infin
 
 $ x = alpha 1 A + alpha^2 1 A^2 + dots.c = sum_(k >= 1) 1 (alpha A)^k $
 
-La serie converge a patto che $alpha < 1 / rho(A)$, dove $rho(A)$ è il raggio spettrale di $A$. L'attenuazione serve proprio a contrastare il tasso di crescita della matrice dato dal suo autovalore principale.
+La serie converge a patto che $alpha < 1 / rho(A)$, dove $rho(A)$ è il *raggio spettrale* di $A$. L'attenuazione serve proprio a contrastare il tasso di crescita della matrice dato dal suo autovalore principale.
 
 Includendo anche il termine di lunghezza $k=0$ (che aggiunge soltanto la costante $1$ a ogni vertice e non cambia la classifica), consideriamo la serie matriciale:
 $ sum_(k >= 0) (alpha A)^k $
 
 #note[
-  Invece di calcolare il limite delle potenze della matrice (come nei metodi di tipo Markov/Perron-Frobenius), consideriamo una sommatoria attenuata dal fattore $alpha$. Possiamo usare $alpha$ per calibrare l'importanza delle connessioni vicine rispetto a quelle lontane:
+  Invece di calcolare il limite delle potenze della matrice (come nei metodi di tipo Markov/Perron-Frobenius), consideriamo una sommatoria attenuata dal fattore $alpha$. Possiamo usare $alpha$ per calibrare l'*importanza delle connessioni* vicine rispetto a quelle lontane:
   - *$alpha$ piccolo:* l'attenuazione è forte, prevalgono le *connessioni vicine* (locali).
   - *$alpha$ grande:* l'attenuazione è debole, si attribuisce maggior peso alle *connessioni lontane* (globali).
 ]
 
 === Formulazione tramite Sistema Lineare
 
-È noto che per la serie geometrica scalare vale $sum_(k >= 0) q^k = 1 / (1 - q)$ per $abs(q) < 1$. Analogamente, in ambito matriciale:
+È noto che per la serie geometrica scalare vale $sum_(k >= 0) q^k = 1 / (1 - q)$ per $abs(q) < 1$ (perché se $q$ è piccolo, tipo $0.5$, le sue potenze $q^k$ diventano sempre più piccole fino a sparire a zero).
+
+#proof()[
+  Per dimostrare la serie geometrica, consideriamo la somma finita fino ad $N$, $S_N = 1+q+q^2+dots+q^n$ e moltiplichiamo per $(1 - q)$:
+  $
+    (S_N) (1 - q) = (1 + q + dots + q^N) - (q + q^2 + dots + q^(N+1)) = 1 - q^(N+1)
+  $
+  Tutti i termini si cancellano a coppie (somma telescopica, $-q "con" q$, ecc). Sopravvivono solo il primo e l'ultimo. Considerando il limite per $N -> infinity$, se $abs(q) < 1$ si ha $q^(N+1) -> 0$ (numeri sempre più vicini allo zero) , quindi: $ S_infinity (1-q) = 1-0 -> S_infinity = 1 / (1 - q) $
+]
+
+Analogamente, in ambito matriciale:
+- Sostituiamo il numero $1$ con la matrice identità $I$
+- Sostituiamo il numero $q$ con la matrice $X = alpha A$
+- Al posto della condizione $|q|< 1$, con le matrici serve che le potenze $X^(N+1) = (alpha A)^(N+1)$ tendano alla matrice tutta di zeri quando $N -> infinity$. Il tasso di crescita delle potenze di una matrice è comandato dal suo *autovalore più grande in modulo*, cioè il raggio spettrale $rho(A)$. Quindi la condizione diventa:
+$
+  rho(alpha A) < 1 quad <==> quad alpha < 1 / rho(A)
+$
 
 #theorem(title: "Serie di Neumann")[
   Se $rho(alpha A) < 1$, ovvero $alpha < 1 / rho(A)$, la matrice $I - alpha A$ è invertibile e
@@ -77,11 +93,21 @@ $ x (I - alpha A) = 1 quad <==> quad x = 1 (I - alpha A)^(-1) $
 
 L'indice di PageRank è concettualmente più recente.
 
-*Idea base:* Consideriamo la matrice d'adiacenza $A$ normalizzata per riga (o per colonna a seconda della convenzione) in modo che le righe sommino ad $1$ (matrice stocastica $overline(A)$). Modelliamo il comportamento di un *random surfer* che naviga tra le pagine seguendo i link, ma con una probabilità di "teletrasportarsi" casualmente su una qualsiasi pagina tramite il lancio di una moneta.
+*Idea base:* Consideriamo la matrice d'adiacenza $A$ normalizzata per riga (o per colonna a seconda della convenzione) in modo che le righe sommino ad $1$ (matrice stocastica $overline(A)$). Modelliamo il comportamento di un *random surfer* che naviga tra le pagine seguendo i link, ma con una probabilità di "teletrasportarsi" casualmente su una qualsiasi pagina tramite il lancio di una moneta. La matrice di transizione risultante è:
+$
+  P & = P_(i j) = alpha dot ("seguire link" i -> j) + (1 - alpha) dot ("teletrasportarsi in" j) \
+  P & = mb(alpha overline(A)) + mo((1 - alpha) 1^T v)
+$
+dove:
+- il termine $mb("blu")$ è il *seguire un link* (probabilità $alpha$): Nella matrice normalizzata $overline(A)$ l'elemento $overline(A)_(i j)$ vale $1/(d^+(i))$ se c'è un link da $i$ a $j$, e $0$ altrimenti.
 
-La matrice di transizione risultante è:
-$ P = mb(alpha overline(A)) + mo((1 - alpha) 1^T v) $
-dove il termine #text(fill: blue)[blu] è il *seguire un link* (probabilità $alpha$) e il termine #text(fill: orange)[arancione] è il *teletrasporto* (probabilità $1 - alpha$).
+  #note()[
+    Moltiplicare la matrice $overline(A)$ per lo scalare $alpha$ significa ridimensionare tutte queste probabilità: se da una pagina escono $2$ link, la probabilità di cliccare su ciascuno era $1/2$, ma poiché prima dobbiamo anche ottenere "Testa" dal lancio della moneta (probabilità $alpha$), la probabilità effettiva di seguire ciascun link diventa $alpha dot 1/2 = alpha/2$.
+  ]
+
+- il termine $mo("arancione")$ è il *teletrasporto* (probabilità $1 - alpha$): $v$ è un vettore riga che indica la probabilità di teletrasportarsi in ciascun nodo. In genere si assume $v = 1/n 1$ (distribuzione uniforme), ma si può usare un vettore generico per personalizzare il PageRank.\
+
+  Moltiplicando il vettore $v dot 1^T$ si ottiene una matrice $n times n$, dove ogni riga è uguale a $v$. La probabilità di teletrasportarsi in un nodo $j$ è quindi $v_j$, *indipendentemente* da dove ci si trovi.
 
 #figure(
   diagram(
@@ -118,17 +144,20 @@ dove il termine #text(fill: blue)[blu] è il *seguire un link* (probabilità $al
 
 === Calcolo dello Stato Stazionario
 
-Il PageRank corrisponde alla distribuzione limite/stazionaria $p$ della catena di Markov, definita dall'equazione agli autovalori:
-$ p = p P $
+Supponiamo di far muovere un random surfer all'infinito sul grafo del Web, seguendo i link o teletrasportandosi.   Se scattiamo una foto alla posizione dell'utente al tempo $t$, hai una certa probabilità $p^(t)$ di trovarlo su ciascuna pagina. Man mano che il tempo passa e l'utente continua a navigare ($t -> infinity$), questa distribuzione di probabilità *smette di cambiare* e raggiunge un *equilibrio stabile*, chiamato distribuzione stazionaria (o limite) $p$.
 
-Sostituendo la definizione di $P$:
+La componente $p_i$ (l'$i$-esimo valore del vettore $p$) rappresenta la frazione di tempo a lungo termine che il navigatore trascorre sulla pagina $i$. Più tempo il navigatore passa su una pagina, più quella pagina è importante. Il PageRank corrisponde dunque alla distribuzione limite/stazionaria $p$ della *catena di Markov*, definita dall'equazione degli autovalori:
+$ p = p P $
+Ovvero, moltiplicando il vettore della distribuzione corrente $p$ per la matrice di transizione $P$, otteniamo la distribuzione successiva, che deve coincidere con quella corrente. Sostituendo la definizione di $P$:
 $
   p = p (alpha overline(A) + (1 - alpha) 1^T v) = alpha p overline(A) + (1 - alpha) (p 1^T) v
 $
 Poiché $p$ è un vettore di probabilità, la somma dei suoi elementi è pari a $1$, ovvero $p 1^T = 1$. L'equazione si semplifica in un'equazione lineare:
 
-$ p - alpha p overline(A) = (1 - alpha) v $
-
+$
+                        p & = alpha p overline(A) + (1 - alpha) underbrace((p 1^T), 1) v \
+  p - alpha p overline(A) & = (1 - alpha) v
+$
 Raccogliendo $p$:
 $
   p (I - alpha overline(A)) = (1 - alpha) v quad -> quad p = (1 - alpha) v (I - alpha overline(A))^(-1)
