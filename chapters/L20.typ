@@ -70,6 +70,7 @@ $ q_i = p_i - i $
 
   Le posizioni dei bit ad `1` in $H$ sono $p_i = q_i + i$:
   $p_0 = 0+0 = 0, quad p_1 = 1+1 = 2, quad p_2 = 2+2 = 4, quad p_3 = 3+3 = 6$.
+
   Il vettore alto $H$ è dunque: `1010101`.
 ]
 
@@ -84,13 +85,17 @@ $ q_i = p_i - i $
   - $32 = 8 dot 4 + 0 arrow.r q_4 = 8, r_4 = 0$ (bit `00`)
 
   $L = text("01 00 00 11 00")$.
-  Le posizioni degli uni in $H$ saranno $1, 3, 4, 6, 12$.
-  Otteniamo la stringa di bit per $H$: `0101101000001`.
+
+  Dato $p_i = q_i + i$ le posizioni degli uni in $H$ saranno
+  $p_0 = 1 + 0 = 1, quad p_1 = 2 + 1 = 3, quad p_2 = 2 + 2 = 4, quad p_3 = 3 + 3 = 6, quad p_4 = 8 + 4 = 12$
+  e otteniamo la stringa di bit per $H$: `0101101000001`.
+
   Si noti che per gli elementi identici ($x_1 = x_2 = 8$) i bit ad `1` compaiono in posizioni adiacenti senza zeri intermedi (`...11...`).
 ]
 
 #example(title: "Ricostruzione inversa (Accesso Diretto)")[
   Vogliamo ricostruire l'elemento $x_9$.
+
   Cerchiamo il decimo `1` (indice $i=9$, partendo da 0) nel vettore dei bit alti $H$. Supponiamo di trovarlo in posizione $p = 15$.
   Il numero di zeri superati (che corrisponde al valore dei bit alti $q_9$) è:
   $ q_9 = p - i = 15 - 9 = 6 $
@@ -120,10 +125,12 @@ $ q_i = p_i - i $
     (assumendo per convenzione $q_(-1) = 0$).
 
     Analizziamo il termine $u / 2^l$:
-    - Se $u / n$ è potenza di 2, $l = log_2(u / n)$, per cui $2^l = u / n$ e quindi $u / 2^l = n$. Ne consegue $|H| <= 2n$.
+    - Se $u / n$ è potenza di 2:
+    $ quad l = log_2(u / n) arrow.r 2^l = u / n arrow.r u / 2^l = n $. Ne consegue $|H| <= 2n$.
+
+
     - Nel caso generale, poiché $l = floor(log_2(u / n)) > log_2(u / n) - 1$, si ha:
-      $ 2^l > 2^(log_2(u / n) - 1) = u / (2n) arrow.r u / 2^l < 2n $
-      Pertanto $|H| < 3n$ bit in ogni caso.
+    $ 2^l > 2^(log_2(u / n) - 1) = u / (2n) arrow.r u / 2^l < 2n $ Pertanto $|H| < 3n$ bit in ogni caso.
 
   Unificando i due contributi attraverso $ceil(log_2(u / n))$:
   $ |L| + |H| <= n dot l + n + u / 2^l <= n ceil(log_2(u / n)) + 2n $
@@ -176,19 +183,35 @@ Scorrendo il vettore dei bit alti si tiene traccia della posizione $p$, dell'ind
 Vediamo l'implementazione delle operazioni fondamentali:
 
 ==== 1. Lettura in successione (Next)
-Durante la scansione iterativa si mantiene l'indice ordinale $i$ e la posizione $p$. Si cerca il successivo bit ad `1` in $H$. Trovato il bit in posizione $p_i$, si ricava il quoziente $q_i = p_i - i$ e si leggono gli $l$ bit consecutivi in $L$ a partire dall'offset $i dot l$:
-$ x_i = q_i dot 2^l + r_i $
 
-*Ottimizzazione "Una parola alla volta"*: All'interno di una parola di macchina $w$ a 64 bit, l'individuazione sequenziale degli uni può essere eseguita a bassissimo costo tramite istruzioni hardware dedicate come `CTZ` (*Count Trailing Zeros*). Una volta letto l'uno più basso, lo si "cancella" iterativamente azzerando il bit meno significativo tramite l'operazione bitwise `w = w and (w - 1)`. Si continua a svuotare la parola corrente prima di passare alla successiva.
+L'operazione `Next` scandisce gli elementi in ordine crescente mantenendo l'indice ordinale $i$ e la posizione assoluta $p$ in $H$:
+
+1. *Ricerca del bit 1*: Si avanza da $p$ fino al successivo bit ad `1`, posto a indice $p_i$.
+2. *Quoziente ($q_i$)*: Dall'invariante $p_i = q_i + i$, si ricava $q_i = p_i - i$.
+3. *Resto ($r_i$)*: Si leggono gli $l$ bit consecutivi in $L$ all'offset $i dot l$: $r_i = L[i]$.
+4. *Elemento*: $x_i = q_i dot 2^l + r_i$. Si incrementa $i arrow.l i + 1$.
+
+*Ottimizzazione "Una parola alla volta"*: All'interno di una parola di macchina $w$ a 64 bit, l'individuazione sequenziale degli uni può essere eseguita a bassissimo costo tramite istruzioni hardware dedicate come `CTZ` (*Count Trailing Zeros*). 
+Tale istruzione conta in un singolo ciclo i bit a zero prima del primo `1`.
+Una volta letto l'uno più basso, lo si "cancella" iterativamente azzerando il bit meno significativo tramite l'operazione bitwise `w = w and (w - 1)`,
+in modo che al ciclo successivo `CTZ` trovi l'1 successivo.
 
 #align(center)[
   #image("/assets/una_parola_alla_volta.png", width: 100%)
 ]
 
 ==== 2. Accesso diretto (Get $i$ o Select)
-Per accedere all'$i$-esimo elemento $x_i$ è necessario calcolare `p_i = select_1(H, i)`. I bit bassi si leggono subito, per i bit alti:
-1. A livello hardware si scorrono le parole macchina di $H$ accumulando il conteggio degli uni con l'istruzione `POPCNT` (pochissimi picosecondi) finché la parola corrente non contiene l'$i$-esimo uno cercato.
-  *(Nota sulle performance: avendo lo stesso numero di zeri e uni, **ogni operazione POPCNT brucia letteralmente 20-30 documenti alla volta**, rendendo la scansione rapidissima).*
+Si vuole accedere all'$i$-esimo elemento $x_i$.
+
+I bit bassi dell'i-esimo elemento si leggono in tempo costante in quando ogni elemento occupa un numero fisso di bit. 
+
+Per i bit alti è necessario calcolare `p_i = select_1(H, i)`:
+1. *Scansione a blocchi tramite `POPCNT`:*  
+   Invece di testare i bit uno alla volta, si scorrono le parole macchina di $H$ (blocchi a 64 bit) accumulando il conteggio degli uni tramite l'istruzione hardware dedicata `POPCNT` (*Population Count*).  
+   
+   - *Cosa fa `POPCNT`:* È un'istruzione della CPU che restituisce all'istante il numero complessivo di bit impostati a `1` presenti all'interno di una parola a 64 bit.
+   - *Avanzamento a blocchi:* Sommando il valore restituito da `POPCNT` a un contatore progressivo, si determina rapidamente quanti elementi (`1`) sono contenuti in ciascuna word. Poiché in $H$ il rapporto medio tra zeri e uni è circa $1:1$, in ogni parola a 64 bit sono presenti mediamente $20-30$ bit ad `1`: ciò significa che con una sola operazione hardware si "bruciano" e superano decine di elementi in un colpo solo.
+   - *Arresto:* Non appena la parola corrente fa raggiungere o superare l'$i$-esimo uno cercato, la scansione a parole si ferma e si individua la posizione esatta all'interno dell'ultimo blocco.
 2. Trovata la posizione $p_i$, il quoziente è $q_i = p_i - i$.
 3. Si estraggono gli $l$ bit del vettore $L$: $r_i = L[i]$.
 4. L'elemento vale $x_i = q_i dot 2^l + r_i$.
@@ -206,11 +229,11 @@ Data una soglia di ricerca $b$, l'obiettivo è trovare il primo elemento $>= b$.
 Si scompone la soglia: $q_b = floor(b / 2^l)$ e $r_b = b mod 2^l$.
 Qualunque numero $>= b$ deve avere bit alti $>= q_b$. Questo significa che è matematicamente impossibile trovare il risultato prima di avere saltato almeno $q_b$ zeri.
 
-1. Invece di saltare gli uni, *si saltano gli zeri*. Si individua la posizione del $q_b$-esimo zero: `p = select_0(H, q_b)`. *(I puntatori in avanti per lo skip-to indicizzano gli zeri esattamente come gli altri indicizzano gli uni)*.
+1. Invece di saltare gli uni come nell'accesso diretto, *si saltano gli zeri*. Si individua la posizione del $q_b$-esimo zero: `p = select_0(H, q_b)`. *(I puntatori in avanti per lo skip-to indicizzano gli zeri esattamente come gli altri indicizzano gli uni)*.
 2. Il primo bit ad `1` successivo identifica il primo candidato potenziale. L'indice $i$ è dato dal numero di uni che precedono la posizione corrente: $i = p - q_b$.
 3. Si valuta la parte alta $q_i$:
-   - Se $q_i > q_b$, allora $x_i >= b$ è verificata ed è il minimo cercato.
-   - Se $q_i = q_b$, si estrae la parte bassa $r_i = L[i]$ e la si confronta con $r_b$. Se $r_i >= r_b$ è lui, altrimenti si avanza linearmente agli elementi successivi finché la parte bassa non è sufficiente o la parte alta si incrementa.
+  - Se $q_i > q_b$, allora $x_i >= b$ è verificata ed è il minimo cercato.
+  - Se $q_i = q_b$, si estrae la parte bassa $r_i = L[i]$ e la si confronta con $r_b$. Se $r_i >= r_b$ è lui, altrimenti si avanza linearmente agli elementi successivi finché la parte bassa non è sufficiente o la parte alta si incrementa.
 
 #note(title: "Casi particolari dello Skip To")[
   - *Un buco:* Se cerchiamo un elemento con bit alti $q_b$ e, dopo aver superato $q_b$ zeri, scopriamo che la posizione successiva è ancora uno zero, significa che c'è un "buco": nessun elemento possiede quei bit alti. In questo caso si prosegue senza fare calcoli fino al primo `1` utile. Quando i bit alti dell'elemento trovato superano quelli cercati, non serve nemmeno guardare i bit bassi: l'elemento è sicuramente $>= b$ e costituisce direttamente il risultato.
