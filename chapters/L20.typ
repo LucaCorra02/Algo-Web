@@ -197,7 +197,7 @@ Una volta letto l'uno più basso, lo si "cancella" iterativamente azzerando il b
 in modo che al ciclo successivo `CTZ` trovi l'1 successivo.
 
 #align(center)[
-  #image("/assets/una_parola_alla_volta.png", width: 100%)
+  #image("../assets/una_parola_alla_volta.png", width: 100%)
 ]
 
 ==== 2. Accesso diretto (Get $i$ o Select)
@@ -243,11 +243,11 @@ Qualunque numero $>= b$ deve avere bit alti $>= q_b$. Questo significa che è ma
 *Puntatori in avanti per Skip To*: Contare gli zeri partendo dall'inizio è lento quanto contare gli uni. Si memorizza quindi, per ogni $k$, la posizione *subito dopo* i primi $k dot q$ zeri. Da lì, gli elementi avranno bit alti $>= k dot q$. L'operazione `skipTo` parte dal puntatore $floor(q_b / q)$, superando poi localmente solo i restanti zeri (meno di $q$) e confrontando gli elementi trovati. Essendo gli zeri almeno circa la metà del vettore alto, il salto locale legge mediamente pochissimi bit.
 
 #align(center)[
-  #image("/assets/skip_to_buco.png", width: 130%)
+  #image("../assets/skip_to_buco.png", width: 130%)
 ]
 
 #align(center)[
-  #image("/assets/puntatori_in_avanti_skipto.png", width: 130%)
+  #image("../assets/puntatori_in_avanti_skipto.png", width: 130%)
 ]
 
 #example(title: "Tracciamento dello Skip To")[
