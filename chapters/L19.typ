@@ -2,37 +2,41 @@
 
 = Calcolo iterativo della centralità su grafi di grandi dimensioni
 
-Per calcolare misure di centralità spettrale (come l'*eigenvector centrality*, l'indice di *Seeley* o il *PageRank*) su grafi di dimensioni web, non basta contare i link in entrata: l'importanza di un nodo dipende ricorsivamente dal punteggio dei nodi che lo puntano. Si parte quindi da un vettore di punteggi iniziale $x^(0)$ (ad esempio inizializzato uniformemente) e lo si aggiorna iterativamente fino a convergenza calcolando $x^(k+1)$ a partire da $x^(k)$.
+Per calcolare misure di centralità spettrale (come l'*eigenvector centrality*, l'indice di *Seeley* o il *PageRank*) su grafi di dimensioni web, non basta contare i link in entrata: l'importanza di un nodo dipende *ricorsivamente* dal punteggio dei nodi che lo puntano. Si parte quindi da un vettore di punteggi iniziale $x^(0)$ (ad esempio inizializzato uniformemente) e lo si aggiorna iterativamente fino a convergenza calcolando $x^(k+1)$ a partire da $x^(k)$.
 
 Nel modello di *Seeley* (e nella componente principale del PageRank), ogni nodo distribuisce equamente il proprio punteggio tra i suoi successori. Il punteggio del nodo $i$ al passo $k+1$ è dato da:
 $
-  x_i^(k+1) = sum_(j in N^-(i)) frac(x_j^(k), d^+(j))
+  x_i^(k+1) = sum_(j in N^(-(i))) frac(x_j^(k), d^(+(j)))
 $
-dove $N^-(i)$ è l'insieme dei *predecessori* di $i$ (nodi che hanno un arco diretto verso $i$) e $d^+(j)$ è l'*out-degree* (grado uscente, ovvero il numero di successori) del nodo $j$, supponendo $d^+(j) > 0$.
+dove $N^(-(i))$ è l'insieme dei *predecessori* di $i$ (nodi che hanno un arco diretto verso $i$) e $d^(+(j))$ è l'*out-degree* (grado uscente, ovvero il numero di successori) del nodo $j$, supponendo $d^(+(j)) > 0$.
 
-Nel caso completo del *PageRank*, si introduce il fattore di smorzamento (_damping factor_) $alpha in (0, 1)$ e il teletrasporto uniforme per gestire i nodi pozzo (_dangling nodes_) e garantire l'ergodicità:
+Nel caso completo del *PageRank*, si introduce il *fattore di smorzamento* (_damping factor_) $alpha in (0, 1)$ e il teletrasporto uniforme per gestire i nodi pozzo (_dangling nodes_) e garantire l'ergodicità:
 $
   x^(k+1) = x^(k) (alpha P + (1 - alpha) frac(1, n) bold(1) bold(1)^T)
 $
-dove $P$ è la matrice stocastica di transizione del grafo ($P_(j i) = 1 / d^+(j)$ se esiste l'arco $j -> i$).
+dove $P$ è la matrice stocastica di transizione del grafo ($P_(j i) = 1 / d^(+(j))$ se esiste l'arco $j -> i$).
 
 #note(title: "Risolutori di sistemi lineari vs Metodo delle potenze")[
-  Invece di applicare semplicemente il metodo delle potenze ($x^(k+1) = alpha x^(k) P + dots$), il problema dell'autovettore dominante per PageRank può essere riformulato come il sistema lineare $(I - alpha P^T) x = frac(1 - alpha, n) bold(1)$. Questo permette di utilizzare risolutori numerici iterativi per sistemi lineari (come _Gauss-Seidel_, _Jacobi_ o metodi di sottospazio di Krylov) che spesso convergono in meno iterazioni rispetto all'iterazione semplice.
+  Invece di applicare semplicemente il metodo delle potenze ($x^(k+1) = alpha x^(k) P + dots$), il problema dell'autovettore dominante per PageRank può essere riformulato come il sistema lineare:
+  $
+    (I - alpha P^T) x = frac(1 - alpha, n) bold(1)
+  $
+  Questo permette di utilizzare risolutori numerici iterativi per sistemi lineari (come _Gauss-Seidel_, _Jacobi_ o metodi di sottospazio di Krylov) che spesso convergono in meno iterazioni rispetto all'iterazione semplice.
 ]
 
 == Gestione della memoria e rappresentazione su disco
 
-Quando il grafo è troppo grande per risiedere interamente in memoria centrale (RAM), la matrice di adiacenza viene memorizzata su disco in forma linearizzata (liste di adiacenza compresse): per ogni nodo si salvano il suo grado e la lista dei suoi successori (grafo diretto) oppure dei suoi predecessori (grafo trasposto o _reverse_).
+Quando il grafo è troppo grande per risiedere interamente in memoria centrale (RAM), la matrice di adiacenza viene memorizzata su disco in forma linearizzata (*liste di adiacenza compresse*): per ogni nodo si salvano il suo grado e la lista dei suoi successori (grafo diretto) oppure dei suoi predecessori (grafo trasposto o _reverse_).
 
-Indipendentemente dal fatto che su disco siano memorizzati i successori o i predecessori, il calcolo dell'iterazione successiva è sempre possibile, ma cambia radicalmente il pattern di accesso alla memoria e al disco:
+Indipendentemente dal fatto che su disco siano memorizzati i successori o i predecessori, il calcolo dell'iterazione successiva è sempre possibile, ma cambia radicalmente il *pattern di accesso alla memoria e al disco*:
 
-- *Approccio Push (scansione per successori / "spargere"):* se sul disco sono memorizzate le liste dei successori, si legge sequenzialmente ogni nodo $j$ e il suo out-degree $d^+(j)$ direttamente dal file del grafo, e si *sparge* (accumula) la quantità $x_j^(k) / d^+(j)$ nelle celle $x_i^(k+1)$ corrispondenti a ciascun successore $i in N^+(j)$.
-  - _Vantaggio:_ non serve mantenere in RAM il vettore degli out-degree $d^+$, poiché il grado uscente di $j$ è noto nel momento stesso in cui si legge la sua lista di successori da disco.
-  - _Svantaggio:_ il vettore destinazione $x^(k+1)$ subisce scritture ad accesso casuale (_random access_). Deve quindi risiedere interamente in RAM ed è soggetto a conflitti di scrittura (_race condition_) in caso di esecuzione multi-thread.
+- *Approccio Push (scansione per successori / "spargere"):* se sul disco sono memorizzate le *liste dei successori*, si legge sequenzialmente ogni nodo $j$ e il suo out-degree $d^(+(j))$ direttamente dal file del grafo, e si *sparge* (accumula) la quantità $x_j^(k) / d^(+(j))$ nelle celle $x_i^(k+1)$ corrispondenti a ciascun successore $i in N^(+(j))$.
+  - _$mg("Vantaggio")$:_ non serve mantenere in RAM il vettore degli out-degree $d^+$, poiché il grado uscente di $j$ è noto nel momento stesso in cui si legge la sua lista di successori da disco.
+  - _$mr("Svantaggio")$:_ il vettore destinazione $x^(k+1)$ subisce scritture ad accesso casuale (*_random access_*). Deve quindi risiedere interamente in RAM ed è soggetto a conflitti di scrittura (_race condition_) in caso di esecuzione multi-thread.
 
-- *Approccio Pull (scansione per predecessori / "raccogliere"):* se sul disco è memorizzato il grafo trasposto (liste dei predecessori), si visita sequenzialmente ogni nodo $i$ e si *raccoglie* la somma dei contributi $x_j^(k) / d^+(j)$ da tutti i suoi predecessori $j in N^-(i)$.
+- *Approccio Pull (scansione per predecessori / "raccogliere"):* se sul disco è memorizzato il grafo trasposto (liste dei predecessori), si visita sequenzialmente ogni nodo $i$ e si *raccoglie* la somma dei contributi $x_j^(k) / d^(+(j))$ da tutti i suoi predecessori $j in N^(-(i))$.
   - _Vantaggio:_ il valore finale di $x_i^(k+1)$ viene calcolato interamente in un'unica passata locale e può essere scritto direttamente su disco in *streaming sequenziale*, senza dover mantenere il vettore $x^(k+1)$ in RAM.
-  - _Svantaggio:_ poiché visitando il nodo $i$ conosciamo i suoi predecessori $j$ ma non il loro grado uscente, nel caso di Seeley e PageRank siamo obbligati a mantenere in RAM anche il *vettore degli out-degree* $d^+$ oltre al vettore corrente $x^(k)$ (a differenza dell'*eigenvector centrality* semplice, dove $x_i^(k+1) = sum_(j in N^-(i)) x_j^(k)$ non divide per il grado).
+  - _Svantaggio:_ poiché visitando il nodo $i$ conosciamo i suoi predecessori $j$ ma non il loro grado uscente, nel caso di Seeley e PageRank siamo obbligati a mantenere in RAM anche il *vettore degli out-degree* $d^+$ oltre al vettore corrente $x^(k)$ (a differenza dell'*eigenvector centrality* semplice, dove $x_i^(k+1) = sum_(j in N^(-(i))) x_j^(k)$ non divide per il grado).
 
 #figure(
   cetz.canvas({
@@ -92,7 +96,7 @@ Indipendentemente dal fatto che su disco siano memorizzati i successori o i pred
 Per sfruttare il *multi-threading* senza incorrere in costose sincronizzazioni (lock o operazioni atomiche sulle celle del vettore), è fondamentale disporre del grafo in *forma reverse* (liste dei predecessori, approccio *Pull*):
 
 1. *Assenza di conflitti di scrittura:* lo spazio dei nodi viene partizionato in blocchi disgiunti assegnati a thread diversi. Ogni thread legge in sola lettura le strutture condivise ($x^(k)$ e $d^+$) e scrive esclusivamente nelle celle del proprio blocco di nodi destinazione $i$.
-2. *Bilanciamento dinamico del carico:* il lavoro richiesto per calcolare il nuovo punteggio del nodo $i$ è direttamente proporzionale al suo *in-degree* $d^-(i) = |N^-(i)|$. Nei grafi reali (con distribuzioni dei gradi _heavy-tailed_), alcuni nodi hanno milioni di predecessori e altri pochissimi. Assegnando dinamicamente piccoli blocchi di nodi ai thread non appena terminano il blocco precedente, si bilancia il carico tra i core.
+2. *Bilanciamento dinamico del carico:* il lavoro richiesto per calcolare il nuovo punteggio del nodo $i$ è direttamente proporzionale al suo *in-degree* $d^(-(i)) = |N^(-(i))|$. Nei grafi reali (con distribuzioni dei gradi _heavy-tailed_), alcuni nodi hanno milioni di predecessori e altri pochissimi. Assegnando dinamicamente piccoli blocchi di nodi ai thread non appena terminano il blocco precedente, si bilancia il carico tra i core.
 3. *Scrittura in posizione:* poiché i thread terminano i blocchi in ordine non deterministico, non possono semplicemente accodare a uno stream su disco, ma devono scrivere il risultato nella cella (in RAM o all'offset su file) corrispondente all'indice del nodo $i$.
 
 
@@ -101,19 +105,22 @@ Per sfruttare il *multi-threading* senza incorrere in costose sincronizzazioni (
 Come possiamo stabilire oggettivamente se un modello di ranking (ad esempio *BM25*) funziona meglio di un altro (come il semplice conteggio delle frequenze *TF* o *TF-IDF*)?
 
 Per valutare e confrontare sperimentalmente due motori di ricerca (_Information Retrieval_) occorre costruire un *benchmark* (o _test collection_, come quelle della conferenza *TREC*) composto da tre elementi:
-1. una collezione di documenti $D$;
-2. un corpus rappresentativo di interrogazioni (query) $Q$;
+1. una *collezione di documenti* $D$;
+2. un corpus rappresentativo di interrogazioni (*query*) $Q$;
 3. dei *giudizi di rilevanza* (_ground truth_), tipicamente annotati da esperti umani, che stabiliscono per ogni query $q in Q$ quali documenti sono pertinenti. Nel caso di rilevanza binaria, l'insieme dei documenti rilevanti per la query $q$ è indicato come $R_q subset.eq D$.
 
 #informally(title: "Costi dei benchmark e segnali impliciti dagli utenti")[
   Far valutare manualmente migliaia di documenti a degli esperti umani è estremamente costoso. Per questo motivo in ambito accademico e industriale si tende a riutilizzare gli stessi dataset di test, col rischio di _overfitting_ sul benchmark (un motore ottimo potrebbe ottenere punteggi bassi solo perché recupera documenti validi che non erano stati giudicati nel test).
 
-  Nei motori commerciali si integrano quindi segnali impliciti ricavati dai *log di interazione degli utenti*: si osserva su quali risultati l'utente clicca e il cosiddetto _dwell time_ (quanto tempo trascorre sulla pagina prima di tornare indietro alla pagina dei risultati). Singolarmente il clic è un dato rumoroso e impreciso, ma aggregato su milioni di query fornisce un'indicazione statistica molto forte.
+  Nei motori commerciali si integrano quindi segnali impliciti ricavati dai *log di interazione degli utenti*: si osserva su quali risultati l'utente clicca e il cosiddetto _dwell time_ (quanto tempo trascorre sulla pagina prima di tornare indietro alla pagina dei risultati). Singolarmente il *clic* è un dato rumoroso e impreciso, ma *aggregato su milioni di query fornisce un'indicazione statistica molto forte*.
 ]
 
 == Precisione, Richiamo e $F_1$-score
 
-Fissata una query $q in Q$, sia $R_q subset.eq D$ l'insieme dei documenti rilevanti e $A_q subset.eq D$ l'insieme dei documenti restituiti in risposta dal sistema. Definiamo due metriche fondamentali su insiemi non ordinati:
+Fissata una query $q in Q$, sia:
+- $R_q subset.eq D$ l'insieme dei documenti rilevanti
+- $A_q subset.eq D$ l'insieme dei documenti restituiti in risposta dal sistema
+Definiamo due metriche fondamentali su *insiemi non ordinati*:
 
 - *Precisione (_Precision_):* misura la frazione di documenti rilevanti sul totale dei documenti restituiti dal sistema (quante delle risposte date sono effettivamente corrette):
   $
@@ -126,10 +133,12 @@ Fissata una query $q in Q$, sia $R_q subset.eq D$ l'insieme dei documenti rileva
 
 Un protocollo di valutazione deve definire i casi degeneri: se $|A_q| = 0$ la precisione non è definita (spesso posta convenzionalmente a $0$ o $1$ a seconda del protocollo), mentre se $|R_q| = 0$ il richiamo non è definito.
 
-*Il compromesso (_trade-off_) tra precisione e richiamo:* le due metriche sono naturalmente in tensione tra loro. Se costruiamo un motore estremamente conservativo che restituisce un unico documento di cui siamo certissimi, avremo $P_q = 100%$, ma un richiamo $R_q = 1 / |R_q| approx 0%$. Viceversa, restituendo l'intera collezione ($A_q = D$) otteniamo banalmente $R_q = 100%$, ma la precisione crolla a zero. Man mano che si estende il richiamo aggiungendo risultati, la precisione tende inevitabilmente a scendere:
+#note(title: "Il compromesso (trade-off) tra precisione e richiamo")[
+  Le due metriche sono naturalmente in contrasto tra loro. Se costruiamo un motore estremamente conservativo che restituisce un unico documento di cui siamo certissimi, avremo $P_q = 100%$, ma un richiamo $R_q = 1 / |R_q| approx 0%$. Viceversa, restituendo l'intera collezione ($A_q = D$) otteniamo banalmente $R_q = 100%$, ma la precisione crolla a zero. Man mano che si estende il richiamo aggiungendo risultati, la precisione tende inevitabilmente a scendere:
 
-- *Contesti orientati al Richiamo:* nella ricerca brevettuale, legale o medica, è fondamentale non perdere alcun documento esistente (richiamo prossimo a $1$), accettando una precisione più bassa e scorrendo liste lunghe.
-- *Contesti orientati alla Precisione:* nella ricerca Web moderna, dove ci sono migliaia di pagine rilevanti ma l'utente guarda solo la prima schermata, il problema si sposta interamente sulla *precisione nei primi risultati*.
+  - *Contesti orientati al Richiamo:* nella ricerca brevettuale, legale o medica, è fondamentale non perdere alcun documento esistente (richiamo prossimo a $1$), accettando una precisione più bassa e scorrendo liste lunghe.
+  - *Contesti orientati alla Precisione:* nella ricerca Web moderna, dove ci sono migliaia di pagine rilevanti ma l'utente guarda solo la prima schermata, il problema si sposta interamente sulla *precisione nei primi risultati*.
+]
 
 === Valutazione a cutoff $k$ ($P@k$ e $R@k$)
 
@@ -138,7 +147,10 @@ $
   "P@k" = frac(|A_q^(k) inter R_q|, k), quad
   "R@k" = frac(|A_q^(k) inter R_q|, |R_q|)
 $
-Nota che in $"P@k"$ il denominatore è sempre $k$: se il sistema restituisce meno di $k$ documenti, i posti mancanti vengono penalizzati come non rilevanti.
+
+#note()[
+  In $"P@k"$ il denominatore è sempre $k$: se il sistema restituisce meno di $k$ documenti, i posti mancanti vengono penalizzati come non rilevanti.
+]
 
 === Media armonica ($F_1$-score)
 
@@ -148,12 +160,14 @@ $
 $
 
 #warning(title: "Perché non usare la media aritmetica?")[
-  Usare la media aritmetica $(P + R) / 2$ per combinare precisione e richiamo è una pessima idea. Un sistema triviale che restituisce l'intero database di milioni di pagine ha $R = 1$ e $P approx 0$: la media aritmetica gli assegnerebbe un ottimo $0.5$ ($50%$) nonostante il motore sia del tutto inutile! La *media armonica*, invece, è fortemente sbilanciata verso il minimo dei due valori: se $P = 0$ oppure $R = 0$, allora $F_1 = 0$. Per ottenere un $F_1$ alto è necessario che sia la precisione sia il richiamo siano contemporaneamente elevati.
+  Usare la media aritmetica $(P + R) / 2$ per combinare precisione e richiamo è una *pessima idea*. Un sistema triviale che restituisce l'intero database di milioni di pagine ha $R = 1$ e $P approx 0$: la media aritmetica gli assegnerebbe un ottimo $0.5$ ($50%$) nonostante il motore sia del tutto inutile! La *media armonica*, invece, è fortemente sbilanciata verso il minimo dei due valori: se $P = 0$ oppure $R = 0$, allora $F_1 = 0$. 
+  
+  Per ottenere un $F_1$ alto è necessario che sia la precisione sia il richiamo siano contemporaneamente elevati.
 ]
 
 == Metriche sensibili all'ordine su un corpus di query
 
-Le metriche $P@k$ e $R@k$ trattano i primi $k$ risultati come un insieme non ordinato: avere un unico documento rilevante in posizione $1$ oppure in posizione $k$ produce esattamente la stessa $P@k$. Per premiare i sistemi che mettono i risultati migliori nelle prime posizioni si usano metriche sensibili al rango (_rank_).
+Le metriche $P@k$ e $R@k$ trattano i primi $k$ risultati come un *insieme non ordinato*: avere un unico documento rilevante in posizione $1$ oppure in posizione $k$ produce esattamente la stessa $P@k$. Per premiare i sistemi che mettono i risultati migliori nelle prime posizioni si usano *metriche sensibili al rango* (_rank_).
 
 === Reciprocal Rank (RR) e Mean Reciprocal Rank (MRR)
 
@@ -195,7 +209,11 @@ Geometricamente, se tracciamo i punti $("R@k", "P@k")$ ad ogni documento rilevan
     rect((ox + 0.6 * w, oy), (ox + 0.8 * w, oy + 0.4 * h), fill: blue.lighten(88%), stroke: none)
 
     // Curva del motore ideale (Precisione sempre 1)
-    line((ox, oy + h), (ox + w, oy + h), (ox + w, oy), stroke: (paint: green.darken(20%), dash: "dashed", thickness: 1.2pt))
+    line((ox, oy + h), (ox + w, oy + h), (ox + w, oy), stroke: (
+      paint: green.darken(20%),
+      dash: "dashed",
+      thickness: 1.2pt,
+    ))
     content((ox + 0.72 * w, oy + h + 0.28), text(size: 8pt, fill: green.darken(25%))[Motore ideale ($"AP" = 1$)])
 
     // Assi cartesiani
@@ -295,9 +313,9 @@ $
 #example(title: "Calcolo di DCG@3 e NDCG@3")[
   Supponiamo che per una query i primi $3$ documenti restituiti dal sistema abbiano giudizi di rilevanza $r = [2, 0, 3]$ e che nella collezione valutata i tre migliori documenti per quella query abbiano rilevanza ideale $r^"ideal" = [3, 2, 1]$. Usando la formula lineare $r_i / log_2(i+1)$:
   $
-    "DCG@3" &= frac(2, log_2(2)) + frac(0, log_2(3)) + frac(3, log_2(4)) = frac(2, 1) + 0 + frac(3, 2) = 3.5 \
-    "IDCG@3" &= frac(3, log_2(2)) + frac(2, log_2(3)) + frac(1, log_2(4)) = 3 + frac(2, 1.585) + 0.5 = 4.762 \
-    "NDCG@3" &= frac("DCG@3", "IDCG@3") = frac(3.5, 4.762) approx 0.735
+     "DCG@3" & = frac(2, log_2(2)) + frac(0, log_2(3)) + frac(3, log_2(4)) = frac(2, 1) + 0 + frac(3, 2) = 3.5 \
+    "IDCG@3" & = frac(3, log_2(2)) + frac(2, log_2(3)) + frac(1, log_2(4)) = 3 + frac(2, 1.585) + 0.5 = 4.762 \
+    "NDCG@3" & = frac("DCG@3", "IDCG@3") = frac(3.5, 4.762) approx 0.735
   $
 ]
 
