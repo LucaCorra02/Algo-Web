@@ -201,13 +201,13 @@ Consideriamo due parole binarie $x$ e $y$ e i loro rispettivi intervalli $I(x)$ 
             let is-red-edge = (
               // epsilon (tree-0) -> 0 (tree-0-0)
               (s.ends-with("tree-0") and t.ends-with("tree-0-0"))
-                or
+                or 
                 // 0 (tree-0-0) -> 01 (tree-0-0-1)
                 (s.ends-with("tree-0-0") and t.ends-with("tree-0-0-1"))
-                or
+                or 
                 // 01 (tree-0-0-1) -> 010 (tree-0-0-1-0)
                 (s.ends-with("tree-0-0-1") and t.ends-with("tree-0-0-1-0"))
-                or
+                or 
                 // 01 (tree-0-0-1) -> 011 (tree-0-0-1-1)
                 (s.ends-with("tree-0-0-1") and t.ends-with("tree-0-0-1-1"))
             )
@@ -513,20 +513,14 @@ sua rappresentazione binaria ridotta.
     Codice finale: $001 space 00 = 00100$
 ]
 
-Lunghezza e costo di una parola: $lambda$ è la posizione del numero più significativo. La rappresentazione binaria ridotta è
-data da $x+1$ in binario e poi butto via il bit più significativo.
-
-Il numero in unario è data dalla lunghezza della ridotta + 1.
-
+*Lunghezza e costo di una parola*: Sia $lambda(x)$ la posizione del bit più significativo di $x$ (il primo bit a 1 da sinistra), ovvero il numero di bit di $x$:
+$
+  lambda(x) = floor(log_2(x))
+$
+La rappresentazione binaria ridotta è data da $x+1$ in binario e poi butto via il bit più significativo. Il numero in unario è data dalla lunghezza della ridotta + 1.
 $
   lambda(x+1) + lambda(x+1) + 1 \
   2 lambda(x+1) + 1 \
   2 floor(log_2(x+1)) + 1 \
 $
-
-La parte in unario è istantanea per definizione. La rappresentazione binaria ridotta è istantanea in quanto non contiene
-il bit più significativo. Escludendo il bit più significativo infatti la parte ridotta non può essere prefisso di un'altra
-parola, perchè è composta da parole di lunghezza $lambda(x+1) - 1$ e quindi non può essere prefisso di un'altra parola.
-
-Essendo formato da due parti istantanee, il codice Elias $gamma$ è istantaneo.
-\
+La parte in unario è istantanea per definizione. La rappresentazione binaria ridotta lì per se non garantisce l'istantaneità, ma lo diventa se la concateno con la parte in unario (ci dice quanti bit leggere).
