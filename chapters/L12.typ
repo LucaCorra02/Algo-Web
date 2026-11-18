@@ -38,7 +38,132 @@ $
 dove $f$ è la lunghezza totale della lista e $q$ la dimensione del campione.
 
 #align(center)[
-  #image("../assets/skip_table.png")
+  #cetz.canvas({
+    import cetz.draw: *
+
+    let c-blue = rgb("#cde0fc")
+    let c-green = rgb("#c3ecc5")
+    let c-orange = rgb("#fbe0bd")
+    let c-gray = rgb("#ebebeb")
+    let values = ("1", "3", "7", "10", "12", "100", "120", "121", "150")
+    let codes = ("001", "1011", "01011", "1100", "010", "100110", "11101", "00110", "10101")
+    let block-colors = (c-blue, c-green, c-orange)
+    let q = 3
+    let cell-w = 1.15
+    let cell-h = 0.75
+    let y-list = 0.55
+
+    content((4.5 * cell-w, 2.05), [
+      *1. Lista campionata*
+    ])
+    content((-0.3, y-list + cell-h / 2), anchor: "east", [
+      *lista* \ #text(size: 7.5pt, fill: luma(90))[(valori)]
+    ])
+
+    for i in range(9) {
+      let x = i * cell-w
+      let fill-col = if calc.rem(i, q) == 0 {
+        block-colors.at(int(i / q))
+      } else {
+        c-gray
+      }
+      content((x + cell-w / 2, y-list + cell-h + 0.22), text(size: 7.5pt, fill: luma(100))[#i])
+      rect((x, y-list), (x + cell-w, y-list + cell-h), fill: fill-col, stroke: 0.7pt + black)
+      content((x + cell-w / 2, y-list + cell-h / 2), values.at(i))
+    }
+
+    for b in range(3) {
+      let x-start = b * q * cell-w + 0.06
+      let x-end = (b + 1) * q * cell-w - 0.06
+      let y-line = y-list - 0.18
+      line((x-start, y-line), (x-end, y-line), stroke: 1.1pt + black)
+      content(((x-start + x-end) / 2, y-line - 0.25), text(size: 8pt)[blocco #b ($q=3$)])
+    }
+  })
+]
+
+#pagebreak()
+
+#align(center)[
+  #cetz.canvas({
+    import cetz.draw: *
+
+    let c-blue = rgb("#cde0fc")
+    let c-green = rgb("#c3ecc5")
+    let c-orange = rgb("#fbe0bd")
+    let c-gray = rgb("#ebebeb")
+    let codes = ("001", "1011", "01011", "1100", "010", "100110", "11101", "00110", "10101")
+    let block-colors = (c-blue, c-green, c-orange)
+    let q = 3
+    let cell-w = 1.15
+    let cell-h = 0.75
+    let y-bit = 0.9
+    let y-skip = -1.15
+    let box-w = 2.45
+    let box-h = 0.75
+
+    content((4.5 * cell-w, 2.4), [*2. Bit stream e skip table*])
+    content((-0.3, y-bit + cell-h / 2), anchor: "east", [
+      *bit stream* \ #text(size: 7.5pt, fill: luma(90))[(codificato)]
+    ])
+
+    for i in range(9) {
+      let x = i * cell-w
+      let fill-col = if calc.rem(i, q) == 0 {
+        block-colors.at(int(i / q))
+      } else {
+        c-gray
+      }
+      rect((x, y-bit), (x + cell-w, y-bit + cell-h), fill: fill-col, stroke: 0.7pt + black)
+      content((x + cell-w / 2, y-bit + cell-h / 2), text(font: "DejaVu Sans Mono", size: 7.5pt)[#codes.at(i)])
+    }
+
+    let offsets = ("offset: 0 bit", "offset: 12 bit", "offset: 25 bit")
+    for b in range(3) {
+      let x-pos = b * q * cell-w
+      content((x-pos, y-bit + cell-h + 0.22), anchor: "west", text(
+        size: 7.5pt,
+        weight: "bold",
+        fill: luma(60),
+      )[#offsets.at(b)])
+    }
+
+    content((-1.25, y-skip + box-h / 2), anchor: "east", [
+      *skip table* \ #text(size: 7.5pt, fill: luma(90))[(campioni)]
+    ])
+    let skip-entries = (
+      "idx 0 (val 1) → 0",
+      "idx 3 (val 10) → 12",
+      "idx 6 (val 120) → 25",
+    )
+
+    for b in range(3) {
+      let target-x = (b * q) * cell-w + cell-w / 2
+      let box-x = target-x - box-w / 2
+      rect((box-x, y-skip), (box-x + box-w, y-skip + box-h), fill: block-colors.at(b), stroke: 0.7pt + black)
+      content((target-x, y-skip + box-h / 2), text(size: 8pt)[#skip-entries.at(b)])
+      line(
+        (target-x, y-skip + box-h + 0.06),
+        (target-x, y-bit - 0.08),
+        stroke: (paint: luma(90), thickness: 1pt, dash: "dashed"),
+        mark: (end: "stealth", fill: luma(90), scale: 0.6),
+      )
+    }
+
+    let x-idx6 = 6 * cell-w + cell-w / 2
+    let x-idx7 = 7 * cell-w + cell-w / 2
+    bezier(
+      (x-idx6, y-bit - 0.05),
+      (x-idx7, y-bit - 0.05),
+      (x-idx6 + 0.2, y-bit - 0.55),
+      (x-idx7 - 0.2, y-bit - 0.55),
+      stroke: (paint: rgb("#c0392b"), thickness: 1pt),
+      mark: (end: "stealth", fill: rgb("#c0392b"), scale: 0.5),
+    )
+    content((x-idx7 + 0.1, y-bit - 0.52), anchor: "west", text(size: 7.5pt, fill: rgb("#c0392b"))[
+      *Accesso a `idx 7`*: salto a offset 25 bit \ e decodifica di $7 \bmod 3 = 1$ elemento
+    ])
+  })
 ]
 
 #note[
@@ -65,7 +190,7 @@ Per recuperare la lista di affissione:
 
 Formalmente, un Information Retrieval System è modellato come una *funzione di ranking* che mappa una coppia di documento e query in un numero reale:
 $ R : D times Q -> RR $
-Dove $D$ è la collezione documentale e $Q$ l'insieme delle interrogazioni. Il sistema assegna a ogni documento un *punteggio di pertinenza*: 
+Dove $D$ è la collezione documentale e $Q$ l'insieme delle interrogazioni. Il sistema assegna a ogni documento un *punteggio di pertinenza*:
 
 - un punteggio *nullo* ($0$) indica estraneità e il documento viene scartato;
 - i punteggi *positivi* definiscono la graduatoria (*rango*) dei risultati.
@@ -119,7 +244,7 @@ Nella valutazione eager (solerte) si alloca esplicitamente un vettore in memoria
   #image("../assets/eager_not.png")
 ]
 
-- *Intersezione (AND):* Si confrontano gli indici mediante un merge lineare in tempo $O(n)$.
+- *Intersezione (AND):* Si confrontano gli indici mediante un merge lineare in tempo $O(n + |[q]|)$.
 
 #align(center)[
   #image("../assets/eager_and_merge.png")
