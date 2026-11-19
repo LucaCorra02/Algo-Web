@@ -3,7 +3,7 @@
 = Nozioni di base
 
 Nel corso vedremo due tipi di strutture dati: *compresse* e *succinte*:
-- *Strutture Succinte*: struttura dati che utilizza lo spazio minimo possibile per rappresentare un insieme di dati, senza perdere la capacità di eseguire operazioni efficienti su di essi. Lo spazio occupato di avvicina al limite inferiore dell'informazione (Shannon). Esse si basano sulla *combinatoria*: Contano quante configurazioni possibili esistono per una determinata struttura dati e usano il numero minimo di bit per distinguere quelle configurazioni.
+- *Strutture Succinte*: struttura dati che utilizza lo spazio minimo possibile per rappresentare un insieme di dati, senza perdere la capacità di eseguire operazioni efficienti su di essi. Lo spazio occupato si avvicina al limite inferiore dell'informazione (Shannon). Esse si basano sulla *combinatoria*: Contano quante configurazioni possibili esistono per una determinata struttura dati e usano il numero minimo di bit per distinguere quelle configurazioni.
 
 #example()[
   Per distinguere tutti gli alberi binari con $n$ nodi servono circa $O(n log n)$ puntatori. Tuttavia, il numero di alberi binari con $n$ nodi è dato dal numero di Catalan:

@@ -35,8 +35,8 @@ Queste caratteristiche li rendono estremamente efficienti per moli enormi di dat
 == Struttura gerarchica
 
 La struttura è divisa in livelli:
-- Livello 0 (RAM): Allocazione fissa in memoria centrale. Ospita un dizionario ordinato (solitamente un *Red-Black tree* o un *B-tree*).
-- Livelli successivi (Disco): Costituiti da *file di log*, ovvero dizionari chiave-valore ordinati e immutabili.
+- Memtable (RAM): Allocazione fissa in memoria centrale. Ospita un dizionario ordinato (solitamente un *Red-Black tree* o un *B-tree*).
+- Livelli successivi (Disco), a partire da 0: Costituiti da *file di log*, ovvero dizionari chiave-valore ordinati e immutabili.
 
 Ogni livello su disco ha una dimensione base che cresce di un *fattore moltiplicativo* rispetto al precedente, e un'elasticità $alpha$ (es. possono raggiungere il doppio della dimensione base) per assorbire dinamicamente i dati prima di forzare uno scarico verso il basso.
 
@@ -115,7 +115,7 @@ Poiché si parte dall'alto, il primo valore trovato è garantito essere l'*ultim
 === Scrittura e Fusioni (Scarico)
 
 Supponiamo di voler inserire una nuova coppia chiave-valore. Il flusso tipico è il seguente:
-+ Si aggiunge la coppia chiave-valore nel *Livello 0* (RAM).
++ Si aggiunge la coppia chiave-valore nella *Memtable* (RAM).
 + Se la RAM si riempie, si scarica il suo contenuto su disco e lo si *fonde* con il Livello 1. Essendo entrambi ordinati, la fusione è rapidissima. In caso di chiavi comuni, *vince quella proveniente dalla RAM*.
 + Se il Livello 1 eccede la sua dimensione massima (inclusa l'elasticità $alpha$), una parte delle sue chiavi viene estratta e fusa con il Livello 2.
 + La procedura continua *a cascata*, creando se necessario nuovi livelli inferiori. Più si scende, più le operazioni di fusione diventano rare.
@@ -169,9 +169,9 @@ La *Skip-List* è la struttura dati spesso utilizzata per mantenere il dizionari
 
 - Durante un aggiornamento si usa uno *stack* per tracciare i nodi attraversati, così da riallacciare correttamente i puntatori delle torrette.
 
-= Crawler Offline
+= Crivello Offline
 
-Un approccio meno responsive, ma molto più semplice da implementare per effettuare una *visita in ampiezza (BFS)* mantenendo costante l'uso della memoria centrale, è il *crawler offline*.
+Un approccio meno responsive, ma molto più semplice da implementare per effettuare una *visita in ampiezza (BFS)* mantenendo costante l'uso della memoria centrale, è il *crivello offline*.
 
 == I tre file del sistema
 
