@@ -20,7 +20,7 @@ La distinzione principale riguarda il tipo di errore ammesso dall'algoritmo:
 #note[
   La soglia di successo $2/3$ (ossia probabilità di errore al più $1/3$) è puramente convenzionale: eseguendo più ripetizioni indipendenti dell'algoritmo sullo stesso input e restituendo la risposta di maggioranza (per BPP/BPL) o l'OR logico delle risposte (per RP/RL), la probabilità di errore decresce esponenzialmente e può essere ridotta a piacere.
   Tale amplificazione della probabilità mantiene lo spazio di lavoro logaritmico sia in BPL sia in RL, poiché basta un contatore di $O(log(n))$ bit per tenere traccia degli esiti delle ripetizioni.
-  ]
+]
 
 Poiché un algoritmo deterministico è un caso particolare di algoritmo randomizzato (che non legge bit casuali) e un algoritmo con errore unilaterale è un caso particolare di algoritmo con errore bilaterale, valgono immediatamente le seguenti catene di inclusioni:
 $ L subset.eq "RL" subset.eq "BPL" quad "e" quad L subset.eq P subset.eq "RP" subset.eq "BPP" $
@@ -239,11 +239,11 @@ Per ottenere un algoritmo *lineare* nel numero totale di occorrenze $n$, ci limi
 
 #note[
   *Differenza tra intervallo minimale e intervallo minimo*:
-- Gli intervalli ordinati per inclusione formano un *ordine parziale*.
-- Un intervallo $[u, v]$ che contiene tutti i $k$ termini è *minimale* (rispetto alla relazione di inclusione $subset.eq$) se non esiste alcun sotto-intervallo stretto $[u', v'] subset [u, v]$ che contenga anch'esso tutti i $k$ termini.
-- Un intervallo è *minimo* se ha la lunghezza assoluta $v - u$ più piccola possibile tra tutti gli intervalli validi del documento.
+  - Gli intervalli ordinati per inclusione formano un *ordine parziale*.
+  - Un intervallo $[u, v]$ che contiene tutti i $k$ termini è *minimale* (rispetto alla relazione di inclusione $subset.eq$) se non esiste alcun sotto-intervallo stretto $[u', v'] subset [u, v]$ che contenga anch'esso tutti i $k$ termini.
+  - Un intervallo è *minimo* se ha la lunghezza assoluta $v - u$ più piccola possibile tra tutti gli intervalli validi del documento.
 
-  Poiché l'inclusione tra intervalli è un ordine parziale e non totale, *ogni intervallo minimo è anche minimale, ma non vale il viceversa*: ad esempio, un documento può contenere due intervalli minimali disgiunti o parzialmente sovrapposti di lunghezza $3$ e $4$; il primo è sia minimale sia minimo, mentre il secondo è minimale ma non minimo.
+    Poiché l'inclusione tra intervalli è un ordine parziale e non totale, *ogni intervallo minimo è anche minimale, ma non vale il viceversa*: ad esempio, un documento può contenere due intervalli minimali disgiunti o parzialmente sovrapposti di lunghezza $3$ e $4$; il primo è sia minimale sia minimo, mentre il secondo è minimale ma non minimo.
 ]
 
 ==== Proprietà degli intervalli minimali e Algoritmo
@@ -344,16 +344,16 @@ L'algoritmo enumera gli intervalli candidati procedendo come una fusione (`OR`) 
     rect((5.3, -0.25), (9.8, 2.6), fill: col-heap-bg, stroke: 1pt + rgb("0284c7"), radius: 4pt)
     content((7.55, 2.3), text(weight: "bold", size: 9pt, fill: col-primary)[Min-Heap (dim $k=3$)])
 
-    rect((6.8, 1.3), (8.3, 1.9), fill: rgb("fee2e2"), stroke: 1.3pt + col-accent, radius: 3pt)
-    content((7.55, 1.6), text(weight: "bold", size: 9pt, fill: col-accent)[10 #text(size: 7pt)[(da $P_1$)]])
-    content((8.4, 1.6), text(size: 8pt, weight: "bold", fill: col-accent)[#sym.arrow.l top], anchor: "west")
+    rect((6.8, 1.45), (8.3, 1.95), fill: rgb("fee2e2"), stroke: 1.3pt + col-accent, radius: 3pt)
+    content((7.55, 1.7), text(weight: "bold", size: 9pt, fill: col-accent)[5 #text(size: 7pt)[(da $P_2$)]])
+    content((8.4, 1.7), text(size: 8pt, weight: "bold", fill: col-accent)[#sym.arrow.l top], anchor: "west")
 
-    rect((6.8, 1.2), (8.3, 0.6), fill: white, stroke: 0.8pt + luma(120), radius: 3pt)
-    content((7.55, 0.9), text(size: 8pt)[5 #text(size: 6.5pt)[(da $P_2$)]])
+    rect((6.8, 0.75), (8.3, 1.25), fill: white, stroke: 0.8pt + luma(120), radius: 3pt)
+    content((7.55, 1.0), text(size: 8pt)[10 #text(size: 6.5pt)[(da $P_1$)]])
 
-    rect((6.8, 0.5), (8.3, -0.1), fill: rgb("ffedd5"), stroke: 1.2pt + col-ptr, radius: 3pt)
-    content((7.55, 0.2), text(weight: "bold", size: 8pt, fill: col-ptr)[18 #text(size: 6.5pt)[(da $P_0$)]])
-    content((8.4, 0.2), text(size: 8pt, weight: "bold", fill: col-accent)[#sym.arrow.l max], anchor: "west")
+    rect((6.8, 0.05), (8.3, 0.55), fill: rgb("ffedd5"), stroke: 1.2pt + col-ptr, radius: 3pt)
+    content((7.55, 0.3), text(weight: "bold", size: 8pt, fill: col-ptr)[18 #text(size: 6.5pt)[(da $P_0$)]])
+    content((8.4, 0.3), text(size: 8pt, weight: "bold", fill: col-accent)[#sym.arrow.l max], anchor: "west")
   })
 ]
 *Valutazione pigra (lazy)*: se stiamo solo verificando che il documento soddisfi $(t_0, dots, t_(k-1)) tilde l$, l'algoritmo lavora in modo *pigro* e termina con successo non appena incontra il primo intervallo con ampiezza $<= l$, senza dover cercare necessariamente l'intervallo di lunghezza minima assoluta.
@@ -412,72 +412,70 @@ L'algoritmo enumera gli intervalli candidati procedendo come una fusione (`OR`) 
   ]
 
   Le liste di posizioni dei tre termini sono:
-- $a: [3, 11, 25]$
-- $b: [7, 9, 14, 22]$
-- $c: [5, 16, 18, 26]$
+  - $a: [3, 11, 25]$
+  - $b: [7, 9, 14, 22]$
+  - $c: [5, 16, 18, 26]$
 
-  Simuliamo l'evoluzione della coda e della variabile `max`:
+    Simuliamo l'evoluzione della coda e della variabile `max`:
 
-  #table(
-    columns: (auto, auto, auto, auto, auto, auto),
-    align: (
-      center + horizon,
-      left + horizon,
-      left + horizon,
-      center + horizon,
-      center + horizon,
-      center + horizon,
-      left + horizon,
-    ),
-    stroke: 0.5pt + luma(180),
-    fill: (col, row) => if row == 0 { luma(240) } else { none },
-    table.header(
-      [*Operazione*], [*Stato coda*], [*`top`*], [*`max`*], [*Intervallo*], [*Minimale?*]
-    ),
-    [Stato iniziale], [`[a: 3, c: 5, b: 7]`], [$3$], [$7$], [$[3, 7]$], [Sì (ampiezza $5 <= 7$)],
-    
-    [Avanzamento di $a$ ($3 -> 11$)],
-    [`[c: 5, b: 7, a: 11]`],
-    [$5$],
-    [$11$],
-    [$[5, 11]$],
-    [Sì (non contiene sotto-intervalli validi)],
+    #table(
+      columns: (auto, auto, auto, auto, auto, auto),
+      align: (
+        center + horizon,
+        left + horizon,
+        left + horizon,
+        center + horizon,
+        center + horizon,
+        center + horizon,
+        left + horizon,
+      ),
+      stroke: 0.5pt + luma(180),
+      fill: (col, row) => if row == 0 { luma(240) } else { none },
+      table.header([*Operazione*], [*Stato coda*], [*`top`*], [*`max`*], [*Intervallo*], [*Minimale?*]),
+      [Stato iniziale], [`[a: 3, c: 5, b: 7]`], [$3$], [$7$], [$[3, 7]$], [Sì (ampiezza $5 <= 7$)],
 
-    [Avanzamento di $c$ ($5 -> 16$)],
-    [`[b: 7, a: 11, c: 16]`],
-    [$7$],
-    [$16$],
-    [$[7, 16]$],
-    [No (contiene propriamente $[11, 16]$)],
+      [Avanzamento di $a$ ($3 -> 11$)],
+      [`[c: 5, b: 7, a: 11]`],
+      [$5$],
+      [$11$],
+      [$[5, 11]$],
+      [Sì (non contiene sotto-intervalli validi)],
 
-    [Ripetizione di $b$ ($7 -> 9$)],
-    [`[b: 9, a: 11, c: 16]`],
-    [$9$],
-    [$16$],
-    [$[9, 16]$],
-    [No (contiene propriamente $[11, 16]$)],
+      [Avanzamento di $c$ ($5 -> 16$)],
+      [`[b: 7, a: 11, c: 16]`],
+      [$7$],
+      [$16$],
+      [$[7, 16]$],
+      [No (contiene propriamente $[11, 16]$)],
 
-    [Avanzamento di $b$ ($9 -> 14$)],
-    [`[a: 11, b: 14, c: 16]`],
-    [$11$],
-    [$16$],
-    [$[11, 16]$],
-    [Sì (nessun elemento ridondante interno)],
+      [Ripetizione di $b$ ($7 -> 9$)],
+      [`[b: 9, a: 11, c: 16]`],
+      [$9$],
+      [$16$],
+      [$[9, 16]$],
+      [No (contiene propriamente $[11, 16]$)],
 
-    [...], [], [], [], [], [],
+      [Avanzamento di $b$ ($9 -> 14$)],
+      [`[a: 11, b: 14, c: 16]`],
+      [$11$],
+      [$16$],
+      [$[11, 16]$],
+      [Sì (nessun elemento ridondante interno)],
 
-    [Avanzamento sequenza],
-    [`[b: 22, a: 25, c: 26]`],
-    [$22$],
-    [$26$],
-    [$[22, 26]$],
-    [Sì (ottimo, ampiezza minima $5$)],
-  )
+      [...], [], [], [], [], [],
 
-  #v(0.5em)
-  #text(size: 0.9em, style: "italic")[
-    *Nota:* a causa delle ripetizioni interne di $b$, gli intervalli $[7, 16]$ e $[9, 16]$ contengono propriamente $[11, 16]$ e pertanto non risultano minimali.
-  ]
+      [Avanzamento sequenza],
+      [`[b: 22, a: 25, c: 26]`],
+      [$22$],
+      [$26$],
+      [$[22, 26]$],
+      [Sì (ottimo, ampiezza minima $5$)],
+    )
+
+    #v(0.5em)
+    #text(size: 0.9em, style: "italic")[
+      *Nota:* a causa delle ripetizioni interne di $b$, gli intervalli $[7, 16]$ e $[9, 16]$ contengono propriamente $[11, 16]$ e pertanto non risultano minimali.
+    ]
 ]
 
 *Complessità*: l'algoritmo ha la stessa struttura e lo stesso costo di una fusione `OR` a $k$ vie.
@@ -510,8 +508,8 @@ Per costruire le liste di affissione, il passo computazionalmente dominante cons
 
 #note[
   *MapReduce e il costo della distribuzione (COST)*:
-- Proprio per eseguire questo ordinamento stabile su scala web in modo distribuito e tollerante ai guasti, Google ha introdotto il paradigma *MapReduce*, che gestisce automaticamente partizionamento, ordinamento distribuito e tripla replica dei dati (scartando i nodi che falliscono).
-- *Curiosità storica*: negli anni di massimo entusiasmo per MapReduce è stata proposta la metrica *COST* (*Configuration that Outperforms a Single Thread*), che misura quante macchine distribuite servano a un framework per battere un singolo laptop con un programma ben ottimizzato su singolo thread. Per diversi problemi su grafi e dati di medie dimensioni, l'overhead di rete e replica fa sì che anche con un numero enorme di macchine il sistema distribuito risulti più lento di un singolo thread su laptop.
+  - Proprio per eseguire questo ordinamento stabile su scala web in modo distribuito e tollerante ai guasti, Google ha introdotto il paradigma *MapReduce*, che gestisce automaticamente partizionamento, ordinamento distribuito e tripla replica dei dati (scartando i nodi che falliscono).
+  - *Curiosità storica*: negli anni di massimo entusiasmo per MapReduce è stata proposta la metrica *COST* (*Configuration that Outperforms a Single Thread*), che misura quante macchine distribuite servano a un framework per battere un singolo laptop con un programma ben ottimizzato su singolo thread. Per diversi problemi su grafi e dati di medie dimensioni, l'overhead di rete e replica fa sì che anche con un numero enorme di macchine il sistema distribuito risulti più lento di un singolo thread su laptop.
 ]
 
 === Inversione in memoria (sort su Bit Stream)
@@ -552,47 +550,137 @@ La fusione avviene in *streaming parallelo* utilizzando una *coda con priorità 
 
 #example[
   Supponiamo di dover fondere tre segmenti d'indice i cui dizionari ordinati sono:
-- $T_0$: termini `[a, b, c]`
-- $T_1$: termini `[b, c, d]`
-- $T_2$: termini `[a, d]`
+  - $T_0$: termini `[a, b, c]`
+  - $T_1$: termini `[b, c, d]`
+  - $T_2$: termini `[a, d]`
 
-1. *Inizializzazione*: inseriamo nella coda i primi termini di ciascun segmento: `a` (di $T_0$), `b` (di $T_1$) e `a` (di $T_2$).
-  2. *Estrazione di `a`*: per la regola di spareggio tra termini uguali vince `a` (di $T_0$) rispetto ad `a` (di $T_2$). Scriviamo nell'output la lista di affissione di `a` letta da $I_0$ e facciamo avanzare il cursore di $T_0$ al termine `b`.
-  3. *Concatenazione di `a`*: il nuovo minimo nella coda è `a` (di $T_2$). Appendiamo la lista di affissione di `a` letta da $I_2$ direttamente in coda a quella appena scritta per $I_0$, ottenendo la lista completa e ordinata per `a`, e facciamo avanzare il cursore di $T_2$ al termine `d`.
-  4. *Passaggio a `b`*: la coda contiene ora `b` (di $T_0$), `b` (di $T_1$) e `d` (di $T_2$); il processo prosegue analogamente per `b`, poi `c` e infine `d`.
+  1. *Inizializzazione*: inseriamo nella coda i primi termini di ciascun segmento: `a` (di $T_0$), `b` (di $T_1$) e `a` (di $T_2$).
+    2. *Estrazione di `a`*: per la regola di spareggio tra termini uguali vince `a` (di $T_0$) rispetto ad `a` (di $T_2$). Scriviamo nell'output la lista di affissione di `a` letta da $I_0$ e facciamo avanzare il cursore di $T_0$ al termine `b`.
+    3. *Concatenazione di `a`*: il nuovo minimo nella coda è `a` (di $T_2$). Appendiamo la lista di affissione di `a` letta da $I_2$ direttamente in coda a quella appena scritta per $I_0$, ottenendo la lista completa e ordinata per `a`, e facciamo avanzare il cursore di $T_2$ al termine `d`.
+    4. *Passaggio a `b`*: la coda contiene ora `b` (di $T_0$), `b` (di $T_1$) e `d` (di $T_2$); il processo prosegue analogamente per `b`, poi `c` e infine `d`.
 ]
 
-#align(center)[
-  #cetz.canvas({
-    import cetz.draw: *
+#let merge-step(step-title, segs, heap-items, out-lines) = {
+  block(breakable: false, width: 100%, above: 0.9em, below: 0.9em)[
+    #align(center)[
+      #cetz.canvas({
+        import cetz.draw: *
 
-    rect((0, 2.2), (2.6, 2.8), fill: rgb("#e3f2fd"), radius: 3pt)
-    content((1.3, 2.5), text(size: 8pt)[$T_0, I_0$: `[a, b, c]`])
+        let col-seg = rgb("#e3f2fd")
+        let col-heap = rgb("#fff9c4")
+        let col-heap-stroke = rgb("#f9a825")
+        let col-out = rgb("#c8e6c9")
+        let col-out-stroke = rgb("#2e7d32")
+        let col-top = rgb("#dc2626")
 
-    rect((0, 1.2), (2.6, 1.8), fill: rgb("#e3f2fd"), radius: 3pt)
-    content((1.3, 1.5), text(size: 8pt)[$T_1, I_1$: `[b, c, d]`])
+        // Titolo dello step
+        content((0, 0.95), text(size: 9pt, weight: "bold", fill: rgb("#1e3a8a"))[#step-title], anchor: "west")
 
-    rect((0, 0.2), (2.6, 0.8), fill: rgb("#e3f2fd"), radius: 3pt)
-    content((1.3, 0.5), text(size: 8pt)[$T_2, I_2$: `[a, d]`])
+        // 1. Segmenti e cursori
+        for (i, seg) in segs.enumerate() {
+          let sy = 0.45 - i * 0.48
+          rect((0, sy - 0.18), (3.6, sy + 0.18), fill: col-seg, stroke: 0.5pt + luma(140), radius: 3pt)
+          content((1.8, sy), text(size: 7.6pt)[#seg], anchor: "center")
+        }
 
-    line((2.6, 2.5), (4.2, 1.8), mark: (end: ">"))
-    line((2.6, 1.5), (4.2, 1.5), mark: (end: ">"))
-    line((2.6, 0.5), (4.2, 1.2), mark: (end: ">"))
+        line((3.7, -0.03), (4.2, -0.03), mark: (end: ">"), stroke: 1pt + luma(80))
 
-    rect((4.2, 0.7), (7.6, 2.3), fill: rgb("#fff9c4"), stroke: 1pt + rgb("#f9a825"), radius: 5pt)
-    content((5.9, 1.9), text(size: 8.5pt, weight: "bold")[Coda (Min-Heap)])
-    content((5.9, 1.45), text(size: 8pt)[`1°: (a, I_0)`])
-    content((5.9, 1.05), text(size: 8pt)[`2°: (a, I_2), 3°: (b, I_1)`])
+        // 2. Min-Heap
+        rect((4.3, -0.85), (8.2, 0.78), fill: col-heap, stroke: 1pt + col-heap-stroke, radius: 4pt)
+        content((6.25, 0.54), text(size: 8pt, weight: "bold")[Min-Heap (top in rosso)])
+        for (j, h) in heap-items.enumerate() {
+          let hy = 0.16 - j * 0.30
+          content(
+            (6.25, hy),
+            text(
+              size: 7.6pt,
+              fill: if j == 0 { col-top } else { black },
+              weight: if j == 0 { "bold" } else { "regular" },
+            )[#h],
+          )
+        }
 
-    line((7.6, 1.5), (9.0, 1.5), mark: (end: ">"))
+        line((8.3, -0.03), (8.8, -0.03), mark: (end: ">"), stroke: 1pt + luma(80))
 
-    rect((9.0, 0.7), (12.2, 2.3), fill: rgb("#c8e6c9"), stroke: 1pt + rgb("#2e7d32"), radius: 5pt)
-    content((10.6, 1.9), text(size: 8.5pt, weight: "bold")[Indice Finale $I$])
-    content((10.6, 1.45), text(size: 8pt)[`a -> I_0(a) + I_2(a)`])
-    content((10.6, 1.05), text(size: 8pt)[`b -> I_0(b) + I_1(b)`])
-  })
-]
+        // 3. Indice Finale
+        rect((8.9, -0.85), (13.6, 0.78), fill: col-out, stroke: 1pt + col-out-stroke, radius: 4pt)
+        content((11.25, 0.54), text(size: 8pt, weight: "bold")[Indice Finale $I$])
+        let step-y = if out-lines.len() >= 4 { 0.23 } else { 0.30 }
+        let start-y = if out-lines.len() >= 4 { 0.24 } else { 0.16 }
+        let txt-size = if out-lines.len() >= 4 { 7.1pt } else { 7.6pt }
+        for (k, line-txt) in out-lines.enumerate() {
+          let oy = start-y - k * step-y
+          content((11.25, oy), text(size: txt-size)[#line-txt])
+        }
+      })
+    ]
+  ]
+}
 
+// Passo 0: Inizializzazione
+#merge-step(
+  [0. Inizializzazione (primi termini di ogni segmento)],
+  (
+    [*$T_0$:* [#text(fill: rgb("#dc2626"), weight: "bold")[a], b, c]],
+    [*$T_1$:* [#text(fill: rgb("#dc2626"), weight: "bold")[b], c, d]],
+    [*$T_2$:* [#text(fill: rgb("#dc2626"), weight: "bold")[a], d]],
+  ),
+  ([`top:` `(a, T_0)` (spareggio $0 < 2$)], [`(a, T_2)`], [`(b, T_1)`]),
+  ([_(vuoto)_],),
+)
+
+// Passo 1: Estrazione (a, T_0) -> avanza T_0 a b
+#merge-step(
+  [1. Estrai `(a, T_0)`, scrivi $I_0(a)$, avanza $T_0 -> b$],
+  (
+    [*$T_0$:* [a, #text(fill: rgb("#dc2626"), weight: "bold")[b], c]],
+    [*$T_1$:* [#text(fill: rgb("#dc2626"), weight: "bold")[b], c, d]],
+    [*$T_2$:* [#text(fill: rgb("#dc2626"), weight: "bold")[a], d]],
+  ),
+  ([`top:` `(a, T_2)`], [`(b, T_0)`], [`(b, T_1)`]),
+  ([`a -> I_0(a)`],),
+)
+
+// Passo 2: Estrazione (a, T_2) -> concatena I_2(a), avanza T_2 a d
+#merge-step(
+  [2. Estrai `(a, T_2)`, concatena $I_2(a)$, avanza $T_2 -> d$],
+  (
+    [*$T_0$:* [a, #text(fill: rgb("#dc2626"), weight: "bold")[b], c]],
+    [*$T_1$:* [#text(fill: rgb("#dc2626"), weight: "bold")[b], c, d]],
+    [*$T_2$:* [a, #text(fill: rgb("#dc2626"), weight: "bold")[d]]],
+  ),
+  ([`top:` `(b, T_0)` (spareggio $0 < 1$)], [`(b, T_1)`], [`(d, T_2)`]),
+  ([`a -> I_0(a) + I_2(a)`],),
+)
+
+// Passo 3: Estrazione (b, T_0) e (b, T_1)
+#merge-step(
+  [3. Estrai `(b, T_0)` poi `(b, T_1)` $->$ avanzano a `c`],
+  (
+    [*$T_0$:* [a, b, #text(fill: rgb("#dc2626"), weight: "bold")[c]]],
+    [*$T_1$:* [b, #text(fill: rgb("#dc2626"), weight: "bold")[c], d]],
+    [*$T_2$:* [a, #text(fill: rgb("#dc2626"), weight: "bold")[d]]],
+  ),
+  ([`top:` `(c, T_0)` (spareggio $0 < 1$)], [`(c, T_1)`], [`(d, T_2)`]),
+  ([`a -> I_0(a) + I_2(a)`], [`b -> I_0(b) + I_1(b)`]),
+)
+
+// Passo 4: Completamento con c e d
+#merge-step(
+  [4. Estrai `(c, T_0), (c, T_1)` e infine `(d, T_1), (d, T_2)`],
+  (
+    [*$T_0$:* [a, b, c #text(size: 6.8pt, fill: luma(100))[(fine)]]],
+    [*$T_1$:* [b, c, d #text(size: 6.8pt, fill: luma(100))[(fine)]]],
+    [*$T_2$:* [a, d #text(size: 6.8pt, fill: luma(100))[(fine)]]],
+  ),
+  ([_(coda vuota)_],),
+  (
+    [`a -> I_0(a) + I_2(a)`],
+    [`b -> I_0(b) + I_1(b)`],
+    [`c -> I_0(c) + I_1(c)`],
+    [`d -> I_1(d) + I_2(d)`],
+  ),
+)
 Durante questa fase di fusione, poiché conosciamo finalmente la frequenza globale di ciascun termine, possiamo anche
 *ricodificare* le liste di affissione sostituendo i codici universali (gamma, delta, ...) con codici parametrici più compatti (come il codice di Golomb).
 
